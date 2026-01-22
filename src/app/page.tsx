@@ -26,8 +26,8 @@ export default function HomePage() {
           <Image
             src="/119_symbolmark.png"
             alt="중부소방서 심볼마크"
-            width={50}
-            height={50}
+            width={70}
+            height={70}
             priority
           />
           <h1 className="header-title" style={{
@@ -79,8 +79,8 @@ export default function HomePage() {
         <Image
           src="/119_symbolmark.png"
           alt="중부소방서 심볼마크"
-          width={50}
-          height={50}
+          width={70}
+          height={70}
           priority
         />
         <h1 className="header-title" style={{
