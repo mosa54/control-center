@@ -178,6 +178,7 @@ body {
   align-items: center;
   justify-content: center;
   min-height: 140px;
+  width: 100%;
   padding: var(--spacing-md);
   background: var(--color-surface);
   border-radius: var(--radius-lg);
