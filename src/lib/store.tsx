@@ -9,6 +9,7 @@ export type SessionMode = 'training' | 'emergency';
 // 체크인된 직원 정보
 export interface CheckedInEmployee extends Employee {
     checkedInAt: Date;
+    selectedDutyStatus?: '당번' | '비번';  // 교대근무자만 해당
 }
 
 // 앱 상태 인터페이스
@@ -37,7 +38,7 @@ interface AppActions {
     setExcelData: (data: ExcelData) => void;
 
     // 체크인 관리
-    checkIn: (employee: Employee) => boolean;
+    checkIn: (employee: Employee, dutyStatus?: '당번' | '비번') => boolean;
     checkOut: (employeeId: string) => void;
     isCheckedIn: (employeeId: string) => boolean;
 
@@ -149,7 +150,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
         localStorage.setItem(STORAGE_KEYS.excelData, JSON.stringify(data));
     }, []);
 
-    const checkIn = useCallback((employee: Employee): boolean => {
+    const checkIn = useCallback((employee: Employee, dutyStatus?: '당번' | '비번'): boolean => {
         // 기기별 응소 제한 확인
         if (hasDeviceCheckedIn) {
             return false;
@@ -163,6 +164,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
         const checkedIn: CheckedInEmployee = {
             ...employee,
             checkedInAt: new Date(),
+            selectedDutyStatus: employee.근무형태 === '교대' ? dutyStatus : undefined,
         };
 
         const newList = [...checkedInEmployees, checkedIn];
@@ -215,7 +217,11 @@ export function AppProvider({ children }: { children: ReactNode }) {
 
     const getMyMission = useCallback((): Mission | undefined => {
         if (!currentEmployee || !excelData) return undefined;
-        return getMissionByCode(excelData.missions, currentEmployee.임무코드);
+        // 교대근무자는 selectedDutyStatus에 따라 임무코드 선택
+        const missionCode = currentEmployee.selectedDutyStatus === '비번'
+            ? currentEmployee.임무코드_비번
+            : currentEmployee.임무코드_당번;
+        return getMissionByCode(excelData.missions, missionCode);
     }, [currentEmployee, excelData]);
 
     const resetAllCheckIns = useCallback(() => {

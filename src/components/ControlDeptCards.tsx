@@ -14,7 +14,7 @@ export default function ControlDeptCards() {
     const selectedMissions = selectedDept
         ? excelData.employees
             .filter(e => e.통제단편성부 === selectedDept)
-            .map(e => e.임무코드)
+            .map(e => e.임무코드_당번)
             .filter((v, i, a) => a.indexOf(v) === i) // unique
             .map(code => getMissionByCode(excelData.missions, code))
             .filter(Boolean)
@@ -96,7 +96,7 @@ export default function ControlDeptCards() {
                                 borderLeft: `3px solid ${getControlDeptColor(selectedDept)}`
                             }}>
                                 <div style={{ fontWeight: 600, marginBottom: '8px' }}>
-                                    {mission.임무명}
+                                    세부임무 : {mission.임무명}
                                 </div>
                                 <div style={{
                                     whiteSpace: 'pre-wrap',

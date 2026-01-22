@@ -15,6 +15,7 @@ export default function CheckinPage({ params }: { params: Promise<{ dept: string
     const { excelData, checkIn, isCheckedIn, currentEmployee } = useApp();
 
     const [selectedEmployeeId, setSelectedEmployeeId] = useState('');
+    const [selectedDutyStatus, setSelectedDutyStatus] = useState<'당번' | '비번' | null>(null);
     const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' } | null>(null);
 
     // 이 기기에서 이미 응소 완료했는지 확인
@@ -43,6 +44,12 @@ export default function CheckinPage({ params }: { params: Promise<{ dept: string
     const handleCheckIn = () => {
         if (!selectedEmployee) return;
 
+        // 교대근무자는 당번/비번 선택 필수
+        if (selectedEmployee.근무형태 === '교대' && !selectedDutyStatus) {
+            setToast({ message: '당번/비번을 선택해주세요.', type: 'error' });
+            return;
+        }
+
         if (isCheckedIn(selectedEmployee.id)) {
             setToast({ message: '이미 응소 완료된 인원입니다.', type: 'error' });
             return;
@@ -55,7 +62,7 @@ export default function CheckinPage({ params }: { params: Promise<{ dept: string
     const confirmCheckIn = () => {
         if (!selectedEmployee) return;
 
-        const success = checkIn(selectedEmployee);
+        const success = checkIn(selectedEmployee, selectedDutyStatus || undefined);
         if (success) {
             router.push('/dashboard');
         } else {
@@ -138,12 +145,12 @@ export default function CheckinPage({ params }: { params: Promise<{ dept: string
                                         <strong>{selectedEmployee.직위}</strong>
                                     </div>
                                     <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                                        <span style={{ color: '#757575' }}>성명</span>
-                                        <span>{selectedEmployee.성명 || '(미지정)'}</span>
-                                    </div>
-                                    <div style={{ display: 'flex', justifyContent: 'space-between' }}>
                                         <span style={{ color: '#757575' }}>직급</span>
                                         <span>{selectedEmployee.직급}</span>
+                                    </div>
+                                    <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                                        <span style={{ color: '#757575' }}>성명</span>
+                                        <span>{selectedEmployee.성명 || '(미지정)'}</span>
                                     </div>
                                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                                         <span style={{ color: '#757575' }}>편성부서</span>
@@ -171,9 +178,69 @@ export default function CheckinPage({ params }: { params: Promise<{ dept: string
                             </div>
                         )}
 
+                        {/* 교대근무자 당번/비번 선택 */}
+                        {selectedEmployee && selectedEmployee.근무형태 === '교대' && (
+                            <div className="card" style={{ margin: '16px 0', background: '#FFF3E0' }}>
+                                <div className="card-title" style={{ color: '#E65100' }}>
+                                    ⚙️ 근무 상태 선택
+                                </div>
+                                <p style={{ fontSize: '14px', color: '#757575', marginBottom: '12px' }}>
+                                    교대근무자입니다. 오늘 근무 상태를 선택해주세요.
+                                </p>
+                                <div style={{ display: 'flex', gap: '12px' }}>
+                                    <label style={{
+                                        flex: 1,
+                                        display: 'flex',
+                                        alignItems: 'center',
+                                        justifyContent: 'center',
+                                        gap: '8px',
+                                        padding: '12px',
+                                        borderRadius: '8px',
+                                        border: selectedDutyStatus === '당번' ? '2px solid #43A047' : '2px solid #E0E0E0',
+                                        background: selectedDutyStatus === '당번' ? '#E8F5E9' : '#FFF',
+                                        cursor: 'pointer',
+                                        fontWeight: selectedDutyStatus === '당번' ? 600 : 400,
+                                    }}>
+                                        <input
+                                            type="radio"
+                                            name="dutyStatus"
+                                            value="당번"
+                                            checked={selectedDutyStatus === '당번'}
+                                            onChange={() => setSelectedDutyStatus('당번')}
+                                            style={{ display: 'none' }}
+                                        />
+                                        🟢 당번
+                                    </label>
+                                    <label style={{
+                                        flex: 1,
+                                        display: 'flex',
+                                        alignItems: 'center',
+                                        justifyContent: 'center',
+                                        gap: '8px',
+                                        padding: '12px',
+                                        borderRadius: '8px',
+                                        border: selectedDutyStatus === '비번' ? '2px solid #1E88E5' : '2px solid #E0E0E0',
+                                        background: selectedDutyStatus === '비번' ? '#E3F2FD' : '#FFF',
+                                        cursor: 'pointer',
+                                        fontWeight: selectedDutyStatus === '비번' ? 600 : 400,
+                                    }}>
+                                        <input
+                                            type="radio"
+                                            name="dutyStatus"
+                                            value="비번"
+                                            checked={selectedDutyStatus === '비번'}
+                                            onChange={() => setSelectedDutyStatus('비번')}
+                                            style={{ display: 'none' }}
+                                        />
+                                        🔵 비번
+                                    </label>
+                                </div>
+                            </div>
+                        )}
+
                         <button
                             className="btn btn-primary btn-block"
-                            disabled={!selectedEmployee}
+                            disabled={!selectedEmployee || (selectedEmployee.근무형태 === '교대' && !selectedDutyStatus)}
                             onClick={handleCheckIn}
                             style={{ marginTop: '16px' }}
                         >

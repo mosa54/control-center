@@ -15,21 +15,34 @@ export default function HomePage() {
       <div className="page">
         <SessionBanner />
 
-        <div className="header" style={{ flexDirection: 'column', gap: '8px', paddingTop: '24px', paddingBottom: '16px' }}>
+        <div className="header" style={{
+          flexDirection: 'row',
+          alignItems: 'center',
+          justifyContent: 'center',
+          gap: '12px',
+          paddingTop: '24px',
+          paddingBottom: '16px'
+        }}>
           <Image
             src="/119_symbolmark.png"
             alt="중부소방서 심볼마크"
-            width={80}
-            height={80}
+            width={50}
+            height={50}
             priority
           />
-          <h1 className="header-title" style={{ textAlign: 'center', fontSize: '20px' }}>
-            중부소방서 긴급구조통제단 소집
+          <h1 className="header-title" style={{
+            textAlign: 'center',
+            fontSize: '28px',
+            fontWeight: 800,
+            letterSpacing: '-0.5px',
+            color: '#0D47A1'
+          }}>
+            중부소방서 긴급구조통제단
           </h1>
         </div>
 
-        <Link href="/admin" className="admin-link">
-          관리자
+        <Link href="/admin" className="admin-link-bottom">
+          ⚙️ 관리자
         </Link>
 
         <div className="page-content">
@@ -55,21 +68,34 @@ export default function HomePage() {
     <div className="page">
       <SessionBanner />
 
-      <div className="header" style={{ flexDirection: 'column', gap: '8px', paddingTop: '24px', paddingBottom: '16px' }}>
+      <div className="header" style={{
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'center',
+        gap: '12px',
+        paddingTop: '24px',
+        paddingBottom: '16px'
+      }}>
         <Image
           src="/119_symbolmark.png"
           alt="중부소방서 심볼마크"
-          width={80}
-          height={80}
+          width={50}
+          height={50}
           priority
         />
-        <h1 className="header-title" style={{ textAlign: 'center', fontSize: '20px' }}>
-          중부소방서 긴급구조통제단 소집
+        <h1 className="header-title" style={{
+          textAlign: 'center',
+          fontSize: '28px',
+          fontWeight: 800,
+          letterSpacing: '-0.5px',
+          color: '#0D47A1'
+        }}>
+          중부소방서 긴급구조통제단
         </h1>
       </div>
 
-      <Link href="/admin" className="admin-link">
-        관리자
+      <Link href="/admin" className="admin-link-bottom">
+        ⚙️ 관리자
       </Link>
 
       <div className="page-content">
