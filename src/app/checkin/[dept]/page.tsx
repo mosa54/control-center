@@ -59,14 +59,14 @@ export default function CheckinPage({ params }: { params: Promise<{ dept: string
         setShowConfirm(true);
     };
 
-    const confirmCheckIn = () => {
+    const confirmCheckIn = async () => {
         if (!selectedEmployee) return;
 
-        const success = checkIn(selectedEmployee, selectedDutyStatus || undefined);
-        if (success) {
+        const errorMsg = await checkIn(selectedEmployee, selectedDutyStatus || undefined);
+        if (!errorMsg) {
             router.push('/dashboard');
         } else {
-            setToast({ message: '이 기기에서는 이미 응소 완료했습니다.', type: 'error' });
+            setToast({ message: errorMsg, type: 'error' });
         }
         setShowConfirm(false);
     };

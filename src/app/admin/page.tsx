@@ -31,9 +31,9 @@ export default function AdminPage() {
         }
     };
 
-    const handleSave = () => {
-        setSessionMode(tempMode);
-        setSessionSummary(tempSummary);
+    const handleSave = async () => {
+        await setSessionMode(tempMode);
+        await setSessionSummary(tempSummary);
         setToast('설정이 저장되었습니다.');
     };
 
@@ -45,7 +45,7 @@ export default function AdminPage() {
         try {
             const buffer = await file.arrayBuffer();
             const data = parseExcelFile(buffer);
-            setExcelData(data);
+            await setExcelData(data);
             setToast(`엑셀 업로드 완료: 직원 ${data.employees.length}명, 임무 ${data.missions.length}개`);
         } catch (error) {
             console.error('Excel parse error:', error);
@@ -268,8 +268,8 @@ export default function AdminPage() {
                                 <button
                                     className="btn"
                                     style={{ flex: 1, background: '#D32F2F', color: 'white' }}
-                                    onClick={() => {
-                                        resetAllCheckIns();
+                                    onClick={async () => {
+                                        await resetAllCheckIns();
                                         setShowResetConfirm(false);
                                         setToast('응소 현황이 초기화되었습니다.');
                                     }}

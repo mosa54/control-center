@@ -1,77 +1,53 @@
 'use client';
 
 import { createContext, useContext, useState, useCallback, ReactNode, useEffect } from 'react';
-import { Employee, Mission, ExcelData, getMissionByCode, getControlDeptColor } from './excel';
+import { Employee, Mission, ExcelData, getMissionByCode } from './excel';
+import { supabase } from './supabase';
 
 // 세션 모드 타입
 export type SessionMode = 'training' | 'emergency';
 
-// 체크인된 직원 정보
+// 체크인된 직원 정보 (DB 구조에 맞춤)
 export interface CheckedInEmployee extends Employee {
     checkedInAt: Date;
-    selectedDutyStatus?: '당번' | '비번';  // 교대근무자만 해당
+    selectedDutyStatus?: '당번' | '비번';
+    // DB의 id (uuid)는 필요하면 추가
 }
 
 // 앱 상태 인터페이스
 interface AppState {
-    // 세션 정보
     sessionMode: SessionMode;
     sessionSummary: string;
-
-    // 엑셀 데이터
     excelData: ExcelData | null;
-
-    // 체크인된 직원들
     checkedInEmployees: CheckedInEmployee[];
-
-    // 현재 로그인한 직원
     currentEmployee: CheckedInEmployee | null;
+    isLoaded: boolean; // 데이터 로딩 완료 여부
 }
 
 // 컨텍스트 액션
 interface AppActions {
-    // 세션 관리
-    setSessionMode: (mode: SessionMode) => void;
-    setSessionSummary: (summary: string) => void;
-
-    // 엑셀 데이터 관리
-    setExcelData: (data: ExcelData) => void;
-
-    // 체크인 관리
-    checkIn: (employee: Employee, dutyStatus?: '당번' | '비번') => boolean;
-    checkOut: (employeeId: string) => void;
+    setSessionMode: (mode: SessionMode) => Promise<void>;
+    setSessionSummary: (summary: string) => Promise<void>;
+    setExcelData: (data: ExcelData) => Promise<void>;
+    checkIn: (employee: Employee, dutyStatus?: '당번' | '비번') => Promise<string | null>;
+    checkOut: (employeeId: string) => Promise<void>;
     isCheckedIn: (employeeId: string) => boolean;
-
-    // 통계
     getCountByControlDept: (dept: string) => number;
     getTotalCount: () => number;
     getCheckedInByControlDept: (dept: string) => CheckedInEmployee[];
-
-    // 현재 사용자 관리
     setCurrentEmployee: (employee: CheckedInEmployee | null) => void;
-    changeDept: (newDept: string) => void;
-
-    // 임무 조회
+    changeDept: (newDept: string) => Promise<void>;
     getMyMission: () => Mission | undefined;
-
-    // 전체 초기화 (관리자용)
-    resetAllCheckIns: () => void;
-
-    // 내 응소 취소 (본인)
-    cancelMyCheckIn: () => void;
+    resetAllCheckIns: () => Promise<void>;
+    cancelMyCheckIn: () => Promise<void>;
 }
 
 type AppContextType = AppState & AppActions;
 
 const AppContext = createContext<AppContextType | null>(null);
 
-// 로컬스토리지 키
 const STORAGE_KEYS = {
-    excelData: 'controlCenter_excelData',
-    sessionMode: 'controlCenter_sessionMode',
-    sessionSummary: 'controlCenter_sessionSummary',
-    checkedInEmployees: 'controlCenter_checkedIn',
-    deviceCheckedIn: 'controlCenter_deviceCheckedIn', // 기기별 응소 완료 여부
+    myId: 'controlCenter_myId', // 내 ID만 로컬에 저장 (재접속 식별용)
 };
 
 export function AppProvider({ children }: { children: ReactNode }) {
@@ -80,111 +56,201 @@ export function AppProvider({ children }: { children: ReactNode }) {
     const [excelData, setExcelDataState] = useState<ExcelData | null>(null);
     const [checkedInEmployees, setCheckedInEmployees] = useState<CheckedInEmployee[]>([]);
     const [currentEmployee, setCurrentEmployee] = useState<CheckedInEmployee | null>(null);
-    const [hasDeviceCheckedIn, setHasDeviceCheckedIn] = useState(false); // 기기별 응소 제한
+    const [isLoaded, setIsLoaded] = useState(false);
 
-    // 로컬스토리지에서 데이터 복원
+    // 1. 초기 데이터 로드 및 Realtime 구독
     useEffect(() => {
-        if (typeof window !== 'undefined') {
-            const savedExcel = localStorage.getItem(STORAGE_KEYS.excelData);
-            if (savedExcel) {
-                try {
-                    const parsed = JSON.parse(savedExcel);
-                    parsed.uploadedAt = new Date(parsed.uploadedAt);
-                    setExcelDataState(parsed);
-                } catch (e) {
-                    console.error('Failed to parse saved Excel data', e);
-                }
-            }
+        const fetchData = async () => {
+            try {
+                // 시스템 설정 로드
+                const { data: settings } = await supabase
+                    .from('system_settings')
+                    .select('*')
+                    .eq('id', 1)
+                    .single();
 
-            const savedMode = localStorage.getItem(STORAGE_KEYS.sessionMode);
-            if (savedMode) setSessionModeState(savedMode as SessionMode);
-
-            const savedSummary = localStorage.getItem(STORAGE_KEYS.sessionSummary);
-            if (savedSummary) setSessionSummaryState(savedSummary);
-
-            const savedCheckedIn = localStorage.getItem(STORAGE_KEYS.checkedInEmployees);
-            if (savedCheckedIn) {
-                try {
-                    const parsed = JSON.parse(savedCheckedIn);
-                    setCheckedInEmployees(parsed.map((e: CheckedInEmployee) => ({
-                        ...e,
-                        checkedInAt: new Date(e.checkedInAt),
-                    })));
-                } catch (e) {
-                    console.error('Failed to parse checked in employees', e);
-                }
-            }
-
-            // 기기별 응소 완료 상태 복원
-            const savedDeviceCheckedIn = localStorage.getItem(STORAGE_KEYS.deviceCheckedIn);
-            if (savedDeviceCheckedIn) {
-                try {
-                    const parsed = JSON.parse(savedDeviceCheckedIn);
-                    setHasDeviceCheckedIn(parsed.checkedIn);
-                    // currentEmployee도 복원
-                    if (parsed.employee) {
-                        setCurrentEmployee({
-                            ...parsed.employee,
-                            checkedInAt: new Date(parsed.employee.checkedInAt),
-                        });
+                if (settings) {
+                    setSessionModeState(settings.mode as SessionMode);
+                    setSessionSummaryState(settings.summary || '');
+                    if (settings.excel_data) {
+                        try {
+                            const parsedExcel = settings.excel_data as any; // 타입 단언 필요 시
+                            // Date 객체 복원
+                            if (parsedExcel.uploadedAt) parsedExcel.uploadedAt = new Date(parsedExcel.uploadedAt);
+                            setExcelDataState(parsedExcel);
+                        } catch (e) {
+                            console.error('Excel parse error', e);
+                        }
                     }
-                } catch (e) {
-                    console.error('Failed to parse device check-in status', e);
                 }
+
+                // 체크인 현황 로드
+                const { data: checkins } = await supabase.from('checkins').select('*');
+                if (checkins && settings?.excel_data) {
+                    const employees = (settings.excel_data as ExcelData).employees;
+                    // DB checkins 데이터를 CheckedInEmployee 형태로 변환
+                    const mapped: CheckedInEmployee[] = checkins.map(c => {
+                        const original = employees.find(e => e.id === c.employee_id);
+                        if (!original) return null;
+                        return {
+                            ...original,
+                            checkedInAt: new Date(c.checked_in_at),
+                            selectedDutyStatus: c.duty_status as any,
+                            // DB의 최신 정보(직위 등)가 있으면 덮어쓰기
+                            직위: c.position || original.직위,
+                            통제단편성부: c.dept || original.통제단편성부,
+                        };
+                    }).filter(Boolean) as CheckedInEmployee[];
+                    setCheckedInEmployees(mapped);
+                }
+            } catch (error) {
+                console.error('Error fetching data:', error);
+            } finally {
+                setIsLoaded(true);
             }
-        }
-    }, []);
-
-    const setSessionMode = useCallback((mode: SessionMode) => {
-        setSessionModeState(mode);
-        localStorage.setItem(STORAGE_KEYS.sessionMode, mode);
-    }, []);
-
-    const setSessionSummary = useCallback((summary: string) => {
-        setSessionSummaryState(summary);
-        localStorage.setItem(STORAGE_KEYS.sessionSummary, summary);
-    }, []);
-
-    const setExcelData = useCallback((data: ExcelData) => {
-        setExcelDataState(data);
-        localStorage.setItem(STORAGE_KEYS.excelData, JSON.stringify(data));
-    }, []);
-
-    const checkIn = useCallback((employee: Employee, dutyStatus?: '당번' | '비번'): boolean => {
-        // 기기별 응소 제한 확인
-        if (hasDeviceCheckedIn) {
-            return false;
-        }
-
-        const alreadyCheckedIn = checkedInEmployees.some(e => e.id === employee.id);
-        if (alreadyCheckedIn) {
-            return false;
-        }
-
-        const checkedIn: CheckedInEmployee = {
-            ...employee,
-            checkedInAt: new Date(),
-            selectedDutyStatus: employee.근무형태 === '교대' ? dutyStatus : undefined,
         };
 
-        const newList = [...checkedInEmployees, checkedIn];
-        setCheckedInEmployees(newList);
-        setCurrentEmployee(checkedIn);
-        setHasDeviceCheckedIn(true);
-        localStorage.setItem(STORAGE_KEYS.checkedInEmployees, JSON.stringify(newList));
-        localStorage.setItem(STORAGE_KEYS.deviceCheckedIn, JSON.stringify({ checkedIn: true, employee: checkedIn }));
-        return true;
-    }, [checkedInEmployees, hasDeviceCheckedIn]);
+        fetchData();
 
-    const checkOut = useCallback((employeeId: string) => {
-        const newList = checkedInEmployees.filter(e => e.id !== employeeId);
-        setCheckedInEmployees(newList);
-        localStorage.setItem(STORAGE_KEYS.checkedInEmployees, JSON.stringify(newList));
-        if (currentEmployee?.id === employeeId) {
+        // Realtime 구독
+        const channel = supabase.channel('schema-db-changes')
+            .on(
+                'postgres_changes',
+                { event: '*', schema: 'public', table: 'system_settings' },
+                (payload) => {
+                    const newRow = payload.new as any;
+                    if (newRow) {
+                        setSessionModeState(newRow.mode as SessionMode);
+                        setSessionSummaryState(newRow.summary || '');
+                        if (newRow.excel_data) {
+                            const parsedExcel = newRow.excel_data;
+                            if (parsedExcel.uploadedAt) parsedExcel.uploadedAt = new Date(parsedExcel.uploadedAt);
+                            setExcelDataState(parsedExcel);
+                        }
+                    }
+                }
+            )
+            .on(
+                'postgres_changes',
+                { event: '*', schema: 'public', table: 'checkins' },
+                async () => {
+                    // 체크인 변경 시 전체 다시 불러오기 (간단한 동기화)
+                    // 최적화를 위해 insert/update/delete를 구분할 수도 있지만,
+                    // 조인(Join) 데이터가 필요하므로 다시 fetch 하는게 안전함.
+                    const { data: checkins } = await supabase.from('checkins').select('*');
+                    // excelData 상태가 있어야 매핑 가능
+                    setExcelDataState(prev => {
+                        if (!prev) return prev;
+                        if (checkins) {
+                            const mapped: CheckedInEmployee[] = checkins.map(c => {
+                                const original = prev.employees.find(e => e.id === c.employee_id);
+                                if (!original) return null;
+                                return {
+                                    ...original,
+                                    checkedInAt: new Date(c.checked_in_at),
+                                    selectedDutyStatus: c.duty_status as any,
+                                    직위: c.position || original.직위,
+                                    통제단편성부: c.dept || original.통제단편성부,
+                                };
+                            }).filter(Boolean) as CheckedInEmployee[];
+                            setCheckedInEmployees(mapped);
+                        }
+                        return prev;
+                    });
+                }
+            )
+            .subscribe();
+
+        return () => {
+            supabase.removeChannel(channel);
+        };
+    }, []);
+
+    // 2. 내 정보 복원 (로컬 스토리지 myId + loaded checkedInEmployees)
+    useEffect(() => {
+        if (isLoaded && checkedInEmployees.length > 0) {
+            const myId = localStorage.getItem(STORAGE_KEYS.myId);
+            if (myId) {
+                const found = checkedInEmployees.find(e => e.id === myId);
+                if (found) setCurrentEmployee(found);
+                else {
+                    // DB에는 없는데 로컬엔 남아있다면 -> 초기화된 것임
+                    localStorage.removeItem(STORAGE_KEYS.myId);
+                    setCurrentEmployee(null);
+                }
+            }
+        } else if (isLoaded && checkedInEmployees.length === 0) {
+            // 전체 초기화된 경우
+            localStorage.removeItem(STORAGE_KEYS.myId);
             setCurrentEmployee(null);
         }
-    }, [checkedInEmployees, currentEmployee]);
+    }, [isLoaded, checkedInEmployees]);
 
+
+    // Actions 구현 (Supabase 호출)
+
+    const setSessionMode = useCallback(async (mode: SessionMode) => {
+        // Optimistic Update
+        setSessionModeState(mode);
+        await supabase.from('system_settings').update({ mode }).eq('id', 1);
+    }, []);
+
+    const setSessionSummary = useCallback(async (summary: string) => {
+        setSessionSummaryState(summary);
+        await supabase.from('system_settings').update({ summary }).eq('id', 1);
+    }, []);
+
+    const setExcelData = useCallback(async (data: ExcelData) => {
+        setExcelDataState(data);
+        await supabase.from('system_settings').update({ excel_data: data }).eq('id', 1);
+    }, []);
+
+    const checkIn = useCallback(async (employee: Employee, dutyStatus?: '당번' | '비번'): Promise<string | null> => {
+        // 이미 체크인 확인 (로컬 상태 기준)
+        if (checkedInEmployees.some(e => e.id === employee.id)) return '이미 다른 기기에서 응소 완료된 인원입니다.';
+
+        const { error } = await supabase.from('checkins').insert({
+            employee_id: employee.id,
+            dept: employee.통제단편성부,
+            name: employee.성명,
+            position: employee.직위,
+            duty_status: dutyStatus
+        });
+
+        if (!error) {
+            localStorage.setItem(STORAGE_KEYS.myId, employee.id); // 내 ID 저장
+            return null; // 성공 (에러 없음)
+        }
+        console.error('Checkin failed', error);
+        return error.message || '알 수 없는 오류가 발생했습니다.';
+    }, [checkedInEmployees]);
+
+    const checkOut = useCallback(async (employeeId: string) => {
+        await supabase.from('checkins').delete().eq('employee_id', employeeId);
+        if (localStorage.getItem(STORAGE_KEYS.myId) === employeeId) {
+            localStorage.removeItem(STORAGE_KEYS.myId);
+            setCurrentEmployee(null);
+        }
+    }, []);
+
+    const resetAllCheckIns = useCallback(async () => {
+        await supabase.from('checkins').delete().neq('id', '00000000-0000-0000-0000-000000000000'); // Delete all
+        localStorage.removeItem(STORAGE_KEYS.myId);
+        setCurrentEmployee(null);
+    }, []);
+
+    const cancelMyCheckIn = useCallback(async () => {
+        if (!currentEmployee) return;
+        await checkOut(currentEmployee.id);
+    }, [currentEmployee, checkOut]);
+
+    const changeDept = useCallback(async (newDept: string) => {
+        if (!currentEmployee) return;
+        await supabase.from('checkins').update({ dept: newDept }).eq('employee_id', currentEmployee.id);
+    }, [currentEmployee]);
+
+
+    // Read-only helpers (상태 기반)
     const isCheckedIn = useCallback((employeeId: string): boolean => {
         return checkedInEmployees.some(e => e.id === employeeId);
     }, [checkedInEmployees]);
@@ -201,50 +267,14 @@ export function AppProvider({ children }: { children: ReactNode }) {
         return checkedInEmployees.filter(e => e.통제단편성부 === dept);
     }, [checkedInEmployees]);
 
-    const changeDept = useCallback((newDept: string) => {
-        if (!currentEmployee) return;
-
-        const updated: CheckedInEmployee = {
-            ...currentEmployee,
-            통제단편성부: newDept,
-        };
-
-        const newList = checkedInEmployees.map(e => e.id === currentEmployee.id ? updated : e);
-        setCheckedInEmployees(newList);
-        setCurrentEmployee(updated);
-        localStorage.setItem(STORAGE_KEYS.checkedInEmployees, JSON.stringify(newList));
-    }, [currentEmployee, checkedInEmployees]);
-
     const getMyMission = useCallback((): Mission | undefined => {
         if (!currentEmployee || !excelData) return undefined;
-        // 교대근무자는 selectedDutyStatus에 따라 임무코드 선택
         const missionCode = currentEmployee.selectedDutyStatus === '비번'
             ? currentEmployee.임무코드_비번
             : currentEmployee.임무코드_당번;
         return getMissionByCode(excelData.missions, missionCode);
     }, [currentEmployee, excelData]);
 
-    const resetAllCheckIns = useCallback(() => {
-        setCheckedInEmployees([]);
-        setCurrentEmployee(null);
-        setHasDeviceCheckedIn(false);
-        localStorage.removeItem(STORAGE_KEYS.checkedInEmployees);
-        localStorage.removeItem(STORAGE_KEYS.deviceCheckedIn);
-    }, []);
-
-    const cancelMyCheckIn = useCallback(() => {
-        if (!currentEmployee) return;
-
-        // 체크인 목록에서 현재 사용자 제거
-        const newList = checkedInEmployees.filter(e => e.id !== currentEmployee.id);
-        setCheckedInEmployees(newList);
-        localStorage.setItem(STORAGE_KEYS.checkedInEmployees, JSON.stringify(newList));
-
-        // 기기 응소 상태 및 현재 사용자 초기화
-        setCurrentEmployee(null);
-        setHasDeviceCheckedIn(false);
-        localStorage.removeItem(STORAGE_KEYS.deviceCheckedIn);
-    }, [currentEmployee, checkedInEmployees]);
 
     const value: AppContextType = {
         sessionMode,
@@ -252,6 +282,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
         excelData,
         checkedInEmployees,
         currentEmployee,
+        isLoaded,
         setSessionMode,
         setSessionSummary,
         setExcelData,
