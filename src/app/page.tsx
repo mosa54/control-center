@@ -19,7 +19,7 @@ export default function HomePage() {
           flexDirection: 'row',
           alignItems: 'center',
           justifyContent: 'center',
-          gap: '12px',
+          gap: '6px',
           paddingTop: '24px',
           paddingBottom: '16px'
         }}>
@@ -72,7 +72,7 @@ export default function HomePage() {
         flexDirection: 'row',
         alignItems: 'center',
         justifyContent: 'center',
-        gap: '12px',
+        gap: '6px',
         paddingTop: '24px',
         paddingBottom: '16px'
       }}>
