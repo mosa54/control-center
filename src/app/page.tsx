@@ -37,7 +37,7 @@ export default function HomePage() {
             letterSpacing: '-0.5px',
             color: '#0D47A1'
           }}>
-            중부소방서 긴급구조통제단
+            중부소방서<br />긴급구조통제단 가동
           </h1>
         </div>
 
@@ -90,7 +90,7 @@ export default function HomePage() {
           letterSpacing: '-0.5px',
           color: '#0D47A1'
         }}>
-          중부소방서 긴급구조통제단
+          중부소방서<br />긴급구조통제단 가동
         </h1>
       </div>
 
