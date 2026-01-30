@@ -19,15 +19,15 @@ export default function HomePage() {
           flexDirection: 'row',
           alignItems: 'center',
           justifyContent: 'center',
-          gap: '12px',
+          gap: '6px',
           paddingTop: '24px',
           paddingBottom: '16px'
         }}>
           <Image
             src="/119_symbolmark.png"
             alt="중부소방서 심볼마크"
-            width={50}
-            height={50}
+            width={70}
+            height={70}
             priority
           />
           <h1 className="header-title" style={{
@@ -73,15 +73,15 @@ export default function HomePage() {
         flexDirection: 'row',
         alignItems: 'center',
         justifyContent: 'center',
-        gap: '12px',
+        gap: '6px',
         paddingTop: '24px',
         paddingBottom: '16px'
       }}>
         <Image
           src="/119_symbolmark.png"
           alt="중부소방서 심볼마크"
-          width={50}
-          height={50}
+          width={70}
+          height={70}
           priority
         />
         <h1 className="header-title" style={{
@@ -115,7 +115,13 @@ export default function HomePage() {
                 className="dept-tile"
                 style={{ borderLeftColor: getControlDeptColor(dept) }}
               >
-                <span className="name">{dept}</span>
+                <span className="name">
+                  {dept === '청문감사담당관' ? (
+                    <>청문감사<br />담당관</>
+                  ) : (
+                    dept
+                  )}
+                </span>
                 <span className="count">{count}명</span>
               </Link>
             );

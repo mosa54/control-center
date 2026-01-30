@@ -26,7 +26,13 @@ export default function DeptTile({ dept }: { dept: OriginalDept }) {
             className="dept-tile"
             style={{ borderLeftColor: color }}
         >
-            <span className="name">{dept}</span>
+            <span className="name">
+                {dept === '청문감사담당관' ? (
+                    <>청문감사<br />담당관</>
+                ) : (
+                    dept
+                )}
+            </span>
             <span className="count" style={{ color }}>{employeeCount}명</span>
         </Link>
     );
