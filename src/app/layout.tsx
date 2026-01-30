@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import "./globals.css";
 import { AppProvider } from "@/lib/store";
+import InstallPrompt from "@/components/InstallPrompt";
 
 export const metadata: Metadata = {
   title: "긴급구조통제단 소집·편성",
@@ -23,6 +24,7 @@ export default function RootLayout({
       <body>
         <AppProvider>
           {children}
+          <InstallPrompt />
         </AppProvider>
       </body>
     </html>

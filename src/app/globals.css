@@ -304,6 +304,7 @@ body {
 .header {
   display: flex;
   align-items: center;
+  justify-content: center;
   gap: var(--spacing-md);
   padding: var(--spacing-md);
   background: var(--color-surface);
@@ -313,7 +314,6 @@ body {
 .header-title {
   font-size: 18px;
   font-weight: 700;
-  flex: 1;
 }
 
 .header-back {

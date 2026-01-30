@@ -16,27 +16,30 @@ export default function HomePage() {
         <SessionBanner />
 
         <div className="header" style={{
+          display: 'flex',
           flexDirection: 'row',
           alignItems: 'center',
           justifyContent: 'center',
-          gap: '6px',
-          paddingTop: '24px',
-          paddingBottom: '16px'
+          width: '100%',
+          gap: '12px',
+          paddingTop: '32px',
+          paddingBottom: '24px'
         }}>
           <Image
             src="/119_symbolmark.png"
             alt="중부소방서 심볼마크"
-            width={70}
-            height={70}
+            width={60}
+            height={60}
             priority
           />
           <h1 className="header-title" style={{
-            textAlign: 'center',
-            fontSize: '24px',
+            textAlign: 'left',
+            fontSize: '22px',
             fontWeight: 800,
             letterSpacing: '-0.5px',
             color: '#0D47A1',
-            lineHeight: '1.3'
+            lineHeight: '1.25',
+            margin: 0
           }}>
             중부소방서<br />긴급구조통제단 가동
           </h1>
@@ -70,27 +73,30 @@ export default function HomePage() {
       <SessionBanner />
 
       <div className="header" style={{
+        display: 'flex',
         flexDirection: 'row',
         alignItems: 'center',
         justifyContent: 'center',
-        gap: '6px',
-        paddingTop: '24px',
-        paddingBottom: '16px'
+        width: '100%',
+        gap: '12px',
+        paddingTop: '32px',
+        paddingBottom: '24px'
       }}>
         <Image
           src="/119_symbolmark.png"
           alt="중부소방서 심볼마크"
-          width={70}
-          height={70}
+          width={60}
+          height={60}
           priority
         />
         <h1 className="header-title" style={{
-          textAlign: 'center',
-          fontSize: '24px',
+          textAlign: 'left',
+          fontSize: '22px',
           fontWeight: 800,
           letterSpacing: '-0.5px',
           color: '#0D47A1',
-          lineHeight: '1.3'
+          lineHeight: '1.25',
+          margin: 0
         }}>
           중부소방서<br />긴급구조통제단 가동
         </h1>
