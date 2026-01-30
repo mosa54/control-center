@@ -113,7 +113,13 @@ export default function HomePage() {
                 className="dept-tile"
                 style={{ borderLeftColor: getControlDeptColor(dept) }}
               >
-                <span className="name">{dept}</span>
+                <span className="name">
+                  {dept === '청문감사담당관' ? (
+                    <>청문감사<br />담당관</>
+                  ) : (
+                    dept
+                  )}
+                </span>
                 <span className="count">{count}명</span>
               </Link>
             );
