@@ -50,6 +50,8 @@ const STORAGE_KEYS = {
     myId: 'controlCenter_myId', // 내 ID만 로컬에 저장 (재접속 식별용)
 };
 
+const SETTINGS_ID = 1;
+
 export function AppProvider({ children }: { children: ReactNode }) {
     const [sessionMode, setSessionModeState] = useState<SessionMode>('training');
     const [sessionSummary, setSessionSummaryState] = useState('');
@@ -66,7 +68,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
                 const { data: settings } = await supabase
                     .from('system_settings')
                     .select('*')
-                    .eq('id', 1)
+                    .eq('id', SETTINGS_ID)
                     .single();
 
                 if (settings) {
@@ -192,17 +194,17 @@ export function AppProvider({ children }: { children: ReactNode }) {
     const setSessionMode = useCallback(async (mode: SessionMode) => {
         // Optimistic Update
         setSessionModeState(mode);
-        await supabase.from('system_settings').update({ mode }).eq('id', 1);
+        await supabase.from('system_settings').update({ mode }).eq('id', SETTINGS_ID);
     }, []);
 
     const setSessionSummary = useCallback(async (summary: string) => {
         setSessionSummaryState(summary);
-        await supabase.from('system_settings').update({ summary }).eq('id', 1);
+        await supabase.from('system_settings').update({ summary }).eq('id', SETTINGS_ID);
     }, []);
 
     const setExcelData = useCallback(async (data: ExcelData) => {
         setExcelDataState(data);
-        await supabase.from('system_settings').update({ excel_data: data }).eq('id', 1);
+        await supabase.from('system_settings').update({ excel_data: data }).eq('id', SETTINGS_ID);
     }, []);
 
     const checkIn = useCallback(async (employee: Employee, dutyStatus?: '당번' | '비번'): Promise<string | null> => {
@@ -226,10 +228,15 @@ export function AppProvider({ children }: { children: ReactNode }) {
     }, [checkedInEmployees]);
 
     const checkOut = useCallback(async (employeeId: string) => {
-        await supabase.from('checkins').delete().eq('employee_id', employeeId);
-        if (localStorage.getItem(STORAGE_KEYS.myId) === employeeId) {
-            localStorage.removeItem(STORAGE_KEYS.myId);
-            setCurrentEmployee(null);
+        const { error } = await supabase.from('checkins').delete().eq('employee_id', employeeId);
+        if (error) {
+            console.error('Checkout failed', error);
+            // 필요시 에러 처리 로직 추가
+        } else {
+            if (localStorage.getItem(STORAGE_KEYS.myId) === employeeId) {
+                localStorage.removeItem(STORAGE_KEYS.myId);
+                setCurrentEmployee(null);
+            }
         }
     }, []);
 

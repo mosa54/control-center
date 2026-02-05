@@ -107,7 +107,7 @@ export default function InstallPrompt() {
                         overflow: 'hidden',
                         background: '#f5f5f5'
                     }}>
-                        <img src="/icon.jpeg" alt="앱 아이콘" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                        <img src="/icon.png" alt="앱 아이콘" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
                     </div>
                     <div>
                         <div style={{ fontWeight: 'bold', fontSize: '15px' }}>통제단 앱 설치</div>

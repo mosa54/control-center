@@ -9,8 +9,8 @@ export const metadata: Metadata = {
   manifest: "/manifest.json",
   themeColor: "#0D47A1",
   icons: {
-    icon: "/icon.jpeg",
-    apple: "/icon.jpeg",
+    icon: "/icon.png",
+    apple: "/icon.png",
   }
 };
 

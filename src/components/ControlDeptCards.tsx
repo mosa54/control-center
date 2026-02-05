@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import { useApp } from '@/lib/store';
-import { getOrderedControlDepts, getControlDeptColor, getMissionByCode } from '@/lib/excel';
+import { getOrderedControlDepts, getControlDeptColor, getMissionByCode, CONTROL_DEPT_ORDER_LIST } from '@/lib/excel';
 
 export default function ControlDeptCards() {
     const { excelData, getCountByControlDept } = useApp();
@@ -10,7 +10,7 @@ export default function ControlDeptCards() {
 
     if (!excelData) return null;
 
-    const controlDepts = getOrderedControlDepts(excelData.employees);
+    const controlDepts = getOrderedControlDepts(excelData.employees, CONTROL_DEPT_ORDER_LIST);
     const selectedMissions = selectedDept
         ? excelData.employees
             .filter(e => e.통제단편성부 === selectedDept)
@@ -21,29 +21,40 @@ export default function ControlDeptCards() {
         : [];
 
     return (
-        <>
-            <div className="card">
-                <div className="card-title">통제단 부서별 현황</div>
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                    {controlDepts.map(dept => {
-                        const count = getCountByControlDept(dept);
-                        const total = excelData.employees.filter(e => e.통제단편성부 === dept).length;
-                        const color = getControlDeptColor(dept);
-                        return (
+        <div className="card">
+            <div className="card-title">통제단 부서별 현황</div>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                {controlDepts.map(dept => {
+                    const count = getCountByControlDept(dept);
+                    const total = excelData.employees.filter(e => e.통제단편성부 === dept).length;
+                    const color = getControlDeptColor(dept);
+                    const isSelected = selectedDept === dept;
+
+                    const deptMissions = isSelected
+                        ? excelData.employees
+                            .filter(e => e.통제단편성부 === dept)
+                            .map(e => e.임무코드_당번)
+                            .filter((v, i, a) => a.indexOf(v) === i) // unique
+                            .map(code => getMissionByCode(excelData.missions, code))
+                            .filter(Boolean)
+                        : [];
+
+                    return (
+                        <div key={dept} style={{ display: 'flex', flexDirection: 'column' }}>
                             <button
-                                key={dept}
-                                onClick={() => setSelectedDept(selectedDept === dept ? null : dept)}
+                                onClick={() => setSelectedDept(isSelected ? null : dept)}
                                 style={{
                                     display: 'flex',
                                     alignItems: 'center',
                                     justifyContent: 'space-between',
                                     padding: '12px 16px',
-                                    background: selectedDept === dept ? '#E3F2FD' : '#F5F5F5',
+                                    background: isSelected ? '#E3F2FD' : '#F5F5F5',
                                     border: 'none',
                                     borderRadius: '8px',
                                     borderLeft: `4px solid ${color}`,
                                     cursor: 'pointer',
                                     textAlign: 'left',
+                                    transition: 'background-color 0.2s'
                                 }}
                             >
                                 <span style={{ fontWeight: 600 }}>{dept}</span>
@@ -52,65 +63,58 @@ export default function ControlDeptCards() {
                                     <span style={{ color: '#757575' }}> / {total}명</span>
                                 </span>
                             </button>
-                        );
-                    })}
-                </div>
-            </div>
 
-            {selectedDept && selectedMissions.length > 0 && (
-                <div className="card">
-                    <div className="card-title" style={{
-                        display: 'flex',
-                        alignItems: 'center',
-                        gap: '8px',
-                        justifyContent: 'space-between'
-                    }}>
-                        <span style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                            <span style={{
-                                width: '12px',
-                                height: '12px',
-                                borderRadius: '50%',
-                                background: getControlDeptColor(selectedDept)
-                            }} />
-                            {selectedDept} 임무
-                        </span>
-                        <button
-                            onClick={() => setSelectedDept(null)}
-                            style={{
-                                background: 'none',
-                                border: 'none',
-                                fontSize: '20px',
-                                cursor: 'pointer',
-                                color: '#757575'
-                            }}
-                        >
-                            ×
-                        </button>
-                    </div>
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-                        {selectedMissions.map((mission, idx) => mission && (
-                            <div key={idx} style={{
-                                padding: '12px',
-                                background: '#FAFAFA',
-                                borderRadius: '8px',
-                                borderLeft: `3px solid ${getControlDeptColor(selectedDept)}`
-                            }}>
-                                <div style={{ fontWeight: 600, marginBottom: '8px' }}>
-                                    세부임무 : {mission.임무명}
-                                </div>
+                            {isSelected && (
                                 <div style={{
-                                    whiteSpace: 'pre-wrap',
-                                    fontSize: '14px',
-                                    lineHeight: '1.6',
-                                    color: '#424242'
+                                    marginTop: '8px',
+                                    marginLeft: '12px',
+                                    paddingLeft: '12px',
+                                    borderLeft: `2px dashed ${color}`,
+                                    display: 'flex',
+                                    flexDirection: 'column',
+                                    gap: '12px',
+                                    animation: 'slideDown 0.3s ease-out'
                                 }}>
-                                    {mission.임무내용}
+                                    <style jsx>{`
+                                        @keyframes slideDown {
+                                            from { opacity: 0; transform: translateY(-10px); }
+                                            to { opacity: 1; transform: translateY(0); }
+                                        }
+                                    `}</style>
+
+                                    {deptMissions.length > 0 ? (
+                                        deptMissions.map((mission, idx) => mission && (
+                                            <div key={idx} style={{
+                                                padding: '12px',
+                                                background: '#fff',
+                                                borderRadius: '8px',
+                                                border: '1px solid #eee',
+                                                boxShadow: '0 1px 3px rgba(0,0,0,0.05)'
+                                            }}>
+                                                <div style={{ fontWeight: 600, marginBottom: '6px', color: '#333', fontSize: '15px' }}>
+                                                    {mission.임무명}
+                                                </div>
+                                                <div style={{
+                                                    whiteSpace: 'pre-wrap',
+                                                    fontSize: '14px',
+                                                    lineHeight: '1.5',
+                                                    color: '#616161'
+                                                }}>
+                                                    {mission.임무내용}
+                                                </div>
+                                            </div>
+                                        ))
+                                    ) : (
+                                        <div style={{ padding: '8px', color: '#999', fontSize: '14px' }}>
+                                            등록된 임무가 없습니다.
+                                        </div>
+                                    )}
                                 </div>
-                            </div>
-                        ))}
-                    </div>
-                </div>
-            )}
-        </>
+                            )}
+                        </div>
+                    );
+                })}
+            </div>
+        </div>
     );
 }

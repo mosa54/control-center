@@ -1,7 +1,7 @@
 'use client';
 
 import { useApp } from '@/lib/store';
-import { getOrderedControlDepts, getControlDeptColor } from '@/lib/excel';
+import { getOrderedControlDepts, getControlDeptColor, CONTROL_DEPT_ORDER_ORIGINAL } from '@/lib/excel';
 
 export default function CounterBar() {
     const { excelData, getCountByControlDept, getTotalCount } = useApp();
@@ -9,7 +9,7 @@ export default function CounterBar() {
 
     if (!excelData) return null;
 
-    const orderedDepts = getOrderedControlDepts(excelData.employees);
+    const orderedDepts = getOrderedControlDepts(excelData.employees, CONTROL_DEPT_ORDER_ORIGINAL);
 
     return (
         <div className="counter-bar-wrapper">

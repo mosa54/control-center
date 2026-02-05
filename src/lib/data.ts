@@ -42,49 +42,76 @@ export interface Employee {
   controlDeptId: ControlDeptId;
 }
 
-// 임시 직원 데이터 (총 32명)
+// 임시 직원 데이터 (총 58명)
 export const EMPLOYEES: Employee[] = [
-  // 청문감사담당관 (6명) → 지휘보좌관
-  { id: 'e001', name: '김정훈', rank: '소방정', originalDept: '청문감사담당관', controlDeptId: 'command-staff' },
-  { id: 'e002', name: '이상민', rank: '소방령', originalDept: '청문감사담당관', controlDeptId: 'command-staff' },
-  { id: 'e003', name: '박준형', rank: '소방경', originalDept: '청문감사담당관', controlDeptId: 'command-staff' },
-  { id: 'e004', name: '최영호', rank: '소방위', originalDept: '청문감사담당관', controlDeptId: 'command-staff' },
-  { id: 'e005', name: '정민수', rank: '소방장', originalDept: '청문감사담당관', controlDeptId: 'command-staff' },
-  { id: 'e006', name: '강태우', rank: '소방교', originalDept: '청문감사담당관', controlDeptId: 'command-staff' },
+  // 지휘보좌관 (7명)
+  { id: 'e006', name: '정성고', rank: '소방경', originalDept: '소방행정과', controlDeptId: 'command-staff' },
+  { id: 'e009', name: '김만수', rank: '소방사', originalDept: '소방행정과', controlDeptId: 'command-staff' },
+  { id: 'e029', name: '김경훈', rank: '소방경', originalDept: '구조구급과', controlDeptId: 'command-staff' },
+  { id: 'e039', name: '오무원', rank: '소방경', originalDept: '현장대응단', controlDeptId: 'command-staff' },
+  { id: 'e046', name: '황중석', rank: '소방위', originalDept: '현장대응단', controlDeptId: 'command-staff' },
+  { id: 'e051', name: '이현명', rank: '소방위', originalDept: '현장대응단', controlDeptId: 'command-staff' },
+  { id: 'e056', name: '윤재윤', rank: '소방위', originalDept: '현장대응단', controlDeptId: 'command-staff' },
 
-  // 소방행정과 (6명) → 본서상황관리 4명 + 자원지원부 2명
-  { id: 'e007', name: '윤성재', rank: '소방령', originalDept: '소방행정과', controlDeptId: 'situation' },
-  { id: 'e008', name: '임현우', rank: '소방경', originalDept: '소방행정과', controlDeptId: 'situation' },
-  { id: 'e009', name: '한지훈', rank: '소방위', originalDept: '소방행정과', controlDeptId: 'situation' },
-  { id: 'e010', name: '오세진', rank: '소방장', originalDept: '소방행정과', controlDeptId: 'situation' },
-  { id: 'e011', name: '서동현', rank: '소방교', originalDept: '소방행정과', controlDeptId: 'support' },
-  { id: 'e012', name: '권영민', rank: '소방사', originalDept: '소방행정과', controlDeptId: 'support' },
+  // 본서상황관리 (4명)
+  { id: 'e001', name: '김승일', rank: '소방교', originalDept: '청문감사담당관', controlDeptId: 'situation' },
+  { id: 'e005', name: '강승주', rank: '소방령', originalDept: '소방행정과', controlDeptId: 'situation' },
+  { id: 'e023', name: '송지훈', rank: '소방교', originalDept: '예방안전과', controlDeptId: 'situation' },
+  { id: 'e027', name: '이유진', rank: '소방사', originalDept: '예방안전과', controlDeptId: 'situation' },
 
-  // 예방안전과 (7명) → 대응계획부
-  { id: 'e013', name: '조현석', rank: '소방령', originalDept: '예방안전과', controlDeptId: 'planning' },
-  { id: 'e014', name: '황인호', rank: '소방경', originalDept: '예방안전과', controlDeptId: 'planning' },
-  { id: 'e015', name: '안재현', rank: '소방경', originalDept: '예방안전과', controlDeptId: 'planning' },
-  { id: 'e016', name: '송민규', rank: '소방위', originalDept: '예방안전과', controlDeptId: 'planning' },
-  { id: 'e017', name: '전용희', rank: '소방장', originalDept: '예방안전과', controlDeptId: 'planning' },
-  { id: 'e018', name: '홍준표', rank: '소방교', originalDept: '예방안전과', controlDeptId: 'planning' },
-  { id: 'e019', name: '유승호', rank: '소방사', originalDept: '예방안전과', controlDeptId: 'planning' },
+  // 대응계획부 (13명)
+  { id: 'e007', name: '김경민', rank: '소방위', originalDept: '소방행정과', controlDeptId: 'planning' },
+  { id: 'e008', name: '홍승민', rank: '소방장', originalDept: '소방행정과', controlDeptId: 'planning' },
+  { id: 'e025', name: '정문수', rank: '소방경', originalDept: '예방안전과', controlDeptId: 'planning' },
+  { id: 'e028', name: '박종도', rank: '소방령', originalDept: '구조구급과', controlDeptId: 'planning' },
+  { id: 'e033', name: '신희진', rank: '소방경', originalDept: '구조구급과', controlDeptId: 'planning' },
+  { id: 'e034', name: '이순미', rank: '소방위', originalDept: '구조구급과', controlDeptId: 'planning' },
+  { id: 'e040', name: '문효찬', rank: '소방위', originalDept: '현장대응단', controlDeptId: 'planning' },
+  { id: 'e041', name: '박민지', rank: '소방장', originalDept: '현장대응단', controlDeptId: 'planning' },
+  { id: 'e042', name: '양미주', rank: '소방장', originalDept: '현장대응단', controlDeptId: 'planning' },
+  { id: 'e043', name: '강찬우', rank: '소방사', originalDept: '현장대응단', controlDeptId: 'planning' },
+  { id: 'e045', name: '강병윤', rank: '소방위', originalDept: '현장대응단', controlDeptId: 'planning' },
+  { id: 'e050', name: '이정민', rank: '소방위', originalDept: '현장대응단', controlDeptId: 'planning' },
+  { id: 'e055', name: '이창석', rank: '소방위', originalDept: '현장대응단', controlDeptId: 'planning' },
 
-  // 구조구급과 (9명) → 현장지휘부
-  { id: 'e020', name: '배성훈', rank: '소방령', originalDept: '구조구급과', controlDeptId: 'field' },
-  { id: 'e021', name: '노진우', rank: '소방경', originalDept: '구조구급과', controlDeptId: 'field' },
-  { id: 'e022', name: '문태영', rank: '소방경', originalDept: '구조구급과', controlDeptId: 'field' },
-  { id: 'e023', name: '고영준', rank: '소방위', originalDept: '구조구급과', controlDeptId: 'field' },
-  { id: 'e024', name: '신동욱', rank: '소방위', originalDept: '구조구급과', controlDeptId: 'field' },
-  { id: 'e025', name: '양현수', rank: '소방장', originalDept: '구조구급과', controlDeptId: 'field' },
-  { id: 'e026', name: '류재혁', rank: '소방장', originalDept: '구조구급과', controlDeptId: 'field' },
-  { id: 'e027', name: '장호진', rank: '소방교', originalDept: '구조구급과', controlDeptId: 'field' },
-  { id: 'e028', name: '김동훈', rank: '소방사', originalDept: '구조구급과', controlDeptId: 'field' },
+  // 현장지휘부 (23명)
+  { id: 'e002', name: '김지영', rank: '소방경', originalDept: '청문감사담당관', controlDeptId: 'field' },
+  { id: 'e003', name: '이우종', rank: '소방위', originalDept: '청문감사담당관', controlDeptId: 'field' },
+  { id: 'e004', name: '오지은', rank: '소방교', originalDept: '청문감사담당관', controlDeptId: 'field' },
+  { id: 'e015', name: '최해출', rank: '소방경', originalDept: '예방안전과', controlDeptId: 'field' },
+  { id: 'e016', name: '최철준', rank: '소방위', originalDept: '예방안전과', controlDeptId: 'field' },
+  { id: 'e017', name: '장한성', rank: '소방위', originalDept: '예방안전과', controlDeptId: 'field' },
+  { id: 'e019', name: '박성철', rank: '소방장', originalDept: '예방안전과', controlDeptId: 'field' },
+  { id: 'e021', name: '이동찬', rank: '소방교', originalDept: '예방안전과', controlDeptId: 'field' },
+  { id: 'e024', name: '노혜정', rank: '소방장', originalDept: '예방안전과', controlDeptId: 'field' },
+  { id: 'e031', name: '이성은', rank: '소방교', originalDept: '구조구급과', controlDeptId: 'field' },
+  { id: 'e035', name: '정상혁', rank: '소방교', originalDept: '구조구급과', controlDeptId: 'field' },
+  { id: 'e036', name: '손시헌', rank: '소방령', originalDept: '현장대응단', controlDeptId: 'field' },
+  { id: 'e037', name: '박형찬', rank: '소방령', originalDept: '현장대응단', controlDeptId: 'field' },
+  { id: 'e038', name: '김준해', rank: '소방령', originalDept: '현장대응단', controlDeptId: 'field' },
+  { id: 'e044', name: '조강원', rank: '소방경', originalDept: '현장대응단', controlDeptId: 'field' },
+  { id: 'e047', name: '김종철', rank: '소방장', originalDept: '현장대응단', controlDeptId: 'field' },
+  { id: 'e048', name: '김정석', rank: '소방장', originalDept: '현장대응단', controlDeptId: 'field' },
+  { id: 'e049', name: '정희석', rank: '소방경', originalDept: '현장대응단', controlDeptId: 'field' },
+  { id: 'e052', name: '장민석', rank: '소방교', originalDept: '현장대응단', controlDeptId: 'field' },
+  { id: 'e053', name: '이상빈', rank: '소방장', originalDept: '현장대응단', controlDeptId: 'field' },
+  { id: 'e054', name: '정호근', rank: '소방경', originalDept: '현장대응단', controlDeptId: 'field' },
+  { id: 'e057', name: '김동혁', rank: '소방교', originalDept: '현장대응단', controlDeptId: 'field' },
+  { id: 'e058', name: '김원형', rank: '소방교', originalDept: '현장대응단', controlDeptId: 'field' },
 
-  // 현장대응단 (4명) → 자원지원부
-  { id: 'e029', name: '이건희', rank: '소방경', originalDept: '현장대응단', controlDeptId: 'support' },
-  { id: 'e030', name: '박상우', rank: '소방위', originalDept: '현장대응단', controlDeptId: 'support' },
-  { id: 'e031', name: '최준혁', rank: '소방장', originalDept: '현장대응단', controlDeptId: 'support' },
-  { id: 'e032', name: '정우성', rank: '소방교', originalDept: '현장대응단', controlDeptId: 'support' },
+  // 자원지원부 (11명)
+  { id: 'e010', name: '정우식', rank: '소방경', originalDept: '소방행정과', controlDeptId: 'support' },
+  { id: 'e011', name: '강인호', rank: '소방위', originalDept: '소방행정과', controlDeptId: 'support' },
+  { id: 'e012', name: '이동주', rank: '소방장', originalDept: '소방행정과', controlDeptId: 'support' },
+  { id: 'e013', name: '권순호', rank: '소방교', originalDept: '소방행정과', controlDeptId: 'support' },
+  { id: 'e014', name: '장윤영', rank: '소방령', originalDept: '예방안전과', controlDeptId: 'support' },
+  { id: 'e018', name: '양재원', rank: '소방위', originalDept: '예방안전과', controlDeptId: 'support' },
+  { id: 'e020', name: '김명선', rank: '소방교', originalDept: '예방안전과', controlDeptId: 'support' },
+  { id: 'e022', name: '남상균', rank: '소방교', originalDept: '예방안전과', controlDeptId: 'support' },
+  { id: 'e026', name: '진영재', rank: '소방장', originalDept: '예방안전과', controlDeptId: 'support' },
+  { id: 'e030', name: '정희도', rank: '소방위', originalDept: '구조구급과', controlDeptId: 'support' },
+  { id: 'e032', name: '이두영', rank: '소방교', originalDept: '구조구급과', controlDeptId: 'support' },
+
 ];
 
 // 부서별 임무 목록

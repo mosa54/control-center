@@ -108,7 +108,8 @@ export function getUniqueControlDepts(employees: Employee[]): string[] {
 // 고정된 통제단편성부 순서 (2열 그리드: 좌-우 교차 배열)
 // 왼쪽: 긴급구조통제단장, 대응계획부, 현장지휘부, 자원지원부
 // 오른쪽: 지휘보좌관, 본서 상황관리, 지원기관 연락관, 기동감찰
-export const CONTROL_DEPT_ORDER = [
+// 고정된 통제단편성부 순서 (original: CounterBar용 좌우 교차)
+export const CONTROL_DEPT_ORDER_ORIGINAL = [
     '긴급구조통제단장',
     '지휘보좌관',
     '대응계획부',
@@ -119,12 +120,24 @@ export const CONTROL_DEPT_ORDER = [
     '기동감찰',
 ];
 
+// 고정된 통제단편성부 순서 (list: ControlDeptCards용 순차 목록)
+export const CONTROL_DEPT_ORDER_LIST = [
+    '긴급구조통제단장',
+    '지휘보좌관',
+    '대응계획부',
+    '현장지휘부',
+    '자원지원부',
+    '본서 상황관리',
+    '지원기관 연락관',
+    '기동감찰',
+];
+
 // 순서대로 정렬된 통제단편성부 목록 반환
-export function getOrderedControlDepts(employees: Employee[]): string[] {
+export function getOrderedControlDepts(employees: Employee[], orderArray: string[] = CONTROL_DEPT_ORDER_LIST): string[] {
     const existingDepts = new Set(employees.map(e => e.통제단편성부).filter(Boolean));
     // 정의된 순서대로 필터링, 없는 부서는 마지막에 추가
-    const ordered = CONTROL_DEPT_ORDER.filter(dept => existingDepts.has(dept));
-    const remaining = Array.from(existingDepts).filter(dept => !CONTROL_DEPT_ORDER.includes(dept));
+    const ordered = orderArray.filter(dept => existingDepts.has(dept));
+    const remaining = Array.from(existingDepts).filter(dept => !orderArray.includes(dept));
     return [...ordered, ...remaining];
 }
 
