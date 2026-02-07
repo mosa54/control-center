@@ -3,6 +3,7 @@
 import { createContext, useContext, useState, useCallback, ReactNode, useEffect } from 'react';
 import { Employee, Mission, ExcelData, getMissionByCode } from './excel';
 import { supabase } from './supabase';
+import { DEFAULT_DATA } from './defaultData';
 
 // 세션 모드 타입
 export type SessionMode = 'training' | 'emergency';
@@ -55,7 +56,7 @@ const SETTINGS_ID = 1;
 export function AppProvider({ children }: { children: ReactNode }) {
     const [sessionMode, setSessionModeState] = useState<SessionMode>('training');
     const [sessionSummary, setSessionSummaryState] = useState('');
-    const [excelData, setExcelDataState] = useState<ExcelData | null>(null);
+    const [excelData, setExcelDataState] = useState<ExcelData | null>(DEFAULT_DATA);
     const [checkedInEmployees, setCheckedInEmployees] = useState<CheckedInEmployee[]>([]);
     const [currentEmployee, setCurrentEmployee] = useState<CheckedInEmployee | null>(null);
     const [isLoaded, setIsLoaded] = useState(false);
