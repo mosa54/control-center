@@ -160,7 +160,7 @@ export default function InstallPrompt() {
                         cursor: 'pointer'
                     }}
                 >
-                    앱 다운로드
+                    홈 화면 바로가기 만들기
                 </button>
             )}
         </div>
