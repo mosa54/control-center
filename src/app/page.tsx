@@ -34,14 +34,14 @@ export default function HomePage() {
           />
           <h1 className="header-title" style={{
             textAlign: 'left',
-            fontSize: '22px',
+            fontSize: '28px',
             fontWeight: 800,
             letterSpacing: '-0.5px',
             color: '#0D47A1',
             lineHeight: '1.25',
             margin: 0
           }}>
-            중부소방서<br />긴급구조통제단 가동
+            중부소방서<br />긴급구조통제단
           </h1>
         </div>
 
@@ -91,14 +91,14 @@ export default function HomePage() {
         />
         <h1 className="header-title" style={{
           textAlign: 'left',
-          fontSize: '22px',
+          fontSize: '28px',
           fontWeight: 800,
           letterSpacing: '-0.5px',
           color: '#0D47A1',
           lineHeight: '1.25',
           margin: 0
         }}>
-          중부소방서<br />긴급구조통제단 가동
+          중부소방서<br />긴급구조통제단
         </h1>
       </div>
 
