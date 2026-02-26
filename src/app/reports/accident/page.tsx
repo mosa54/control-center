@@ -107,7 +107,7 @@ export function AccidentPreview({ data }: { data: AccidentReportData | null }) {
 
     return (
         <div className="fullscreen-report" style={{ padding: 0, height: '100%', display: 'flex', flexDirection: 'column' }}>
-            <div style={{ padding: '16px', background: '#f5f5f5', borderBottom: '1px solid #e0e0e0', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <div style={{ padding: '16px', background: '#f5f5f5', borderBottom: '1px solid #e0e0e0', display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
                 <h2 style={{ margin: 0, fontSize: '18px', display: 'flex', alignItems: 'center', gap: '8px' }}>
                     {fileName}
                     {isPdf && numPages && (
@@ -116,14 +116,6 @@ export function AccidentPreview({ data }: { data: AccidentReportData | null }) {
                         </span>
                     )}
                 </h2>
-                <a
-                    href={fileData}
-                    download={fileName}
-                    className="btn"
-                    style={{ background: '#43A047', color: 'white', padding: '8px 16px', textDecoration: 'none', borderRadius: '4px', fontSize: '14px', flexShrink: 0 }}
-                >
-                    📥 다운로드
-                </a>
             </div>
 
             <div style={{ flex: 1, overflow: 'auto', display: 'flex', flexDirection: 'column', alignItems: 'center', background: '#fff', padding: '16px' }}>
@@ -178,7 +170,6 @@ export function AccidentPreview({ data }: { data: AccidentReportData | null }) {
                     <div style={{ margin: 'auto', textAlign: 'center', padding: '48px 16px' }}>
                         <p style={{ fontSize: '48px', marginBottom: '16px' }}>📎</p>
                         <p>미리보기를 지원하지 않는 형식입니다.</p>
-                        <p style={{ color: '#757575', fontSize: '14px' }}>다운로드 버튼을 클릭하여 확인해 주세요.</p>
                     </div>
                 )}
             </div>
