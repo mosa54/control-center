@@ -78,20 +78,20 @@ export default function HomePage() {
         alignItems: 'center',
         justifyContent: 'center',
         width: '100%',
-        gap: '12px',
-        paddingTop: '32px',
-        paddingBottom: '24px'
+        gap: '10px',
+        paddingTop: '20px',
+        paddingBottom: '12px'
       }}>
         <Image
           src="/119_symbolmark.png"
           alt="중부소방서 심볼마크"
-          width={60}
-          height={60}
+          width={48}
+          height={48}
           priority
         />
         <h1 className="header-title" style={{
           textAlign: 'left',
-          fontSize: '28px',
+          fontSize: '24px',
           fontWeight: 800,
           letterSpacing: '-0.5px',
           color: '#0D47A1',
@@ -107,7 +107,7 @@ export default function HomePage() {
       </Link>
 
       <div className="page-content">
-        <p style={{ padding: '16px', textAlign: 'center', color: '#757575' }}>
+        <p style={{ padding: '8px 16px 4px', textAlign: 'center', color: '#757575', fontSize: '14px' }}>
           소속 부서를 선택하세요
         </p>
 
@@ -132,6 +132,17 @@ export default function HomePage() {
               </Link>
             );
           })}
+        </div>
+
+        <div className="observer-section">
+          <div className="observer-divider" />
+          <Link href="/dashboard?role=observer" className="observer-btn">
+            <span className="observer-icon">👁️</span>
+            <div className="observer-text">
+              <span className="observer-title">통제단 외 직원 입장</span>
+              <span className="observer-sub">구급대원·유관기관 전용</span>
+            </div>
+          </Link>
         </div>
       </div>
     </div>

@@ -2,6 +2,8 @@
 
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
+import { useSearchParams } from 'next/navigation';
+import { Suspense } from 'react';
 import { useApp } from '@/lib/store';
 import SessionBanner from '@/components/SessionBanner';
 import CounterBar from '@/components/CounterBar';
@@ -9,11 +11,15 @@ import MyInfoCard from '@/components/MyInfoCard';
 import MyMissionCard from '@/components/MyMissionCard';
 import ControlDeptCards from '@/components/ControlDeptCards';
 
-export default function DashboardPage() {
+function DashboardContent() {
     const { currentEmployee, getTotalCount, excelData } = useApp();
     const [lastUpdated, setLastUpdated] = useState(new Date());
+    const [isMounted, setIsMounted] = useState(false);
+    const searchParams = useSearchParams();
+    const isObserver = searchParams.get('role') === 'observer';
 
     useEffect(() => {
+        setIsMounted(true);
         const interval = setInterval(() => {
             setLastUpdated(new Date());
         }, 30000);
@@ -56,19 +62,29 @@ export default function DashboardPage() {
 
             <div className="header">
                 <Link href="/" className="header-back">←</Link>
-                <h1 className="header-title">통제단 대시보드</h1>
+                <h1 className="header-title">
+                    통제단 대시보드
+                    {isObserver && <span style={{ fontSize: '12px', color: '#1565C0', marginLeft: '8px', fontWeight: 500 }}>(참관)</span>}
+                </h1>
             </div>
 
             <div className="last-updated">
-                마지막 갱신: {formatTime(lastUpdated)}
+                마지막 갱신: {isMounted ? formatTime(lastUpdated) : ''}
             </div>
 
             <div className="page-content">
-                {currentEmployee ? (
+                {currentEmployee && !isObserver ? (
                     <>
                         <MyInfoCard />
                         <MyMissionCard />
                     </>
+                ) : isObserver ? (
+                    <div className="card" style={{ textAlign: 'center' }}>
+                        <p style={{ color: '#1565C0', fontWeight: 600 }}>👁️ 통제단 외 직원 모드</p>
+                        <p style={{ color: '#757575', fontSize: '14px', marginTop: '4px' }}>
+                            통제단 현황을 열람하고 있습니다
+                        </p>
+                    </div>
                 ) : (
                     <div className="card">
                         <p style={{ textAlign: 'center', color: '#757575' }}>
@@ -81,6 +97,19 @@ export default function DashboardPage() {
 
                 <ControlDeptCards />
             </div>
+
+            <Link href={`/reports${isObserver ? '?role=observer' : ''}`} className="report-fab">
+                📋 보고서
+            </Link>
         </div>
     );
 }
+
+export default function DashboardPage() {
+    return (
+        <Suspense fallback={<div className="page"><div className="header"><h1 className="header-title">로딩 중...</h1></div></div>}>
+            <DashboardContent />
+        </Suspense>
+    );
+}
+
