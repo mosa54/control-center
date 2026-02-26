@@ -66,6 +66,12 @@ function DashboardContent() {
                     통제단 대시보드
                     {isObserver && <span style={{ fontSize: '12px', color: '#1565C0', marginLeft: '8px', fontWeight: 500 }}>(참관)</span>}
                 </h1>
+                <Link
+                    href={`/reports${isObserver ? '?role=observer' : ''}`}
+                    style={{ position: 'absolute', right: '16px', display: 'flex', alignItems: 'center', gap: '4px', background: '#0D47A1', color: 'white', padding: '6px 12px', borderRadius: '8px', fontSize: '14px', fontWeight: 600, textDecoration: 'none' }}
+                >
+                    📋 보고서
+                </Link>
             </div>
 
             <div className="last-updated">
@@ -98,9 +104,6 @@ function DashboardContent() {
                 <ControlDeptCards />
             </div>
 
-            <Link href={`/reports${isObserver ? '?role=observer' : ''}`} className="report-fab">
-                📋 보고서
-            </Link>
         </div>
     );
 }

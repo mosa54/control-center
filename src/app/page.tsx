@@ -28,13 +28,13 @@ export default function HomePage() {
           <Image
             src="/119_symbolmark.png"
             alt="중부소방서 심볼마크"
-            width={60}
-            height={60}
+            width={80}
+            height={80}
             priority
           />
           <h1 className="header-title" style={{
             textAlign: 'left',
-            fontSize: '28px',
+            fontSize: '36px',
             fontWeight: 800,
             letterSpacing: '-0.5px',
             color: '#0D47A1',
@@ -85,13 +85,13 @@ export default function HomePage() {
         <Image
           src="/119_symbolmark.png"
           alt="중부소방서 심볼마크"
-          width={48}
-          height={48}
+          width={64}
+          height={64}
           priority
         />
         <h1 className="header-title" style={{
           textAlign: 'left',
-          fontSize: '24px',
+          fontSize: '32px',
           fontWeight: 800,
           letterSpacing: '-0.5px',
           color: '#0D47A1',
