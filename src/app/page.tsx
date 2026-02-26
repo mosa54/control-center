@@ -107,7 +107,7 @@ export default function HomePage() {
       </Link>
 
       <div className="page-content">
-        <p style={{ padding: '8px 16px 4px', textAlign: 'center', color: '#757575', fontSize: '14px' }}>
+        <p style={{ padding: '8px 16px 4px', textAlign: 'center', color: '#757575', fontSize: '16px', fontWeight: 600 }}>
           소속 부서를 선택하세요
         </p>
 
