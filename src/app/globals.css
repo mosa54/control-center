@@ -858,6 +858,39 @@ body {
   }
 }
 
+/* 응소부 반응형 글꼴 크기 조절 */
+.roster-title {
+  font-size: 24px;
+}
+
+.roster-table {
+  font-size: 12px;
+  word-break: keep-all;
+}
+
+.roster-table td,
+.roster-table th {
+  white-space: nowrap;
+}
+
+@media (max-width: 768px) {
+  .roster-title {
+    font-size: 16px !important;
+    letter-spacing: 4px !important;
+    margin-bottom: 12px !important;
+  }
+
+  .roster-table {
+    font-size: 9px !important;
+  }
+
+  .roster-table td,
+  .roster-table th {
+    padding: 2px 1px !important;
+    white-space: nowrap;
+  }
+}
+
 /* 인쇄용 CSS (통제단 소집 응소부 등) */
 @media print {
 
@@ -868,7 +901,8 @@ body {
 
   /* 페이지 기본 여백 최소화 */
   @page {
-    margin: 15mm;
+    size: A4 portrait;
+    margin: 10mm;
   }
 
   body,
@@ -890,11 +924,24 @@ body {
   .roster-print-area {
     padding: 0 !important;
     max-width: none !important;
+    width: 100% !important;
+    margin: 0 !important;
+  }
+
+  .roster-title {
+    font-size: 28px !important;
+  }
+
+  .roster-table {
+    font-size: 13px !important;
+    table-layout: auto !important;
   }
 
   .roster-table th,
   .roster-table td {
     -webkit-print-color-adjust: exact;
     print-color-adjust: exact;
+    white-space: normal !important;
+    padding: 8px 4px !important;
   }
 }

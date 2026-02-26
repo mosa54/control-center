@@ -59,8 +59,8 @@ export default function AssemblyRoster({ onClose }: { onClose: () => void }) {
         window.print();
     };
 
-    const thStyle: React.CSSProperties = { border: '1px solid #000', padding: '8px 4px', textAlign: 'center', whiteSpace: 'nowrap' };
-    const tdStyle: React.CSSProperties = { border: '1px solid #000', padding: '8px 4px', textAlign: 'center', height: '32px', whiteSpace: 'nowrap' };
+    const thStyle: React.CSSProperties = { border: '1px solid #000', padding: '4px 2px', textAlign: 'center' };
+    const tdStyle: React.CSSProperties = { border: '1px solid #000', padding: '4px 2px', textAlign: 'center', height: '24px' };
 
     return (
         <div className="page roster-page" style={{ minHeight: '100vh', background: 'white' }}>
@@ -97,23 +97,23 @@ export default function AssemblyRoster({ onClose }: { onClose: () => void }) {
                     </div>
                 </div>
 
-                {/* 가로 스크롤 허용 (모바일/작은화면에서 표 안잘림) */}
-                <div style={{ width: '100%', overflowX: 'auto' }}>
-                    <div className="roster-print-area" style={{ padding: '40px', color: 'black', background: 'white', width: '210mm', minWidth: '800px', margin: '0 auto' }}>
-                        <h1 style={{ textAlign: 'center', fontSize: '28px', letterSpacing: '12px', margin: '16px 0 32px', fontWeight: 900, whiteSpace: 'nowrap' }}>
+                {/* 화면 꽉 차게 조절 (모바일에서도 줄바꿈 안 되게 폰트 크기 자동 조절) */}
+                <div className="roster-wrapper" style={{ width: '100%', padding: '16px 8px', overflow: 'hidden' }}>
+                    <div className="roster-print-area" style={{ color: 'black', background: 'white', width: '100%', maxWidth: '1000px', margin: '0 auto' }}>
+                        <h1 className="roster-title" style={{ textAlign: 'center', letterSpacing: '8px', margin: '16px 0 24px', fontWeight: 900, whiteSpace: 'nowrap' }}>
                             통 제 단 소 집 응 소 부
                         </h1>
 
-                        <table className="roster-table" style={{ width: '100%', borderCollapse: 'collapse', fontSize: '13px' }}>
+                        <table className="roster-table" style={{ width: '100%', borderCollapse: 'collapse', tableLayout: 'fixed' }}>
                             <thead>
                                 <tr>
-                                    <th style={{ ...thStyle, width: '5%' }}>연번</th>
-                                    <th style={{ ...thStyle, width: '25%' }}>발령시간/응소장소</th>
-                                    <th style={{ ...thStyle, width: '10%' }}>응소시간</th>
-                                    <th style={{ ...thStyle, width: '15%' }}>소 속</th>
+                                    <th style={{ ...thStyle, width: '6%' }}>연번</th>
+                                    <th style={{ ...thStyle, width: '24%' }}>발령시간/응소장소</th>
+                                    <th style={{ ...thStyle, width: '11%' }}>응소시간</th>
+                                    <th style={{ ...thStyle, width: '16%' }}>소 속</th>
                                     <th style={{ ...thStyle, width: '12%' }}>계 급</th>
                                     <th style={{ ...thStyle, width: '13%' }}>성 명</th>
-                                    <th style={{ ...thStyle, width: '20%' }}>서명</th>
+                                    <th style={{ ...thStyle, width: '18%' }}>서명</th>
                                 </tr>
                             </thead>
                             <tbody>
