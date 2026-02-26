@@ -63,17 +63,27 @@ export function AccidentPreview({ data }: { data: AccidentReportData | null }) {
     const [numPages, setNumPages] = useState<number>();
     const [pageNumber, setPageNumber] = useState<number>(1);
     const [containerWidth, setContainerWidth] = useState<number>(800);
+    const [workerReady, setWorkerReady] = useState(false);
 
     useEffect(() => {
         // Initialize PDF worker safely on client-side only
+        let isMounted = true;
         import('react-pdf').then(({ pdfjs }) => {
-            pdfjs.GlobalWorkerOptions.workerSrc = `/pdf.worker.min.mjs`;
+            if (isMounted) {
+                // Must explicitly use the same version of pdfjs-dist used by react-pdf
+                // legacy build provides best compatibility across browsers
+                pdfjs.GlobalWorkerOptions.workerSrc = `//unpkg.com/pdfjs-dist@${pdfjs.version}/build/pdf.worker.min.mjs`;
+                setWorkerReady(true);
+            }
         });
 
         const handleResize = () => setContainerWidth(Math.min(window.innerWidth - 32, 800));
         handleResize();
         window.addEventListener('resize', handleResize);
-        return () => window.removeEventListener('resize', handleResize);
+        return () => {
+            isMounted = false;
+            window.removeEventListener('resize', handleResize);
+        }
     }, []);
 
     function onDocumentLoadSuccess({ numPages }: { numPages: number }): void {
@@ -120,7 +130,12 @@ export function AccidentPreview({ data }: { data: AccidentReportData | null }) {
                 {isImage && (
                     <img src={fileData} alt="보고서 미리보기" style={{ maxWidth: '100%', height: 'auto', objectFit: 'contain' }} />
                 )}
-                {isPdf && (
+
+                {isPdf && !workerReady && (
+                    <div style={{ padding: '48px', textAlign: 'center', color: '#757575' }}>PDF 뷰어 초기화 중...</div>
+                )}
+
+                {isPdf && workerReady && (
                     <div style={{ width: '100%', maxWidth: '800px', margin: '0 auto', border: '1px solid #e0e0e0', boxShadow: '0 4px 6px rgba(0,0,0,0.1)' }}>
                         <Document
                             file={fileData}
