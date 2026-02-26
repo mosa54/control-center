@@ -857,3 +857,44 @@ body {
     background: #4FC3F7 !important;
   }
 }
+
+/* 인쇄용 CSS (통제단 소집 응소부 등) */
+@media print {
+
+  /* 불필요한 영역 숨김 */
+  .no-print {
+    display: none !important;
+  }
+
+  /* 페이지 기본 여백 최소화 */
+  @page {
+    margin: 15mm;
+  }
+
+  body,
+  html {
+    background: white !important;
+  }
+
+  /* 인쇄 시 레이아웃 초기화 */
+  .roster-page {
+    min-height: auto !important;
+    display: block !important;
+  }
+
+  .roster-page .page-content {
+    padding: 0 !important;
+  }
+
+  /* 테이블과 내용만 출력되도록 꽉 차게 변경 */
+  .roster-print-area {
+    padding: 0 !important;
+    max-width: none !important;
+  }
+
+  .roster-table th,
+  .roster-table td {
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+}

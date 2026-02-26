@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { useApp, SessionMode } from '@/lib/store';
 import { parseExcelFile } from '@/lib/excel';
 import Toast from '@/components/Toast';
+import AssemblyRoster from '@/components/AssemblyRoster';
 
 export default function AdminPage() {
     const {
@@ -21,6 +22,7 @@ export default function AdminPage() {
     const [toast, setToast] = useState<string | null>(null);
     const [isUploading, setIsUploading] = useState(false);
     const [showResetConfirm, setShowResetConfirm] = useState(false);
+    const [showRoster, setShowRoster] = useState(false);
 
     const handleLogin = () => {
         if (pin === '1234') {
@@ -96,6 +98,10 @@ export default function AdminPage() {
                 </div>
             </div>
         );
+    }
+
+    if (showRoster) {
+        return <AssemblyRoster onClose={() => setShowRoster(false)} />;
     }
 
     return (
@@ -214,6 +220,21 @@ export default function AdminPage() {
                         onClick={handleSave}
                     >
                         설정 저장
+                    </button>
+                </div>
+
+                {/* 통제단 소집 응소부 */}
+                <div className="card">
+                    <div className="card-title">📝 통제단 소집 응소부</div>
+                    <div style={{ padding: '12px', background: '#F5F5F5', borderRadius: '8px', fontSize: '14px', marginBottom: '16px' }}>
+                        현재까지 응소한 {getTotalCount()}명의 명단을 인쇄용 표 형태로 확인합니다.
+                    </div>
+                    <button
+                        className="btn btn-secondary btn-block"
+                        onClick={() => setShowRoster(true)}
+                        style={{ border: '1px solid #E0E0E0', background: 'white' }}
+                    >
+                        응소부 보기 (인쇄)
                     </button>
                 </div>
 
