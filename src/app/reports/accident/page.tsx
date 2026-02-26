@@ -52,7 +52,34 @@ function PinModal({ onSuccess, onCancel }: { onSuccess: () => void; onCancel: ()
     );
 }
 
+import dynamic from 'next/dynamic';
+import 'react-pdf/dist/Page/AnnotationLayer.css';
+import 'react-pdf/dist/Page/TextLayer.css';
+
+const Document = dynamic(() => import('react-pdf').then(mod => mod.Document), { ssr: false });
+const Page = dynamic(() => import('react-pdf').then(mod => mod.Page), { ssr: false });
+
 export function AccidentPreview({ data }: { data: AccidentReportData | null }) {
+    const [numPages, setNumPages] = useState<number>();
+    const [pageNumber, setPageNumber] = useState<number>(1);
+    const [containerWidth, setContainerWidth] = useState<number>(800);
+
+    useEffect(() => {
+        // Initialize PDF worker safely on client-side only
+        import('react-pdf').then(({ pdfjs }) => {
+            pdfjs.GlobalWorkerOptions.workerSrc = `//unpkg.com/pdfjs-dist@4.4.168/legacy/build/pdf.worker.min.mjs`;
+        });
+
+        const handleResize = () => setContainerWidth(Math.min(window.innerWidth - 32, 800));
+        handleResize();
+        window.addEventListener('resize', handleResize);
+        return () => window.removeEventListener('resize', handleResize);
+    }, []);
+
+    function onDocumentLoadSuccess({ numPages }: { numPages: number }): void {
+        setNumPages(numPages);
+    }
+
     if (!data || !data.fileData) {
         return (
             <div className="fullscreen-report" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: '100%' }}>
@@ -71,25 +98,69 @@ export function AccidentPreview({ data }: { data: AccidentReportData | null }) {
     return (
         <div className="fullscreen-report" style={{ padding: 0, height: '100%', display: 'flex', flexDirection: 'column' }}>
             <div style={{ padding: '16px', background: '#f5f5f5', borderBottom: '1px solid #e0e0e0', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                <h2 style={{ margin: 0, fontSize: '18px' }}>{fileName}</h2>
+                <h2 style={{ margin: 0, fontSize: '18px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                    {fileName}
+                    {isPdf && numPages && (
+                        <span style={{ fontSize: '12px', background: '#e0e0e0', padding: '2px 8px', borderRadius: '12px', fontWeight: 'normal' }}>
+                            {pageNumber} / {numPages} 페이지
+                        </span>
+                    )}
+                </h2>
                 <a
                     href={fileData}
                     download={fileName}
                     className="btn"
-                    style={{ background: '#43A047', color: 'white', padding: '8px 16px', textDecoration: 'none', borderRadius: '4px', fontSize: '14px' }}
+                    style={{ background: '#43A047', color: 'white', padding: '8px 16px', textDecoration: 'none', borderRadius: '4px', fontSize: '14px', flexShrink: 0 }}
                 >
                     📥 다운로드
                 </a>
             </div>
-            <div style={{ flex: 1, overflow: 'auto', display: 'flex', justifyContent: 'center', background: '#fff' }}>
+
+            <div style={{ flex: 1, overflow: 'auto', display: 'flex', flexDirection: 'column', alignItems: 'center', background: '#fff', padding: '16px' }}>
                 {isImage && (
                     <img src={fileData} alt="보고서 미리보기" style={{ maxWidth: '100%', height: 'auto', objectFit: 'contain' }} />
                 )}
                 {isPdf && (
-                    <iframe src={`${fileData}#toolbar=0`} style={{ width: '100%', height: '100%', border: 'none' }} title="보고서 미리보기" />
+                    <div style={{ width: '100%', maxWidth: '800px', margin: '0 auto', border: '1px solid #e0e0e0', boxShadow: '0 4px 6px rgba(0,0,0,0.1)' }}>
+                        <Document
+                            file={fileData}
+                            onLoadSuccess={onDocumentLoadSuccess}
+                            loading={<div style={{ padding: '24px', textAlign: 'center' }}>PDF 불러오는 중...</div>}
+                            error={<div style={{ padding: '24px', textAlign: 'center', color: '#d32f2f' }}>PDF를 불러오지 못했습니다.</div>}
+                        >
+                            <Page
+                                pageNumber={pageNumber}
+                                renderTextLayer={false}
+                                renderAnnotationLayer={false}
+                                width={containerWidth}
+                            />
+                        </Document>
+                    </div>
                 )}
+
+                {isPdf && numPages && numPages > 1 && (
+                    <div style={{ display: 'flex', gap: '16px', marginTop: '16px', padding: '8px', background: '#f5f5f5', borderRadius: '8px' }}>
+                        <button
+                            className="btn btn-secondary"
+                            disabled={pageNumber <= 1}
+                            onClick={() => setPageNumber(prev => prev - 1)}
+                            style={{ padding: '4px 12px' }}
+                        >
+                            ← 이전
+                        </button>
+                        <button
+                            className="btn btn-secondary"
+                            disabled={pageNumber >= numPages}
+                            onClick={() => setPageNumber(prev => prev + 1)}
+                            style={{ padding: '4px 12px' }}
+                        >
+                            다음 →
+                        </button>
+                    </div>
+                )}
+
                 {!isImage && !isPdf && (
-                    <div style={{ margin: 'auto', textAlign: 'center' }}>
+                    <div style={{ margin: 'auto', textAlign: 'center', padding: '48px 16px' }}>
                         <p style={{ fontSize: '48px', marginBottom: '16px' }}>📎</p>
                         <p>미리보기를 지원하지 않는 형식입니다.</p>
                         <p style={{ color: '#757575', fontSize: '14px' }}>다운로드 버튼을 클릭하여 확인해 주세요.</p>
