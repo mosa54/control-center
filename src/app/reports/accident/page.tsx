@@ -67,7 +67,7 @@ export function AccidentPreview({ data }: { data: AccidentReportData | null }) {
     useEffect(() => {
         // Initialize PDF worker safely on client-side only
         import('react-pdf').then(({ pdfjs }) => {
-            pdfjs.GlobalWorkerOptions.workerSrc = `//unpkg.com/pdfjs-dist@4.4.168/legacy/build/pdf.worker.min.mjs`;
+            pdfjs.GlobalWorkerOptions.workerSrc = `/pdf.worker.min.mjs`;
         });
 
         const handleResize = () => setContainerWidth(Math.min(window.innerWidth - 32, 800));
