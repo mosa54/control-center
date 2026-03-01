@@ -97,7 +97,6 @@ const PageComp = dynamic(() => import('react-pdf').then(mod => mod.Page), { ssr:
 
 export function AccidentPreview({ data }: { data: AccidentReportData | null }) {
     const [numPages, setNumPages] = useState<number>();
-    const [pageNumber, setPageNumber] = useState<number>(1);
     const [containerWidth, setContainerWidth] = useState<number>(800);
     const [workerReady, setWorkerReady] = useState(false);
 
@@ -142,59 +141,46 @@ export function AccidentPreview({ data }: { data: AccidentReportData | null }) {
     if (isPdf) {
         return (
             <div className="fullscreen-report" style={{ padding: 0, height: '100%', display: 'flex', flexDirection: 'column' }}>
-                <div style={{ padding: '16px', background: '#f5f5f5', borderBottom: '1px solid #e0e0e0', display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
-                    <h2 style={{ margin: 0, fontSize: '18px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <div style={{ padding: '12px 16px', background: '#f5f5f5', borderBottom: '1px solid #e0e0e0', display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
+                    <h2 style={{ margin: 0, fontSize: '16px', display: 'flex', alignItems: 'center', gap: '8px' }}>
                         {firstFile.fileName}
                         {numPages && (
                             <span style={{ fontSize: '12px', background: '#e0e0e0', padding: '2px 8px', borderRadius: '12px', fontWeight: 'normal' }}>
-                                {pageNumber} / {numPages} 페이지
+                                총 {numPages}페이지
                             </span>
                         )}
                     </h2>
                 </div>
 
-                <div style={{ flex: 1, overflow: 'auto', display: 'flex', flexDirection: 'column', alignItems: 'center', background: '#fff', padding: '8px' }}>
+                <div style={{ flex: 1, overflow: 'auto', background: '#e8e8e8', padding: '0' }}>
                     {!workerReady && (
                         <div style={{ padding: '48px', textAlign: 'center', color: '#757575' }}>PDF 뷰어 초기화 중...</div>
                     )}
 
                     {workerReady && (
-                        <div style={{ width: '100%', maxWidth: '800px', margin: '0 auto', border: '1px solid #e0e0e0', boxShadow: '0 4px 6px rgba(0,0,0,0.1)' }}>
-                            <DocumentComp
-                                file={firstFile.fileData}
-                                onLoadSuccess={onDocumentLoadSuccess}
-                                loading={<div style={{ padding: '24px', textAlign: 'center' }}>PDF 불러오는 중...</div>}
-                                error={<div style={{ padding: '24px', textAlign: 'center', color: '#d32f2f' }}>PDF를 불러오지 못했습니다.</div>}
-                            >
-                                <PageComp
-                                    pageNumber={pageNumber}
-                                    renderTextLayer={false}
-                                    renderAnnotationLayer={false}
-                                    width={containerWidth}
-                                />
-                            </DocumentComp>
-                        </div>
-                    )}
-
-                    {numPages && numPages > 1 && (
-                        <div style={{ display: 'flex', gap: '16px', marginTop: '16px', padding: '8px', background: '#f5f5f5', borderRadius: '8px' }}>
-                            <button
-                                className="btn btn-secondary"
-                                disabled={pageNumber <= 1}
-                                onClick={() => setPageNumber(prev => prev - 1)}
-                                style={{ padding: '4px 12px' }}
-                            >
-                                ← 이전
-                            </button>
-                            <button
-                                className="btn btn-secondary"
-                                disabled={pageNumber >= numPages}
-                                onClick={() => setPageNumber(prev => prev + 1)}
-                                style={{ padding: '4px 12px' }}
-                            >
-                                다음 →
-                            </button>
-                        </div>
+                        <DocumentComp
+                            file={firstFile.fileData}
+                            onLoadSuccess={onDocumentLoadSuccess}
+                            loading={<div style={{ padding: '24px', textAlign: 'center' }}>PDF 불러오는 중...</div>}
+                            error={<div style={{ padding: '24px', textAlign: 'center', color: '#d32f2f' }}>PDF를 불러오지 못했습니다.</div>}
+                        >
+                            {numPages && Array.from({ length: numPages }, (_, i) => (
+                                <div key={i} style={{
+                                    width: '100%',
+                                    maxWidth: '800px',
+                                    margin: '0 auto 8px auto',
+                                    background: '#fff',
+                                    boxShadow: '0 2px 8px rgba(0,0,0,0.15)',
+                                }}>
+                                    <PageComp
+                                        pageNumber={i + 1}
+                                        renderTextLayer={false}
+                                        renderAnnotationLayer={false}
+                                        width={containerWidth}
+                                    />
+                                </div>
+                            ))}
+                        </DocumentComp>
                     )}
                 </div>
             </div>
