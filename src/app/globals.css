@@ -292,6 +292,9 @@ body {
   box-shadow: var(--shadow-sm);
   padding: var(--spacing-lg);
   margin: var(--spacing-md);
+  overflow: hidden;
+  max-width: 100%;
+  box-sizing: border-box;
 }
 
 .card-title {
@@ -436,6 +439,7 @@ body {
 .page-content {
   flex: 1;
   padding-bottom: var(--spacing-xl);
+  overflow-x: hidden;
 }
 
 /* 관리자 링크 - 우측 하단 고정 */
@@ -649,11 +653,13 @@ body {
 .report-form-row input,
 .report-form-row textarea {
   flex: 1;
+  min-width: 0;
   padding: 6px 10px;
   border: 1px solid var(--color-border);
   border-radius: var(--radius-sm);
   font-family: inherit;
   font-size: 14px;
+  box-sizing: border-box;
 }
 
 .report-form-row input:focus,
