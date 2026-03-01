@@ -151,7 +151,7 @@ function CasualtyPreview({ data, lastSavedAt }: { data: CasualtyReportData, last
                                 <td>{row.성명}</td>
                                 <td>{row.성별}</td>
                                 <td>{row.연령}</td>
-                                <td style={{ textAlign: 'left' }}>{row.주증상}</td>
+                                <td>{row.주증상}</td>
                                 <td>{row.이송병원}</td>
                                 <td>{row.중증도}</td>
                                 <td>{row.발견지점}</td>
