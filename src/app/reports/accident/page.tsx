@@ -406,12 +406,12 @@ function AccidentReportContent() {
     };
 
     const handleSave = useCallback(async () => {
-        if (!data) return;
+        const saveData = data || { files: [], updatedAt: new Date().toISOString() };
         setSaveStatus('saving');
         try {
             const { error } = await supabase
                 .from('reports')
-                .upsert({ id: 'accident', data, updated_at: new Date().toISOString() });
+                .upsert({ id: 'accident', data: saveData, updated_at: new Date().toISOString() });
             if (error) throw error;
             setSaveStatus('saved');
             setTimeout(() => setSaveStatus('idle'), 2000);
@@ -421,6 +421,9 @@ function AccidentReportContent() {
             setTimeout(() => setSaveStatus('idle'), 3000);
         }
     }, [data]);
+
+    // 저장 가능 여부: 파일이 있거나 / 이미 DB에 로드된 상태에서 파일을 모두 삭제한 경우
+    const canSave = saveStatus !== 'saving' && isDbLoaded;
 
     const handleEdit = () => {
         if (isAuthed) return;
@@ -493,7 +496,7 @@ function AccidentReportContent() {
                         color: 'white'
                     }}
                     onClick={handleSave}
-                    disabled={saveStatus === 'saving' || !hasFiles}
+                    disabled={!canSave}
                 >
                     {saveStatus === 'saving' ? '⏳ 업로드 중...' : saveStatus === 'saved' ? '✅ 업로드 완료' : saveStatus === 'error' ? '❌ 오류' : '💾 파일 저장'}
                 </button>
