@@ -7,11 +7,47 @@ import { useSearchParams } from 'next/navigation';
 import { Suspense } from 'react';
 import FullscreenOverlay from '@/components/FullscreenOverlay';
 
-interface AccidentReportData {
+interface FileItem {
     fileName: string;
     fileType: string;
     fileData: string; // Base64 encoded string
+}
+
+// 새로운 다중 파일 형식
+interface AccidentReportDataMulti {
+    files: FileItem[];
     updatedAt: string;
+}
+
+// 기존 단일 파일 형식 (하위 호환용)
+interface AccidentReportDataLegacy {
+    fileName: string;
+    fileType: string;
+    fileData: string;
+    updatedAt: string;
+}
+
+type AccidentReportData = AccidentReportDataMulti;
+
+// 기존 단일 파일 데이터를 새 형식으로 변환
+function migrateData(raw: any): AccidentReportData | null {
+    if (!raw) return null;
+    // 이미 새 형식인 경우
+    if (raw.files && Array.isArray(raw.files)) {
+        return raw as AccidentReportData;
+    }
+    // 기존 단일 파일 형식인 경우
+    if (raw.fileName && raw.fileData) {
+        return {
+            files: [{
+                fileName: raw.fileName,
+                fileType: raw.fileType,
+                fileData: raw.fileData,
+            }],
+            updatedAt: raw.updatedAt || new Date().toISOString(),
+        };
+    }
+    return null;
 }
 
 function PinModal({ onSuccess, onCancel }: { onSuccess: () => void; onCancel: () => void }) {
@@ -56,8 +92,8 @@ import dynamic from 'next/dynamic';
 import 'react-pdf/dist/Page/AnnotationLayer.css';
 import 'react-pdf/dist/Page/TextLayer.css';
 
-const Document = dynamic(() => import('react-pdf').then(mod => mod.Document), { ssr: false });
-const Page = dynamic(() => import('react-pdf').then(mod => mod.Page), { ssr: false });
+const DocumentComp = dynamic(() => import('react-pdf').then(mod => mod.Document), { ssr: false });
+const PageComp = dynamic(() => import('react-pdf').then(mod => mod.Page), { ssr: false });
 
 export function AccidentPreview({ data }: { data: AccidentReportData | null }) {
     const [numPages, setNumPages] = useState<number>();
@@ -66,18 +102,15 @@ export function AccidentPreview({ data }: { data: AccidentReportData | null }) {
     const [workerReady, setWorkerReady] = useState(false);
 
     useEffect(() => {
-        // Initialize PDF worker safely on client-side only
         let isMounted = true;
         import('react-pdf').then(({ pdfjs }) => {
             if (isMounted) {
-                // Must explicitly use the same version of pdfjs-dist used by react-pdf
-                // legacy build provides best compatibility across browsers
                 pdfjs.GlobalWorkerOptions.workerSrc = `//unpkg.com/pdfjs-dist@${pdfjs.version}/build/pdf.worker.min.mjs`;
                 setWorkerReady(true);
             }
         });
 
-        const handleResize = () => setContainerWidth(Math.min(window.innerWidth - 32, 800));
+        const handleResize = () => setContainerWidth(Math.min(window.innerWidth - 16, 800));
         handleResize();
         window.addEventListener('resize', handleResize);
         return () => {
@@ -90,7 +123,7 @@ export function AccidentPreview({ data }: { data: AccidentReportData | null }) {
         setNumPages(numPages);
     }
 
-    if (!data || !data.fileData) {
+    if (!data || !data.files || data.files.length === 0) {
         return (
             <div className="fullscreen-report" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: '100%' }}>
                 <p style={{ fontSize: '48px', marginBottom: '16px' }}>📋</p>
@@ -101,78 +134,105 @@ export function AccidentPreview({ data }: { data: AccidentReportData | null }) {
         );
     }
 
-    const { fileType, fileData, fileName } = data;
-    const isImage = fileType.startsWith('image/');
-    const isPdf = fileType === 'application/pdf';
+    // PDF인 경우 (첫 번째 파일 기준)
+    const firstFile = data.files[0];
+    const isPdf = firstFile.fileType === 'application/pdf';
+    const allImages = data.files.every(f => f.fileType.startsWith('image/'));
 
-    return (
-        <div className="fullscreen-report" style={{ padding: 0, height: '100%', display: 'flex', flexDirection: 'column' }}>
-            <div style={{ padding: '16px', background: '#f5f5f5', borderBottom: '1px solid #e0e0e0', display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
-                <h2 style={{ margin: 0, fontSize: '18px', display: 'flex', alignItems: 'center', gap: '8px' }}>
-                    {fileName}
-                    {isPdf && numPages && (
-                        <span style={{ fontSize: '12px', background: '#e0e0e0', padding: '2px 8px', borderRadius: '12px', fontWeight: 'normal' }}>
-                            {pageNumber} / {numPages} 페이지
-                        </span>
+    if (isPdf) {
+        return (
+            <div className="fullscreen-report" style={{ padding: 0, height: '100%', display: 'flex', flexDirection: 'column' }}>
+                <div style={{ padding: '16px', background: '#f5f5f5', borderBottom: '1px solid #e0e0e0', display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
+                    <h2 style={{ margin: 0, fontSize: '18px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                        {firstFile.fileName}
+                        {numPages && (
+                            <span style={{ fontSize: '12px', background: '#e0e0e0', padding: '2px 8px', borderRadius: '12px', fontWeight: 'normal' }}>
+                                {pageNumber} / {numPages} 페이지
+                            </span>
+                        )}
+                    </h2>
+                </div>
+
+                <div style={{ flex: 1, overflow: 'auto', display: 'flex', flexDirection: 'column', alignItems: 'center', background: '#fff', padding: '8px' }}>
+                    {!workerReady && (
+                        <div style={{ padding: '48px', textAlign: 'center', color: '#757575' }}>PDF 뷰어 초기화 중...</div>
                     )}
-                </h2>
+
+                    {workerReady && (
+                        <div style={{ width: '100%', maxWidth: '800px', margin: '0 auto', border: '1px solid #e0e0e0', boxShadow: '0 4px 6px rgba(0,0,0,0.1)' }}>
+                            <DocumentComp
+                                file={firstFile.fileData}
+                                onLoadSuccess={onDocumentLoadSuccess}
+                                loading={<div style={{ padding: '24px', textAlign: 'center' }}>PDF 불러오는 중...</div>}
+                                error={<div style={{ padding: '24px', textAlign: 'center', color: '#d32f2f' }}>PDF를 불러오지 못했습니다.</div>}
+                            >
+                                <PageComp
+                                    pageNumber={pageNumber}
+                                    renderTextLayer={false}
+                                    renderAnnotationLayer={false}
+                                    width={containerWidth}
+                                />
+                            </DocumentComp>
+                        </div>
+                    )}
+
+                    {numPages && numPages > 1 && (
+                        <div style={{ display: 'flex', gap: '16px', marginTop: '16px', padding: '8px', background: '#f5f5f5', borderRadius: '8px' }}>
+                            <button
+                                className="btn btn-secondary"
+                                disabled={pageNumber <= 1}
+                                onClick={() => setPageNumber(prev => prev - 1)}
+                                style={{ padding: '4px 12px' }}
+                            >
+                                ← 이전
+                            </button>
+                            <button
+                                className="btn btn-secondary"
+                                disabled={pageNumber >= numPages}
+                                onClick={() => setPageNumber(prev => prev + 1)}
+                                style={{ padding: '4px 12px' }}
+                            >
+                                다음 →
+                            </button>
+                        </div>
+                    )}
+                </div>
             </div>
+        );
+    }
 
-            <div style={{ flex: 1, overflow: 'auto', display: 'flex', flexDirection: 'column', alignItems: 'center', background: '#fff', padding: '16px' }}>
-                {isImage && (
-                    <img src={fileData} alt="보고서 미리보기" style={{ maxWidth: '100%', height: 'auto', objectFit: 'contain' }} />
-                )}
-
-                {isPdf && !workerReady && (
-                    <div style={{ padding: '48px', textAlign: 'center', color: '#757575' }}>PDF 뷰어 초기화 중...</div>
-                )}
-
-                {isPdf && workerReady && (
-                    <div style={{ width: '100%', maxWidth: '800px', margin: '0 auto', border: '1px solid #e0e0e0', boxShadow: '0 4px 6px rgba(0,0,0,0.1)' }}>
-                        <Document
-                            file={fileData}
-                            onLoadSuccess={onDocumentLoadSuccess}
-                            loading={<div style={{ padding: '24px', textAlign: 'center' }}>PDF 불러오는 중...</div>}
-                            error={<div style={{ padding: '24px', textAlign: 'center', color: '#d32f2f' }}>PDF를 불러오지 못했습니다.</div>}
-                        >
-                            <Page
-                                pageNumber={pageNumber}
-                                renderTextLayer={false}
-                                renderAnnotationLayer={false}
-                                width={containerWidth}
-                            />
-                        </Document>
+    // 이미지인 경우 - 화면에 꽉 차게 표시
+    if (allImages) {
+        return (
+            <div style={{ height: '100%', overflow: 'auto', background: '#fff' }}>
+                {data.files.map((file, i) => (
+                    <div key={i} style={{ width: '100%' }}>
+                        <img
+                            src={file.fileData}
+                            alt={`보고서 ${i + 1}`}
+                            style={{
+                                display: 'block',
+                                width: '100%',
+                                height: 'auto',
+                            }}
+                        />
+                        {data.files.length > 1 && i < data.files.length - 1 && (
+                            <div style={{
+                                height: '2px',
+                                background: '#e0e0e0',
+                            }} />
+                        )}
                     </div>
-                )}
-
-                {isPdf && numPages && numPages > 1 && (
-                    <div style={{ display: 'flex', gap: '16px', marginTop: '16px', padding: '8px', background: '#f5f5f5', borderRadius: '8px' }}>
-                        <button
-                            className="btn btn-secondary"
-                            disabled={pageNumber <= 1}
-                            onClick={() => setPageNumber(prev => prev - 1)}
-                            style={{ padding: '4px 12px' }}
-                        >
-                            ← 이전
-                        </button>
-                        <button
-                            className="btn btn-secondary"
-                            disabled={pageNumber >= numPages}
-                            onClick={() => setPageNumber(prev => prev + 1)}
-                            style={{ padding: '4px 12px' }}
-                        >
-                            다음 →
-                        </button>
-                    </div>
-                )}
-
-                {!isImage && !isPdf && (
-                    <div style={{ margin: 'auto', textAlign: 'center', padding: '48px 16px' }}>
-                        <p style={{ fontSize: '48px', marginBottom: '16px' }}>📎</p>
-                        <p>미리보기를 지원하지 않는 형식입니다.</p>
-                    </div>
-                )}
+                ))}
             </div>
+        );
+    }
+
+    // 지원하지 않는 형식
+    return (
+        <div style={{ margin: 'auto', textAlign: 'center', padding: '48px 16px' }}>
+            <p style={{ fontSize: '48px', marginBottom: '16px' }}>📎</p>
+            <p>미리보기를 지원하지 않는 형식입니다.</p>
         </div>
     );
 }
@@ -200,7 +260,7 @@ function AccidentReportContent() {
                 .eq('id', 'accident')
                 .single();
             if (row?.data) {
-                setData(row.data as AccidentReportData);
+                setData(migrateData(row.data));
             }
             setIsDbLoaded(true);
         };
@@ -215,7 +275,7 @@ function AccidentReportContent() {
                 filter: 'id=eq.accident',
             }, (payload: any) => {
                 if (payload.new?.data) {
-                    setData(payload.new.data as AccidentReportData);
+                    setData(migrateData(payload.new.data));
                 } else {
                     setData(null);
                 }
@@ -240,47 +300,109 @@ function AccidentReportContent() {
     const handleDrop = (e: React.DragEvent<HTMLDivElement>) => {
         e.preventDefault();
         setIsDragging(false);
-        const file = e.dataTransfer.files?.[0];
-        if (file) {
-            processFile(file);
+        const files = e.dataTransfer.files;
+        if (files && files.length > 0) {
+            processFiles(Array.from(files));
         }
     };
 
-    const processFile = (file: File) => {
-        // Check file type (allow images and pdf)
+    const processFiles = (files: File[]) => {
         const allowedTypes = ['application/pdf', 'image/jpeg', 'image/png', 'image/heic'];
-        if (!allowedTypes.includes(file.type) && !file.name.toLowerCase().endsWith('.pdf')) {
-            alert('PDF 또는 이미지(JPG, PNG) 파일만 업로드 가능합니다.');
-            if (fileInputRef.current) fileInputRef.current.value = '';
-            return;
-        }
-
-        // Check file size (e.g., limit to 10MB to avoid base64 bloat)
         const MAX_MB = 10;
-        if (file.size > MAX_MB * 1024 * 1024) {
-            alert(`파일 크기는 ${MAX_MB}MB 이하만 가능합니다.`);
+        const MAX_FILES = 2;
+
+        // 현재 파일 수 확인
+        const currentCount = data?.files?.length || 0;
+        const availableSlots = MAX_FILES - currentCount;
+
+        if (availableSlots <= 0) {
+            alert('최대 2개의 파일까지만 업로드 가능합니다. 기존 파일을 삭제한 후 다시 시도하세요.');
             if (fileInputRef.current) fileInputRef.current.value = '';
             return;
         }
 
-        const reader = new FileReader();
-        reader.onloadend = () => {
-            const base64String = reader.result as string;
-            setData({
-                fileName: file.name,
-                fileType: file.type || (file.name.toLowerCase().endsWith('.pdf') ? 'application/pdf' : 'unknown'),
-                fileData: base64String,
-                updatedAt: new Date().toISOString()
-            });
-        };
-        reader.readAsDataURL(file);
+        // PDF는 1개만 허용 (다중 이미지만 가능)
+        const hasPdf = files.some(f => f.type === 'application/pdf' || f.name.toLowerCase().endsWith('.pdf'));
+        const existingHasPdf = data?.files?.some(f => f.fileType === 'application/pdf');
+
+        if (hasPdf && (files.length > 1 || currentCount > 0)) {
+            alert('PDF 파일은 단독으로만 업로드 가능합니다. 이미지 파일은 최대 2장까지 동시에 업로드할 수 있습니다.');
+            if (fileInputRef.current) fileInputRef.current.value = '';
+            return;
+        }
+
+        if (existingHasPdf && files.length > 0) {
+            // 기존에 PDF가 있으면 교체
+            // (아래 로직에서 처리됨)
+        }
+
+        const filesToProcess = files.slice(0, availableSlots);
+
+        for (const file of filesToProcess) {
+            if (!allowedTypes.includes(file.type) && !file.name.toLowerCase().endsWith('.pdf')) {
+                alert('PDF 또는 이미지(JPG, PNG) 파일만 업로드 가능합니다.');
+                if (fileInputRef.current) fileInputRef.current.value = '';
+                return;
+            }
+            if (file.size > MAX_MB * 1024 * 1024) {
+                alert(`파일 크기는 ${MAX_MB}MB 이하만 가능합니다.`);
+                if (fileInputRef.current) fileInputRef.current.value = '';
+                return;
+            }
+        }
+
+        // 모든 파일을 읽고 상태 업데이트
+        let readCount = 0;
+        const newItems: FileItem[] = [];
+
+        filesToProcess.forEach(file => {
+            const reader = new FileReader();
+            reader.onloadend = () => {
+                const base64String = reader.result as string;
+                newItems.push({
+                    fileName: file.name,
+                    fileType: file.type || (file.name.toLowerCase().endsWith('.pdf') ? 'application/pdf' : 'unknown'),
+                    fileData: base64String,
+                });
+                readCount++;
+
+                if (readCount === filesToProcess.length) {
+                    setData(prev => {
+                        // PDF면 교체, 이미지면 추가
+                        const isPdfUpload = newItems.some(item => item.fileType === 'application/pdf');
+                        if (isPdfUpload || !prev || existingHasPdf) {
+                            return {
+                                files: newItems,
+                                updatedAt: new Date().toISOString(),
+                            };
+                        }
+                        return {
+                            files: [...prev.files, ...newItems].slice(0, MAX_FILES),
+                            updatedAt: new Date().toISOString(),
+                        };
+                    });
+                }
+            };
+            reader.readAsDataURL(file);
+        });
+
+        if (fileInputRef.current) fileInputRef.current.value = '';
     };
 
     const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-        const file = e.target.files?.[0];
-        if (file) {
-            processFile(file);
+        const files = e.target.files;
+        if (files && files.length > 0) {
+            processFiles(Array.from(files));
         }
+    };
+
+    const removeFile = (index: number) => {
+        setData(prev => {
+            if (!prev) return prev;
+            const newFiles = prev.files.filter((_, i) => i !== index);
+            if (newFiles.length === 0) return null;
+            return { ...prev, files: newFiles };
+        });
     };
 
     const handleSave = useCallback(async () => {
@@ -305,6 +427,10 @@ function AccidentReportContent() {
         setShowPinModal(true);
     };
 
+    const hasFiles = data && data.files && data.files.length > 0;
+    const fileCount = data?.files?.length || 0;
+    const fileNames = data?.files?.map(f => f.fileName).join(', ') || '';
+
     // 인증되지 않은 상태에서의 읽기 전용 뷰
     if (!isAuthed) {
         return (
@@ -319,7 +445,7 @@ function AccidentReportContent() {
                         <p style={{ fontSize: '48px', marginBottom: '12px' }}>📊</p>
                         <p style={{ fontWeight: 700, fontSize: '18px', marginBottom: '8px' }}>화재 등 사고상황보고서</p>
                         <p style={{ color: '#757575', fontSize: '14px', marginBottom: '16px' }}>
-                            {data ? `최근 업로드: ${data.fileName}` : '보고서 파일(PDF, 이미지)을 업로드하거나 확인할 수 있습니다'}
+                            {hasFiles ? `업로드됨: ${fileNames}` : '보고서 파일(PDF, 이미지)을 업로드하거나 확인할 수 있습니다'}
                         </p>
                         <button className="btn btn-primary btn-block" onClick={handleEdit}>
                             🔒 PIN 입력하여 파일 업로드
@@ -328,7 +454,7 @@ function AccidentReportContent() {
                             className="btn btn-secondary btn-block"
                             style={{ marginTop: '8px' }}
                             onClick={() => setShowFullscreen(true)}
-                            disabled={!data}
+                            disabled={!hasFiles}
                         >
                             👁️ 보고서 보기
                         </button>
@@ -367,14 +493,14 @@ function AccidentReportContent() {
                         color: 'white'
                     }}
                     onClick={handleSave}
-                    disabled={saveStatus === 'saving' || !data}
+                    disabled={saveStatus === 'saving' || !hasFiles}
                 >
                     {saveStatus === 'saving' ? '⏳ 업로드 중...' : saveStatus === 'saved' ? '✅ 업로드 완료' : saveStatus === 'error' ? '❌ 오류' : '💾 파일 저장'}
                 </button>
                 <button
                     className="btn btn-primary"
                     onClick={() => setShowFullscreen(true)}
-                    disabled={!data}
+                    disabled={!hasFiles}
                 >
                     👁️ 보고서 보기
                 </button>
@@ -400,7 +526,7 @@ function AccidentReportContent() {
                         <h3 style={{ marginBottom: '8px' }}>여기로 파일을 드래그 하세요</h3>
                         <p style={{ fontSize: '14px', color: '#757575', marginBottom: '24px' }}>
                             또는 아래 버튼을 눌러 문서를 선택하세요.<br />
-                            (PDF 문서, JPG/PNG 이미지 - 최대 10MB)
+                            이미지는 최대 2장, PDF는 1개까지 가능 (각 최대 10MB)
                         </p>
 
                         <input
@@ -408,6 +534,7 @@ function AccidentReportContent() {
                             accept="application/pdf, image/jpeg, image/png, image/heic"
                             onChange={handleFileChange}
                             ref={fileInputRef}
+                            multiple
                             style={{ display: 'none' }}
                             id="file-upload"
                         />
@@ -419,12 +546,44 @@ function AccidentReportContent() {
                             📁 파일 찾기
                         </label>
 
-                        {data && data.fileName && (
-                            <div style={{ marginTop: '24px', padding: '16px', background: '#F5F5F5', borderRadius: '8px', textAlign: 'left' }}>
-                                <p style={{ fontWeight: 'bold', marginBottom: '4px', fontSize: '14px' }}>선택된 파일:</p>
-                                <p style={{ fontSize: '15px', wordBreak: 'break-all', color: '#1565C0' }}>{data.fileName}</p>
+                        {hasFiles && (
+                            <div style={{ marginTop: '24px', textAlign: 'left' }}>
+                                <p style={{ fontWeight: 'bold', marginBottom: '8px', fontSize: '14px' }}>
+                                    선택된 파일 ({fileCount}/2):
+                                </p>
+                                {data.files.map((file, i) => (
+                                    <div key={i} style={{
+                                        display: 'flex',
+                                        alignItems: 'center',
+                                        justifyContent: 'space-between',
+                                        padding: '10px 12px',
+                                        background: '#F5F5F5',
+                                        borderRadius: '8px',
+                                        marginBottom: '6px',
+                                    }}>
+                                        <span style={{ fontSize: '14px', wordBreak: 'break-all', color: '#1565C0', flex: 1 }}>
+                                            {file.fileType.startsWith('image/') ? '🖼️' : '📄'} {file.fileName}
+                                        </span>
+                                        <button
+                                            onClick={() => removeFile(i)}
+                                            style={{
+                                                background: 'none',
+                                                border: 'none',
+                                                cursor: 'pointer',
+                                                fontSize: '18px',
+                                                color: '#D32F2F',
+                                                padding: '0 4px',
+                                                marginLeft: '8px',
+                                                flexShrink: 0,
+                                            }}
+                                            title="파일 삭제"
+                                        >
+                                            ✕
+                                        </button>
+                                    </div>
+                                ))}
                                 <p style={{ fontSize: '12px', color: '#757575', marginTop: '8px' }}>
-                                    왼쪽 상단의 [💾 파일 저장] 버튼을 눌러야 최종적으로 서버에 업로드됩니다.
+                                    상단의 [💾 파일 저장] 버튼을 눌러야 최종적으로 서버에 업로드됩니다.
                                 </p>
                             </div>
                         )}
