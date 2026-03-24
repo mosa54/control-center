@@ -6,17 +6,18 @@ import { useSearchParams } from 'next/navigation';
 import { Suspense } from 'react';
 import { supabase } from '@/lib/supabase';
 import FullscreenOverlay from '@/components/FullscreenOverlay';
+import { FilePreview } from '@/components/FileUploadReport';
 
 function ReportsContent() {
     const searchParams = useSearchParams();
     const isObserver = searchParams.get('role') === 'observer';
     const roleParam = isObserver ? '?role=observer' : '';
 
-    const [previewType, setPreviewType] = useState<'accident' | 'casualty' | null>(null);
+    const [previewType, setPreviewType] = useState<'accident' | 'casualty' | 'building-register' | 'building-plan' | 'misc-docs' | null>(null);
     const [previewData, setPreviewData] = useState<any>(null);
     const [lastSavedAt, setLastSavedAt] = useState<string>('');
 
-    const handlePreview = async (type: 'accident' | 'casualty') => {
+    const handlePreview = async (type: 'accident' | 'casualty' | 'building-register' | 'building-plan' | 'misc-docs') => {
         const { data: row } = await supabase
             .from('reports')
             .select('data, updated_at')
@@ -83,6 +84,60 @@ function ReportsContent() {
                             👁️
                         </button>
                     </div>
+
+                    {/* 건축물 대장 등 카드 */}
+                    <div className="report-card" style={{ borderLeftColor: '#43A047', padding: 0, cursor: 'default' }}>
+                        <Link href={`/reports/building-register${roleParam}`} style={{ display: 'flex', alignItems: 'center', gap: '12px', flex: 1, padding: '20px', textDecoration: 'none', color: 'inherit' }}>
+                            <span className="report-card-icon">🏢</span>
+                            <div className="report-card-text">
+                                <span className="report-card-title">건축물 대장 등</span>
+                                <span className="report-card-desc">건축물 대장, 관련 서류 업로드</span>
+                            </div>
+                        </Link>
+                        <button
+                            className="report-preview-btn"
+                            onClick={() => handlePreview('building-register')}
+                            title="파일 보기"
+                        >
+                            👁️
+                        </button>
+                    </div>
+
+                    {/* 건축물 도면 카드 */}
+                    <div className="report-card" style={{ borderLeftColor: '#FB8C00', padding: 0, cursor: 'default' }}>
+                        <Link href={`/reports/building-plan${roleParam}`} style={{ display: 'flex', alignItems: 'center', gap: '12px', flex: 1, padding: '20px', textDecoration: 'none', color: 'inherit' }}>
+                            <span className="report-card-icon">📐</span>
+                            <div className="report-card-text">
+                                <span className="report-card-title">건축물 도면</span>
+                                <span className="report-card-desc">건축물 도면, 설계도 업로드</span>
+                            </div>
+                        </Link>
+                        <button
+                            className="report-preview-btn"
+                            onClick={() => handlePreview('building-plan')}
+                            title="파일 보기"
+                        >
+                            👁️
+                        </button>
+                    </div>
+
+                    {/* 기타 자료 카드 */}
+                    <div className="report-card" style={{ borderLeftColor: '#7E57C2', padding: 0, cursor: 'default' }}>
+                        <Link href={`/reports/misc-docs${roleParam}`} style={{ display: 'flex', alignItems: 'center', gap: '12px', flex: 1, padding: '20px', textDecoration: 'none', color: 'inherit' }}>
+                            <span className="report-card-icon">📂</span>
+                            <div className="report-card-text">
+                                <span className="report-card-title">기타 자료</span>
+                                <span className="report-card-desc">기타 참고 자료, 문서 업로드</span>
+                            </div>
+                        </Link>
+                        <button
+                            className="report-preview-btn"
+                            onClick={() => handlePreview('misc-docs')}
+                            title="파일 보기"
+                        >
+                            👁️
+                        </button>
+                    </div>
                 </div>
             </div>
 
@@ -101,8 +156,10 @@ function ReportsContent() {
                         </div>
                     ) : previewType === 'accident' ? (
                         <AccidentPreviewInline data={previewData} />
-                    ) : (
+                    ) : previewType === 'casualty' ? (
                         <CasualtyPreviewInline data={previewData} lastSavedAt={lastSavedAt} />
+                    ) : (
+                        <FilePreview data={previewData} />
                     )}
                 </FullscreenOverlay>
             )}

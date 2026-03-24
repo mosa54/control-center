@@ -6,37 +6,29 @@ import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
 import { Suspense } from 'react';
 import FullscreenOverlay from '@/components/FullscreenOverlay';
+import dynamic from 'next/dynamic';
+import 'react-pdf/dist/Page/AnnotationLayer.css';
+import 'react-pdf/dist/Page/TextLayer.css';
+
+const DocumentComp = dynamic(() => import('react-pdf').then(mod => mod.Document), { ssr: false });
+const PageComp = dynamic(() => import('react-pdf').then(mod => mod.Page), { ssr: false });
 
 interface FileItem {
     fileName: string;
     fileType: string;
-    fileData: string; // Base64 encoded string
+    fileData: string;
 }
 
-// 새로운 다중 파일 형식
-interface AccidentReportDataMulti {
+interface ReportData {
     files: FileItem[];
     updatedAt: string;
 }
 
-// 기존 단일 파일 형식 (하위 호환용)
-interface AccidentReportDataLegacy {
-    fileName: string;
-    fileType: string;
-    fileData: string;
-    updatedAt: string;
-}
-
-type AccidentReportData = AccidentReportDataMulti;
-
-// 기존 단일 파일 데이터를 새 형식으로 변환
-function migrateData(raw: any): AccidentReportData | null {
+function migrateData(raw: any): ReportData | null {
     if (!raw) return null;
-    // 이미 새 형식인 경우
     if (raw.files && Array.isArray(raw.files)) {
-        return raw as AccidentReportData;
+        return raw as ReportData;
     }
-    // 기존 단일 파일 형식인 경우
     if (raw.fileName && raw.fileData) {
         return {
             files: [{
@@ -67,7 +59,7 @@ function PinModal({ onSuccess, onCancel }: { onSuccess: () => void; onCancel: ()
             <div className="pin-modal">
                 <h3>🔒 PIN 입력</h3>
                 <p style={{ fontSize: '14px', color: '#757575', marginBottom: '16px' }}>
-                    보고서 업로드를 위해 PIN을 입력하세요
+                    파일 업로드를 위해 PIN을 입력하세요
                 </p>
                 <input
                     type="password"
@@ -88,13 +80,6 @@ function PinModal({ onSuccess, onCancel }: { onSuccess: () => void; onCancel: ()
     );
 }
 
-import dynamic from 'next/dynamic';
-import 'react-pdf/dist/Page/AnnotationLayer.css';
-import 'react-pdf/dist/Page/TextLayer.css';
-
-const DocumentComp = dynamic(() => import('react-pdf').then(mod => mod.Document), { ssr: false });
-const PageComp = dynamic(() => import('react-pdf').then(mod => mod.Page), { ssr: false });
-
 /* Base64 데이터를 파일로 다운로드 */
 function downloadFile(fileData: string, fileName: string) {
     const link = document.createElement('a');
@@ -105,7 +90,8 @@ function downloadFile(fileData: string, fileName: string) {
     document.body.removeChild(link);
 }
 
-export function AccidentPreview({ data }: { data: AccidentReportData | null }) {
+/* 파일 미리보기 컴포넌트 */
+export function FilePreview({ data }: { data: ReportData | null }) {
     const [numPages, setNumPages] = useState<number>();
     const [containerWidth, setContainerWidth] = useState<number>(800);
     const [workerReady, setWorkerReady] = useState(false);
@@ -137,13 +123,12 @@ export function AccidentPreview({ data }: { data: AccidentReportData | null }) {
             <div className="fullscreen-report" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: '100%' }}>
                 <p style={{ fontSize: '48px', marginBottom: '16px' }}>📋</p>
                 <p style={{ fontWeight: 700, fontSize: '18px', marginBottom: '8px' }}>
-                    업로드된 보고서가 없습니다
+                    업로드된 파일이 없습니다
                 </p>
             </div>
         );
     }
 
-    // PDF인 경우 (첫 번째 파일 기준)
     const firstFile = data.files[0];
     const isPdf = firstFile.fileType === 'application/pdf';
     const allImages = data.files.every(f => f.fileType.startsWith('image/'));
@@ -203,7 +188,6 @@ export function AccidentPreview({ data }: { data: AccidentReportData | null }) {
         );
     }
 
-    // 이미지인 경우 - 화면에 꽉 차게 표시
     if (allImages) {
         return (
             <div style={{ height: '100%', overflow: 'auto', background: '#fff', position: 'relative' }}>
@@ -222,7 +206,7 @@ export function AccidentPreview({ data }: { data: AccidentReportData | null }) {
                     <div key={i} style={{ width: '100%' }}>
                         <img
                             src={file.fileData}
-                            alt={`보고서 ${i + 1}`}
+                            alt={`파일 ${i + 1}`}
                             style={{
                                 display: 'block',
                                 width: '100%',
@@ -241,7 +225,6 @@ export function AccidentPreview({ data }: { data: AccidentReportData | null }) {
         );
     }
 
-    // 지원하지 않는 형식
     return (
         <div style={{ margin: 'auto', textAlign: 'center', padding: '48px 16px' }}>
             <p style={{ fontSize: '48px', marginBottom: '16px' }}>📎</p>
@@ -250,7 +233,15 @@ export function AccidentPreview({ data }: { data: AccidentReportData | null }) {
     );
 }
 
-function AccidentReportContent() {
+/* 메인 파일 업로드 보고서 컨텐츠 컴포넌트 */
+interface FileUploadReportProps {
+    reportId: string;
+    title: string;
+    label: string;
+    icon: string;
+}
+
+function FileUploadReportContent({ reportId, title, label, icon }: FileUploadReportProps) {
     const searchParams = useSearchParams();
     const isObserver = searchParams.get('role') === 'observer';
     const roleParam = isObserver ? '?role=observer' : '';
@@ -258,19 +249,18 @@ function AccidentReportContent() {
     const [isAuthed, setIsAuthed] = useState(false);
     const [showPinModal, setShowPinModal] = useState(false);
     const [showFullscreen, setShowFullscreen] = useState(false);
-    const [data, setData] = useState<AccidentReportData | null>(null);
+    const [data, setData] = useState<ReportData | null>(null);
     const [saveStatus, setSaveStatus] = useState<'idle' | 'saving' | 'saved' | 'error'>('idle');
     const [isDbLoaded, setIsDbLoaded] = useState(false);
 
     const fileInputRef = useRef<HTMLInputElement>(null);
 
-    // DB에서 데이터 로드 + 실시간 구독
     useEffect(() => {
         const loadData = async () => {
             const { data: row } = await supabase
                 .from('reports')
                 .select('data')
-                .eq('id', 'accident')
+                .eq('id', reportId)
                 .single();
             if (row?.data) {
                 setData(migrateData(row.data));
@@ -280,12 +270,12 @@ function AccidentReportContent() {
         loadData();
 
         const channel = supabase
-            .channel('report-accident')
+            .channel(`report-${reportId}`)
             .on('postgres_changes', {
                 event: '*',
                 schema: 'public',
                 table: 'reports',
-                filter: 'id=eq.accident',
+                filter: `id=eq.${reportId}`,
             }, (payload: any) => {
                 if (payload.new?.data) {
                     setData(migrateData(payload.new.data));
@@ -296,7 +286,7 @@ function AccidentReportContent() {
             .subscribe();
 
         return () => { supabase.removeChannel(channel); };
-    }, []);
+    }, [reportId]);
 
     const [isDragging, setIsDragging] = useState(false);
 
@@ -324,7 +314,6 @@ function AccidentReportContent() {
         const MAX_MB = 10;
         const MAX_FILES = 2;
 
-        // 현재 파일 수 확인
         const currentCount = data?.files?.length || 0;
         const availableSlots = MAX_FILES - currentCount;
 
@@ -334,7 +323,6 @@ function AccidentReportContent() {
             return;
         }
 
-        // PDF는 1개만 허용 (다중 이미지만 가능)
         const hasPdf = files.some(f => f.type === 'application/pdf' || f.name.toLowerCase().endsWith('.pdf'));
         const existingHasPdf = data?.files?.some(f => f.fileType === 'application/pdf');
 
@@ -342,11 +330,6 @@ function AccidentReportContent() {
             alert('PDF 파일은 단독으로만 업로드 가능합니다. 이미지 파일은 최대 2장까지 동시에 업로드할 수 있습니다.');
             if (fileInputRef.current) fileInputRef.current.value = '';
             return;
-        }
-
-        if (existingHasPdf && files.length > 0) {
-            // 기존에 PDF가 있으면 교체
-            // (아래 로직에서 처리됨)
         }
 
         const filesToProcess = files.slice(0, availableSlots);
@@ -364,7 +347,6 @@ function AccidentReportContent() {
             }
         }
 
-        // 모든 파일을 읽고 상태 업데이트
         let readCount = 0;
         const newItems: FileItem[] = [];
 
@@ -381,7 +363,6 @@ function AccidentReportContent() {
 
                 if (readCount === filesToProcess.length) {
                     setData(prev => {
-                        // PDF면 교체, 이미지면 추가
                         const isPdfUpload = newItems.some(item => item.fileType === 'application/pdf');
                         if (isPdfUpload || !prev || existingHasPdf) {
                             return {
@@ -424,7 +405,7 @@ function AccidentReportContent() {
         try {
             const { error } = await supabase
                 .from('reports')
-                .upsert({ id: 'accident', data: saveData, updated_at: new Date().toISOString() });
+                .upsert({ id: reportId, data: saveData, updated_at: new Date().toISOString() });
             if (error) throw error;
             setSaveStatus('saved');
             setTimeout(() => setSaveStatus('idle'), 2000);
@@ -433,9 +414,8 @@ function AccidentReportContent() {
             setSaveStatus('error');
             setTimeout(() => setSaveStatus('idle'), 3000);
         }
-    }, [data]);
+    }, [data, reportId]);
 
-    // 저장 가능 여부: 파일이 있거나 / 이미 DB에 로드된 상태에서 파일을 모두 삭제한 경우
     const canSave = saveStatus !== 'saving' && isDbLoaded;
 
     const handleEdit = () => {
@@ -447,21 +427,22 @@ function AccidentReportContent() {
     const fileCount = data?.files?.length || 0;
     const fileNames = data?.files?.map(f => f.fileName).join(', ') || '';
 
-    // 인증되지 않은 상태에서의 읽기 전용 뷰
+    const fileInputId = `file-upload-${reportId}`;
+
     if (!isAuthed) {
         return (
             <div className="page">
                 <div className="header">
                     <Link href={`/reports${roleParam}`} className="header-back">←</Link>
-                    <h1 className="header-title">사고상황보고서</h1>
+                    <h1 className="header-title">{title}</h1>
                 </div>
 
                 <div className="page-content" style={{ padding: '16px' }}>
                     <div className="card" style={{ textAlign: 'center' }}>
-                        <p style={{ fontSize: '48px', marginBottom: '12px' }}>📊</p>
-                        <p style={{ fontWeight: 700, fontSize: '18px', marginBottom: '8px' }}>화재 등 사고상황보고서</p>
+                        <p style={{ fontSize: '48px', marginBottom: '12px' }}>{icon}</p>
+                        <p style={{ fontWeight: 700, fontSize: '18px', marginBottom: '8px' }}>{label}</p>
                         <p style={{ color: '#757575', fontSize: '14px', marginBottom: '16px' }}>
-                            {hasFiles ? `업로드됨: ${fileNames}` : '보고서 파일(PDF, 이미지)을 업로드하거나 확인할 수 있습니다'}
+                            {hasFiles ? `업로드됨: ${fileNames}` : '파일(PDF, 이미지)을 업로드하거나 확인할 수 있습니다'}
                         </p>
                         <button className="btn btn-primary btn-block" onClick={handleEdit}>
                             🔒 PIN 입력하여 파일 업로드
@@ -472,7 +453,7 @@ function AccidentReportContent() {
                             onClick={() => setShowFullscreen(true)}
                             disabled={!hasFiles}
                         >
-                            👁️ 보고서 보기
+                            👁️ 파일 보기
                         </button>
                     </div>
                 </div>
@@ -486,19 +467,18 @@ function AccidentReportContent() {
 
                 {showFullscreen && (
                     <FullscreenOverlay onClose={() => setShowFullscreen(false)}>
-                        <AccidentPreview data={data} />
+                        <FilePreview data={data} />
                     </FullscreenOverlay>
                 )}
             </div>
         );
     }
 
-    // 인증된 상태: 파일 업로드 폼
     return (
         <div className="page">
             <div className="header">
                 <Link href={`/reports${roleParam}`} className="header-back">←</Link>
-                <h1 className="header-title">사고상황보고서 업로드</h1>
+                <h1 className="header-title">{title} 업로드</h1>
             </div>
 
             <div className="report-actions">
@@ -518,7 +498,7 @@ function AccidentReportContent() {
                     onClick={() => setShowFullscreen(true)}
                     disabled={!hasFiles}
                 >
-                    👁️ 보고서 보기
+                    👁️ 파일 보기
                 </button>
             </div>
 
@@ -552,10 +532,10 @@ function AccidentReportContent() {
                             ref={fileInputRef}
                             multiple
                             style={{ display: 'none' }}
-                            id="file-upload"
+                            id={fileInputId}
                         />
                         <label
-                            htmlFor="file-upload"
+                            htmlFor={fileInputId}
                             className="btn btn-secondary btn-block"
                             style={{ padding: '12px', display: 'inline-block', cursor: 'pointer', background: '#e3f2fd', color: '#1565c0', fontWeight: 'bold' }}
                         >
@@ -605,22 +585,21 @@ function AccidentReportContent() {
                         )}
                     </div>
                 </div>
-
             </div>
 
             {showFullscreen && (
                 <FullscreenOverlay onClose={() => setShowFullscreen(false)}>
-                    <AccidentPreview data={data} />
+                    <FilePreview data={data} />
                 </FullscreenOverlay>
             )}
         </div>
     );
 }
 
-export default function AccidentReportPage() {
+export default function FileUploadReport(props: FileUploadReportProps) {
     return (
         <Suspense fallback={<div className="page"><div className="header"><h1 className="header-title">로딩 중...</h1></div></div>}>
-            <AccidentReportContent />
+            <FileUploadReportContent {...props} />
         </Suspense>
     );
 }
