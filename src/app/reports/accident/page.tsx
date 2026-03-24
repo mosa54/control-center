@@ -151,20 +151,22 @@ export function AccidentPreview({ data }: { data: AccidentReportData | null }) {
     if (isPdf) {
         return (
             <div className="fullscreen-report" style={{ padding: 0, height: '100%', display: 'flex', flexDirection: 'column' }}>
-                <div style={{ padding: '12px 16px', background: '#f5f5f5', borderBottom: '1px solid #e0e0e0', display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '12px' }}>
-                    <h2 style={{ margin: 0, fontSize: '16px', display: 'flex', alignItems: 'center', gap: '8px' }}>
-                        {firstFile.fileName}
+                <div style={{ padding: '12px 16px', background: '#f5f5f5', borderBottom: '1px solid #e0e0e0', display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '16px' }}>
+                    <h2 style={{ margin: 0, fontSize: '16px', display: 'flex', alignItems: 'center', gap: '8px', overflow: 'hidden' }}>
+                        <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }} title={firstFile.fileName}>
+                            {firstFile.fileName}
+                        </span>
                         {numPages && (
-                            <span style={{ fontSize: '12px', background: '#e0e0e0', padding: '2px 8px', borderRadius: '12px', fontWeight: 'normal' }}>
+                            <span style={{ flexShrink: 0, fontSize: '12px', background: '#e0e0e0', padding: '2px 8px', borderRadius: '12px', fontWeight: 'normal' }}>
                                 총 {numPages}페이지
                             </span>
                         )}
                     </h2>
                     <button
                         onClick={(e) => { e.stopPropagation(); downloadFile(firstFile.fileData, firstFile.fileName); }}
-                        style={{ background: '#1565C0', color: 'white', border: 'none', borderRadius: '6px', padding: '6px 12px', fontSize: '13px', cursor: 'pointer', fontWeight: 600, whiteSpace: 'nowrap' }}
+                        style={{ flexShrink: 0, display: 'flex', alignItems: 'center', gap: '4px', background: '#1565C0', color: 'white', border: 'none', borderRadius: '6px', padding: '6px 12px', fontSize: '13px', cursor: 'pointer', fontWeight: 600, whiteSpace: 'nowrap' }}
                     >
-                        ⬇️ 다운로드
+                        <span>⬇️</span> <span>다운로드</span>
                     </button>
                 </div>
 
@@ -207,16 +209,22 @@ export function AccidentPreview({ data }: { data: AccidentReportData | null }) {
     if (allImages) {
         return (
             <div style={{ height: '100%', overflow: 'auto', background: '#fff', position: 'relative' }}>
-                <div style={{ position: 'sticky', top: 0, zIndex: 10, display: 'flex', justifyContent: 'center', padding: '8px', background: 'rgba(245,245,245,0.95)', borderBottom: '1px solid #e0e0e0', gap: '8px', flexWrap: 'wrap' }}>
-                    {data.files.map((file, i) => (
-                        <button
-                            key={i}
-                            onClick={(e) => { e.stopPropagation(); downloadFile(file.fileData, file.fileName); }}
-                            style={{ background: '#1565C0', color: 'white', border: 'none', borderRadius: '6px', padding: '6px 12px', fontSize: '13px', cursor: 'pointer', fontWeight: 600 }}
-                        >
-                            ⬇️ {data.files.length > 1 ? `${file.fileName}` : '다운로드'}
-                        </button>
-                    ))}
+                <div style={{ position: 'sticky', top: 0, zIndex: 10, background: 'rgba(245,245,245,0.95)', borderBottom: '1px solid #e0e0e0', padding: '8px 12px', display: 'flex', overflowX: 'auto', gap: '8px', WebkitOverflowScrolling: 'touch' }}>
+                    <div style={{ display: 'flex', gap: '8px', margin: '0 auto' }}>
+                        {data.files.map((file, i) => (
+                            <button
+                                key={i}
+                                onClick={(e) => { e.stopPropagation(); downloadFile(file.fileData, file.fileName); }}
+                                style={{ flexShrink: 0, display: 'flex', alignItems: 'center', gap: '4px', background: '#1565C0', color: 'white', border: 'none', borderRadius: '6px', padding: '6px 12px', fontSize: '13px', cursor: 'pointer', fontWeight: 600 }}
+                                title={file.fileName}
+                            >
+                                <span>⬇️</span>
+                                <span style={{ maxWidth: '150px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                                    {data.files.length > 1 ? file.fileName : '다운로드'}
+                                </span>
+                            </button>
+                        ))}
+                    </div>
                 </div>
                 {data.files.map((file, i) => (
                     <div key={i} style={{ width: '100%' }}>
