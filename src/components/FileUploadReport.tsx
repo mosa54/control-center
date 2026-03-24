@@ -312,13 +312,13 @@ function FileUploadReportContent({ reportId, title, label, icon }: FileUploadRep
     const processFiles = (files: File[]) => {
         const allowedTypes = ['application/pdf', 'image/jpeg', 'image/png', 'image/heic'];
         const MAX_MB = 10;
-        const MAX_FILES = 2;
+        const MAX_FILES = 50; // 사실상 제한 해제
 
         const currentCount = data?.files?.length || 0;
         const availableSlots = MAX_FILES - currentCount;
 
         if (availableSlots <= 0) {
-            alert('최대 2개의 파일까지만 업로드 가능합니다. 기존 파일을 삭제한 후 다시 시도하세요.');
+            alert(`최대 ${MAX_FILES}개의 파일까지만 업로드 가능합니다.`);
             if (fileInputRef.current) fileInputRef.current.value = '';
             return;
         }
@@ -327,7 +327,7 @@ function FileUploadReportContent({ reportId, title, label, icon }: FileUploadRep
         const existingHasPdf = data?.files?.some(f => f.fileType === 'application/pdf');
 
         if (hasPdf && (files.length > 1 || currentCount > 0)) {
-            alert('PDF 파일은 단독으로만 업로드 가능합니다. 이미지 파일은 최대 2장까지 동시에 업로드할 수 있습니다.');
+            alert('PDF 파일은 단독으로만 업로드 가능합니다. 이미지 파일은 여러 장을 동시에 업로드할 수 있습니다.');
             if (fileInputRef.current) fileInputRef.current.value = '';
             return;
         }
@@ -522,7 +522,7 @@ function FileUploadReportContent({ reportId, title, label, icon }: FileUploadRep
                         <h3 style={{ marginBottom: '8px' }}>여기로 파일을 드래그 하세요</h3>
                         <p style={{ fontSize: '14px', color: '#757575', marginBottom: '24px' }}>
                             또는 아래 버튼을 눌러 문서를 선택하세요.<br />
-                            이미지는 최대 2장, PDF는 1개까지 가능 (각 최대 10MB)
+                            이미지는 여러 장, PDF는 1개 단독 업로드 가능 (각 파일 최대 10MB)
                         </p>
 
                         <input
@@ -545,7 +545,7 @@ function FileUploadReportContent({ reportId, title, label, icon }: FileUploadRep
                         {hasFiles && (
                             <div style={{ marginTop: '24px', textAlign: 'left' }}>
                                 <p style={{ fontWeight: 'bold', marginBottom: '8px', fontSize: '14px' }}>
-                                    선택된 파일 ({fileCount}/2):
+                                    선택된 파일 ({fileCount}개):
                                 </p>
                                 {data.files.map((file, i) => (
                                     <div key={i} style={{
