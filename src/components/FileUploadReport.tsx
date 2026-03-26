@@ -90,6 +90,42 @@ function downloadFile(fileData: string, fileName: string) {
     document.body.removeChild(link);
 }
 
+/* 이미지 리사이즈 및 압축 함수 */
+const compressImage = (file: File, maxWidth = 1920, quality = 0.8): Promise<string> => {
+    return new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.readAsDataURL(file);
+        reader.onload = (event) => {
+            const img = new Image();
+            img.src = event.target?.result as string;
+            img.onload = () => {
+                const canvas = document.createElement('canvas');
+                let width = img.width;
+                let height = img.height;
+
+                if (width > maxWidth) {
+                    height = Math.round((height * maxWidth) / width);
+                    width = maxWidth;
+                }
+
+                canvas.width = width;
+                canvas.height = height;
+                const ctx = canvas.getContext('2d');
+                if (!ctx) {
+                    resolve(event.target?.result as string);
+                    return;
+                }
+                ctx.drawImage(img, 0, 0, width, height);
+                const outputFormat = file.type === 'image/png' ? 'image/png' : 'image/jpeg';
+                const compressedDataUrl = canvas.toDataURL(outputFormat, quality);
+                resolve(compressedDataUrl);
+            };
+            img.onerror = (error) => reject(error);
+        };
+        reader.onerror = (error) => reject(error);
+    });
+};
+
 /* 파일 미리보기 컴포넌트 */
 export function FilePreview({ data }: { data: ReportData | null }) {
     const [numPages, setNumPages] = useState<number>();
@@ -355,37 +391,50 @@ function FileUploadReportContent({ reportId, title, label, icon }: FileUploadRep
             }
         }
 
-        let readCount = 0;
-        const newItems: FileItem[] = [];
+        Promise.all(filesToProcess.map(async (file) => {
+            const isImage = file.type.startsWith('image/') || file.name.toLowerCase().match(/\.(jpg|jpeg|png|heic)$/i);
+            let base64String = '';
+            let finalType = file.type || (file.name.toLowerCase().endsWith('.pdf') ? 'application/pdf' : 'unknown');
 
-        filesToProcess.forEach(file => {
-            const reader = new FileReader();
-            reader.onloadend = () => {
-                const base64String = reader.result as string;
-                newItems.push({
-                    fileName: file.name,
-                    fileType: file.type || (file.name.toLowerCase().endsWith('.pdf') ? 'application/pdf' : 'unknown'),
-                    fileData: base64String,
-                });
-                readCount++;
-
-                if (readCount === filesToProcess.length) {
-                    setData(prev => {
-                        const isPdfUpload = newItems.some(item => item.fileType === 'application/pdf');
-                        if (isPdfUpload || !prev || existingHasPdf) {
-                            return {
-                                files: newItems,
-                                updatedAt: new Date().toISOString(),
-                            };
-                        }
-                        return {
-                            files: [...prev.files, ...newItems].slice(0, MAX_FILES),
-                            updatedAt: new Date().toISOString(),
-                        };
+            if (isImage) {
+                try {
+                    base64String = await compressImage(file);
+                    if (finalType === 'image/heic') finalType = 'image/jpeg';
+                } catch (e) {
+                    console.error('Compression failed', e);
+                    base64String = await new Promise((res) => {
+                        const reader = new FileReader();
+                        reader.onloadend = () => res(reader.result as string);
+                        reader.readAsDataURL(file);
                     });
                 }
-            };
-            reader.readAsDataURL(file);
+            } else {
+                base64String = await new Promise((res) => {
+                    const reader = new FileReader();
+                    reader.onloadend = () => res(reader.result as string);
+                    reader.readAsDataURL(file);
+                });
+            }
+
+            return {
+                fileName: file.name,
+                fileType: finalType,
+                fileData: base64String,
+            } as FileItem;
+        })).then((newItems) => {
+            setData(prev => {
+                const isPdfUpload = newItems.some(item => item.fileType === 'application/pdf');
+                if (isPdfUpload || !prev || existingHasPdf) {
+                    return {
+                        files: newItems,
+                        updatedAt: new Date().toISOString(),
+                    };
+                }
+                return {
+                    files: [...prev.files, ...newItems].slice(0, MAX_FILES),
+                    updatedAt: new Date().toISOString(),
+                };
+            });
         });
 
         if (fileInputRef.current) fileInputRef.current.value = '';
