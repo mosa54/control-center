@@ -13,11 +13,11 @@ function ReportsContent() {
     const isObserver = searchParams.get('role') === 'observer';
     const roleParam = isObserver ? '?role=observer' : '';
 
-    const [previewType, setPreviewType] = useState<'accident' | 'casualty' | 'building-register' | 'building-plan' | 'misc-docs' | null>(null);
+    const [previewType, setPreviewType] = useState<'accident' | 'casualty' | 'building-register' | 'building-plan' | 'misc-docs' | 'response-plan' | 'field-command' | 'resource-support' | null>(null);
     const [previewData, setPreviewData] = useState<any>(null);
     const [lastSavedAt, setLastSavedAt] = useState<string>('');
 
-    const handlePreview = async (type: 'accident' | 'casualty' | 'building-register' | 'building-plan' | 'misc-docs') => {
+    const handlePreview = async (type: 'accident' | 'casualty' | 'building-register' | 'building-plan' | 'misc-docs' | 'response-plan' | 'field-command' | 'resource-support') => {
         const { data: row } = await supabase
             .from('reports')
             .select('data, updated_at')
@@ -51,7 +51,7 @@ function ReportsContent() {
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
                     {/* 사고상황보고서 카드 */}
                     <div className="report-card" style={{ borderLeftColor: '#E53935', padding: 0, cursor: 'default' }}>
-                        <Link href={`/reports/accident${roleParam}`} style={{ display: 'flex', alignItems: 'center', gap: '12px', flex: 1, padding: '20px', textDecoration: 'none', color: 'inherit' }}>
+                        <Link href={`/reports/accident${roleParam}`} style={{ display: 'flex', alignItems: 'center', gap: '12px', flex: 1, padding: '12px 20px', textDecoration: 'none', color: 'inherit' }}>
                             <span className="report-card-icon">🔥</span>
                             <div className="report-card-text">
                                 <span className="report-card-title">화재 등 사고상황보고서</span>
@@ -69,7 +69,7 @@ function ReportsContent() {
 
                     {/* 사상자 이송현황 카드 */}
                     <div className="report-card" style={{ borderLeftColor: '#1E88E5', padding: 0, cursor: 'default' }}>
-                        <Link href={`/reports/casualty${roleParam}`} style={{ display: 'flex', alignItems: 'center', gap: '12px', flex: 1, padding: '20px', textDecoration: 'none', color: 'inherit' }}>
+                        <Link href={`/reports/casualty${roleParam}`} style={{ display: 'flex', alignItems: 'center', gap: '12px', flex: 1, padding: '12px 20px', textDecoration: 'none', color: 'inherit' }}>
                             <span className="report-card-icon">🚑</span>
                             <div className="report-card-text">
                                 <span className="report-card-title">사상자 이송현황</span>
@@ -87,7 +87,7 @@ function ReportsContent() {
 
                     {/* 건축물 대장 등 카드 */}
                     <div className="report-card" style={{ borderLeftColor: '#43A047', padding: 0, cursor: 'default' }}>
-                        <Link href={`/reports/building-register${roleParam}`} style={{ display: 'flex', alignItems: 'center', gap: '12px', flex: 1, padding: '20px', textDecoration: 'none', color: 'inherit' }}>
+                        <Link href={`/reports/building-register${roleParam}`} style={{ display: 'flex', alignItems: 'center', gap: '12px', flex: 1, padding: '12px 20px', textDecoration: 'none', color: 'inherit' }}>
                             <span className="report-card-icon">🏢</span>
                             <div className="report-card-text">
                                 <span className="report-card-title">건축물 대장 등</span>
@@ -105,7 +105,7 @@ function ReportsContent() {
 
                     {/* 건축물 도면 카드 */}
                     <div className="report-card" style={{ borderLeftColor: '#FB8C00', padding: 0, cursor: 'default' }}>
-                        <Link href={`/reports/building-plan${roleParam}`} style={{ display: 'flex', alignItems: 'center', gap: '12px', flex: 1, padding: '20px', textDecoration: 'none', color: 'inherit' }}>
+                        <Link href={`/reports/building-plan${roleParam}`} style={{ display: 'flex', alignItems: 'center', gap: '12px', flex: 1, padding: '12px 20px', textDecoration: 'none', color: 'inherit' }}>
                             <span className="report-card-icon">📐</span>
                             <div className="report-card-text">
                                 <span className="report-card-title">건축물 도면</span>
@@ -123,16 +123,70 @@ function ReportsContent() {
 
                     {/* 기타 자료 카드 */}
                     <div className="report-card" style={{ borderLeftColor: '#7E57C2', padding: 0, cursor: 'default' }}>
-                        <Link href={`/reports/misc-docs${roleParam}`} style={{ display: 'flex', alignItems: 'center', gap: '12px', flex: 1, padding: '20px', textDecoration: 'none', color: 'inherit' }}>
+                        <Link href={`/reports/misc-docs${roleParam}`} style={{ display: 'flex', alignItems: 'center', gap: '12px', flex: 1, padding: '12px 20px', textDecoration: 'none', color: 'inherit' }}>
                             <span className="report-card-icon">📂</span>
                             <div className="report-card-text">
                                 <span className="report-card-title">기타 자료</span>
-                                <span className="report-card-desc">기타 참고 자료, 문서 업로드</span>
+                                <span className="report-card-desc">현황판, 작전도 등 참고자료</span>
                             </div>
                         </Link>
                         <button
                             className="report-preview-btn"
                             onClick={() => handlePreview('misc-docs')}
+                            title="파일 보기"
+                        >
+                            👁️
+                        </button>
+                    </div>
+
+                    {/* 대응계획부 보고서 카드 */}
+                    <div className="report-card" style={{ borderLeftColor: '#43A047', padding: 0, cursor: 'default' }}>
+                        <Link href={`/reports/response-plan${roleParam}`} style={{ display: 'flex', alignItems: 'center', gap: '12px', flex: 1, padding: '12px 20px', textDecoration: 'none', color: 'inherit' }}>
+                            <span className="report-card-icon">📋</span>
+                            <div className="report-card-text">
+                                <span className="report-card-title">대응계획부 보고서</span>
+                                <span className="report-card-desc">대응계획부 관련 자료 및 서류 업로드</span>
+                            </div>
+                        </Link>
+                        <button
+                            className="report-preview-btn"
+                            onClick={() => handlePreview('response-plan')}
+                            title="파일 보기"
+                        >
+                            👁️
+                        </button>
+                    </div>
+
+                    {/* 현장지휘부 보고서 카드 */}
+                    <div className="report-card" style={{ borderLeftColor: '#8E24AA', padding: 0, cursor: 'default' }}>
+                        <Link href={`/reports/field-command${roleParam}`} style={{ display: 'flex', alignItems: 'center', gap: '12px', flex: 1, padding: '12px 20px', textDecoration: 'none', color: 'inherit' }}>
+                            <span className="report-card-icon">🚩</span>
+                            <div className="report-card-text">
+                                <span className="report-card-title">현장지휘부 보고서</span>
+                                <span className="report-card-desc">현장지휘부 관련 자료 및 서류 업로드</span>
+                            </div>
+                        </Link>
+                        <button
+                            className="report-preview-btn"
+                            onClick={() => handlePreview('field-command')}
+                            title="파일 보기"
+                        >
+                            👁️
+                        </button>
+                    </div>
+
+                    {/* 자원지원부 보고서 카드 */}
+                    <div className="report-card" style={{ borderLeftColor: '#1E88E5', padding: 0, cursor: 'default' }}>
+                        <Link href={`/reports/resource-support${roleParam}`} style={{ display: 'flex', alignItems: 'center', gap: '12px', flex: 1, padding: '12px 20px', textDecoration: 'none', color: 'inherit' }}>
+                            <span className="report-card-icon">📦</span>
+                            <div className="report-card-text">
+                                <span className="report-card-title">자원지원부 보고서</span>
+                                <span className="report-card-desc">자원지원부 관련 자료 및 서류 업로드</span>
+                            </div>
+                        </Link>
+                        <button
+                            className="report-preview-btn"
+                            onClick={() => handlePreview('resource-support')}
                             title="파일 보기"
                         >
                             👁️

@@ -58,8 +58,11 @@ body {
   font-family: var(--font-family);
   background: var(--color-bg);
   color: var(--color-text-primary);
-  line-height: 1.5;
+  line-height: 1.6; /* 한국어 가독성에 더 좋은 1.6으로 소폭 상향 */
   -webkit-font-smoothing: antialiased;
+  word-break: keep-all; /* 한국어 텍스트가 어절(단어) 단위로 끊어지도록 설정 */
+  overflow-wrap: break-word; /* 너무 긴 영문/숫자/링크는 박스를 뚫지 않고 파보단위 줄바꿈 */
+  letter-spacing: -0.02em; /* 한국어 폰트 자간 최적화 (글씨가 모여보여 깔끔해짐) */
 }
 
 /* 상단 세션 배너 */
@@ -521,8 +524,8 @@ body {
   display: flex;
   align-items: center;
   gap: var(--spacing-md);
-  padding: var(--spacing-lg);
-  min-height: 108px;
+  padding: var(--spacing-md);
+  min-height: 84px;
   background: var(--color-surface);
   border-radius: var(--radius-lg);
   box-shadow: var(--shadow-sm);

@@ -7,7 +7,7 @@ export default function MiscDocsPage() {
         <FileUploadReport
             reportId="misc-docs"
             title="기타 자료"
-            label="기타 자료"
+            label="현황판, 작전도 등 참고자료"
             icon="📂"
         />
     );
