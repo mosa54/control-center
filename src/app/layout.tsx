@@ -2,6 +2,7 @@ import type { Metadata, Viewport } from "next";
 import "./globals.css";
 import { AppProvider } from "@/lib/store";
 import InstallPrompt from "@/components/InstallPrompt";
+import BottomNav from "@/components/BottomNav";
 
 export const viewport: Viewport = {
   themeColor: "#0D47A1",
@@ -27,6 +28,7 @@ export default function RootLayout({
       <body>
         <AppProvider>
           {children}
+          <BottomNav />
           <InstallPrompt />
         </AppProvider>
       </body>

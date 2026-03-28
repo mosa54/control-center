@@ -2,6 +2,7 @@
 
 import { useState, useCallback } from 'react';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import { useApp, SessionMode } from '@/lib/store';
 import { parseExcelFile } from '@/lib/excel';
 import Toast from '@/components/Toast';
@@ -12,6 +13,7 @@ export default function AdminPage() {
         sessionMode, sessionSummary, excelData, getTotalCount,
         setSessionMode, setSessionSummary, setExcelData, resetAllCheckIns
     } = useApp();
+    const router = useRouter();
 
     const [isLoggedIn, setIsLoggedIn] = useState(false);
     const [pin, setPin] = useState('');
@@ -62,7 +64,7 @@ export default function AdminPage() {
         return (
             <div className="page">
                 <div className="header">
-                    <Link href="/" className="header-back">←</Link>
+                <button onClick={() => router.back()} className="header-back">←</button>
                     <h1 className="header-title">관리자 로그인</h1>
                 </div>
 
@@ -107,7 +109,7 @@ export default function AdminPage() {
     return (
         <div className="page">
             <div className="header">
-                <Link href="/" className="header-back">←</Link>
+                <button onClick={() => router.back()} className="header-back">←</button>
                 <h1 className="header-title">관리자 설정</h1>
             </div>
 
