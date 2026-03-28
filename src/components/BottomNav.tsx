@@ -1,10 +1,11 @@
 'use client';
 
+import { Suspense } from 'react';
 import Link from 'next/link';
 import { usePathname, useSearchParams } from 'next/navigation';
 import { useApp } from '@/lib/store';
 
-export default function BottomNav() {
+function BottomNavInner() {
     const pathname = usePathname();
     const searchParams = useSearchParams();
     const { currentEmployee } = useApp();
@@ -48,5 +49,13 @@ export default function BottomNav() {
                 })}
             </div>
         </div>
+    );
+}
+
+export default function BottomNav() {
+    return (
+        <Suspense fallback={null}>
+            <BottomNavInner />
+        </Suspense>
     );
 }
