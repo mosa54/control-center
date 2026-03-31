@@ -46,6 +46,24 @@ export default function DeptCheckInList({ deptName, onClose }: DeptCheckInListPr
         setSelectedEmployeeId(prev => prev === empId ? null : empId);
     };
 
+    // 세부 임무(임무명)별로 직원 그룹화
+    const groupedEmployees: Record<string, { employees: typeof deptEmployees, checkedInCount: number }> = {};
+    
+    deptEmployees.forEach(emp => {
+        const mission = getEmployeeMission(emp.id);
+        // 그룹 이름: 임무명이 있으면 임무명, 없으면 '기타/임무미지정'
+        const missionName = mission ? mission.임무명 : '기타 / 공통임무';
+        
+        if (!groupedEmployees[missionName]) {
+            groupedEmployees[missionName] = { employees: [], checkedInCount: 0 };
+        }
+        
+        groupedEmployees[missionName].employees.push(emp);
+        if (getCheckInStatus(emp.id).isCheckedIn) {
+            groupedEmployees[missionName].checkedInCount++;
+        }
+    });
+
     return (
         <div className="modal-overlay" onClick={onClose}>
             <div className="modal-content" onClick={e => e.stopPropagation()}>
@@ -65,133 +83,155 @@ export default function DeptCheckInList({ deptName, onClose }: DeptCheckInListPr
                 </div>
                 <div className="modal-body">
                     {deptEmployees.length > 0 ? (
-                        <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                            {deptEmployees.map((emp) => {
-                                const { isCheckedIn, duty } = getCheckInStatus(emp.id);
-                                const isSelected = selectedEmployeeId === emp.id;
-                                const mission = isSelected ? getEmployeeMission(emp.id) : null;
-
-                                return (
-                                    <div key={emp.id}>
-                                        {/* 직원 항목 */}
-                                        <div
-                                            onClick={() => handleEmployeeClick(emp.id)}
-                                            style={{
-                                                padding: '12px',
-                                                background: isCheckedIn ? '#E3F2FD' : '#FAFAFA',
-                                                borderRadius: isSelected ? '8px 8px 0 0' : '8px',
-                                                display: 'flex',
-                                                justifyContent: 'space-between',
-                                                alignItems: 'center',
-                                                border: isCheckedIn ? `1px solid ${color}` : '1px solid #eee',
-                                                borderBottom: isSelected ? 'none' : undefined,
-                                                opacity: isCheckedIn ? 1 : 0.8,
-                                                cursor: 'pointer',
-                                                transition: 'background 0.2s'
-                                            }}
-                                        >
-                                            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flex: 1 }}>
-                                                <span style={{
-                                                    padding: '2px 6px',
-                                                    background: '#fff',
-                                                    borderRadius: '4px',
-                                                    border: '1px solid #ddd',
-                                                    fontSize: '12px',
-                                                    color: '#555',
-                                                    minWidth: '50px',
-                                                    textAlign: 'center'
-                                                }}>
-                                                    {emp.직급}
-                                                </span>
-                                                <span style={{ fontWeight: 600, fontSize: '15px' }}>{emp.성명}</span>
-                                                {emp.직위 && (
-                                                    <span style={{ fontSize: '13px', color: '#757575', marginLeft: '4px' }}>
-                                                        {emp.직위}
-                                                    </span>
-                                                )}
-                                                {/* 펼침 아이콘 */}
-                                                <span style={{
-                                                    marginLeft: 'auto',
-                                                    fontSize: '12px',
-                                                    color: '#999',
-                                                    transform: isSelected ? 'rotate(180deg)' : 'rotate(0deg)',
-                                                    transition: 'transform 0.2s'
-                                                }}>
-                                                    ▼
-                                                </span>
-                                            </div>
-
-                                            {/* 우측 상태 배지 */}
-                                            <div style={{ marginLeft: '12px' }}>
-                                                {isCheckedIn ? (
-                                                    <span style={{
-                                                        padding: '4px 8px',
-                                                        background: color,
-                                                        color: 'white',
-                                                        borderRadius: '4px',
-                                                        fontSize: '12px',
-                                                        fontWeight: 600
-                                                    }}>
-                                                        응소
-                                                    </span>
-                                                ) : (
-                                                    <span style={{
-                                                        padding: '4px 8px',
-                                                        background: '#E0E0E0',
-                                                        color: '#757575',
-                                                        borderRadius: '4px',
-                                                        fontSize: '12px',
-                                                        fontWeight: 500
-                                                    }}>
-                                                        미응소
-                                                    </span>
-                                                )}
-                                            </div>
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+                            {Object.entries(groupedEmployees).map(([missionName, group], gIdx) => (
+                                <div key={gIdx} style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                                    {/* 세부 임무 뱃지 / 현황 */}
+                                    <div style={{ 
+                                        display: 'flex', 
+                                        alignItems: 'center', 
+                                        justifyContent: 'space-between',
+                                        padding: '4px 8px',
+                                        borderBottom: '2px solid #eee',
+                                        marginBottom: '4px'
+                                    }}>
+                                        <div style={{ fontWeight: 'bold', fontSize: '14px', color: '#333' }}>
+                                            🔹 {missionName}
                                         </div>
+                                        <div style={{ fontSize: '13px', color: '#666', fontWeight: 500 }}>
+                                            {group.checkedInCount}/{group.employees.length}명
+                                        </div>
+                                    </div>
 
-                                        {/* 임무 상세 정보 (펼침 영역) */}
-                                        {isSelected && (
-                                            <div style={{
-                                                padding: '12px 16px',
-                                                background: '#FAFAFA',
-                                                borderRadius: '0 0 8px 8px',
-                                                border: isCheckedIn ? `1px solid ${color}` : '1px solid #eee',
-                                                borderTop: 'none'
-                                            }}>
-                                                {mission ? (
-                                                    <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                                                        <div style={{ display: 'flex', alignItems: 'flex-start', gap: '8px' }}>
-                                                            <span style={{ fontSize: '14px', minWidth: '60px', color: '#555' }}>📋 임무명</span>
-                                                            <span style={{ fontSize: '14px', fontWeight: 600, color: '#333' }}>{mission.임무명}</span>
-                                                        </div>
-                                                        <div style={{ display: 'flex', alignItems: 'flex-start', gap: '8px' }}>
-                                                            <span style={{ fontSize: '14px', minWidth: '60px', color: '#555' }}>📝 내용</span>
-                                                            <span style={{ fontSize: '14px', color: '#444', lineHeight: 1.5, whiteSpace: 'pre-wrap' }}>
-                                                                {mission.임무내용}
+                                    {/* 해당 임무 소속 직원들 */}
+                                    {group.employees.map((emp) => {
+                                        const { isCheckedIn, duty } = getCheckInStatus(emp.id);
+                                        const isSelected = selectedEmployeeId === emp.id;
+                                        const mission = isSelected ? getEmployeeMission(emp.id) : null;
+
+                                        return (
+                                            <div key={emp.id}>
+                                                {/* 직원 항목 */}
+                                                <div
+                                                    onClick={() => handleEmployeeClick(emp.id)}
+                                                    style={{
+                                                        padding: '12px',
+                                                        background: isCheckedIn ? '#E3F2FD' : '#FAFAFA',
+                                                        borderRadius: isSelected ? '8px 8px 0 0' : '8px',
+                                                        display: 'flex',
+                                                        justifyContent: 'space-between',
+                                                        alignItems: 'center',
+                                                        border: isCheckedIn ? `1px solid ${color}` : '1px solid #eee',
+                                                        borderBottom: isSelected ? 'none' : undefined,
+                                                        opacity: isCheckedIn ? 1 : 0.8,
+                                                        cursor: 'pointer',
+                                                        transition: 'background 0.2s'
+                                                    }}
+                                                >
+                                                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flex: 1 }}>
+                                                        <span style={{
+                                                            padding: '2px 6px',
+                                                            background: '#fff',
+                                                            borderRadius: '4px',
+                                                            border: '1px solid #ddd',
+                                                            fontSize: '12px',
+                                                            color: '#555',
+                                                            minWidth: '50px',
+                                                            textAlign: 'center'
+                                                        }}>
+                                                            {emp.직급}
+                                                        </span>
+                                                        <span style={{ fontWeight: 600, fontSize: '15px' }}>{emp.성명}</span>
+                                                        {emp.직위 && (
+                                                            <span style={{ fontSize: '13px', color: '#757575', marginLeft: '4px' }}>
+                                                                {emp.직위}
                                                             </span>
-                                                        </div>
-                                                        {isCheckedIn && duty && (
-                                                            <div style={{
+                                                        )}
+                                                        {/* 펼침 아이콘 */}
+                                                        <span style={{
+                                                            marginLeft: 'auto',
+                                                            fontSize: '12px',
+                                                            color: '#999',
+                                                            transform: isSelected ? 'rotate(180deg)' : 'rotate(0deg)',
+                                                            transition: 'transform 0.2s'
+                                                        }}>
+                                                            ▼
+                                                        </span>
+                                                    </div>
+
+                                                    {/* 우측 상태 배지 */}
+                                                    <div style={{ marginLeft: '12px' }}>
+                                                        {isCheckedIn ? (
+                                                            <span style={{
+                                                                padding: '4px 8px',
+                                                                background: color,
+                                                                color: 'white',
+                                                                borderRadius: '4px',
                                                                 fontSize: '12px',
-                                                                color: '#888',
-                                                                marginTop: '4px',
-                                                                paddingTop: '8px',
-                                                                borderTop: '1px dashed #ddd'
+                                                                fontWeight: 600
                                                             }}>
-                                                                🕒 {duty} 기준 임무
+                                                                응소
+                                                            </span>
+                                                        ) : (
+                                                            <span style={{
+                                                                padding: '4px 8px',
+                                                                background: '#E0E0E0',
+                                                                color: '#757575',
+                                                                borderRadius: '4px',
+                                                                fontSize: '12px',
+                                                                fontWeight: 500
+                                                            }}>
+                                                                미응소
+                                                            </span>
+                                                        )}
+                                                    </div>
+                                                </div>
+
+                                                {/* 임무 상세 정보 (펼침 영역) */}
+                                                {isSelected && (
+                                                    <div style={{
+                                                        padding: '12px 16px',
+                                                        background: '#FAFAFA',
+                                                        borderRadius: '0 0 8px 8px',
+                                                        border: isCheckedIn ? `1px solid ${color}` : '1px solid #eee',
+                                                        borderTop: 'none'
+                                                    }}>
+                                                        {mission ? (
+                                                            <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                                                                <div style={{ display: 'flex', alignItems: 'flex-start', gap: '8px' }}>
+                                                                    <span style={{ fontSize: '14px', minWidth: '60px', color: '#555' }}>📋 임무명</span>
+                                                                    <span style={{ fontSize: '14px', fontWeight: 600, color: '#333' }}>{mission.임무명}</span>
+                                                                </div>
+                                                                <div style={{ display: 'flex', alignItems: 'flex-start', gap: '8px' }}>
+                                                                    <span style={{ fontSize: '14px', minWidth: '60px', color: '#555' }}>📝 내용</span>
+                                                                    <span style={{ fontSize: '14px', color: '#444', lineHeight: 1.5, whiteSpace: 'pre-wrap' }}>
+                                                                        {mission.임무내용}
+                                                                    </span>
+                                                                </div>
+                                                                {isCheckedIn && duty && (
+                                                                    <div style={{
+                                                                        fontSize: '12px',
+                                                                        color: '#888',
+                                                                        marginTop: '4px',
+                                                                        paddingTop: '8px',
+                                                                        borderTop: '1px dashed #ddd'
+                                                                    }}>
+                                                                        🕒 {duty} 기준 임무
+                                                                    </div>
+                                                                )}
+                                                            </div>
+                                                        ) : (
+                                                            <div style={{ fontSize: '14px', color: '#999', textAlign: 'center', padding: '8px 0' }}>
+                                                                등록된 임무 정보가 없습니다.
                                                             </div>
                                                         )}
                                                     </div>
-                                                ) : (
-                                                    <div style={{ fontSize: '14px', color: '#999', textAlign: 'center', padding: '8px 0' }}>
-                                                        등록된 임무 정보가 없습니다.
-                                                    </div>
                                                 )}
                                             </div>
-                                        )}
-                                    </div>
-                                );
-                            })}
+                                        );
+                                    })}
+                                </div>
+                            ))}
                         </div>
                     ) : (
                         <div style={{
