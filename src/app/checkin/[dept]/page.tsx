@@ -81,7 +81,7 @@ export default function CheckinPage({ params }: { params: Promise<{ dept: string
                     <Link href="/" className="header-back">←</Link>
                     <h1 className="header-title">데이터 없음</h1>
                 </div>
-                <div className="page-content" style={{ padding: '16px 16px 96px 16px' }}>
+                <div className="page-content" style={{ padding: '16px' }}>
                     <p>엑셀 파일이 업로드되지 않았습니다.</p>
                 </div>
             </div>

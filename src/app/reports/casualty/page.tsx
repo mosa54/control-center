@@ -287,7 +287,7 @@ function CasualtyReportContent() {
                     <h1 className="header-title">사상자 이송현황</h1>
                 </div>
 
-                <div className="page-content" style={{ padding: '16px 16px 96px 16px' }}>
+                <div className="page-content" style={{ padding: '16px' }}>
                     <div className="card" style={{ textAlign: 'center' }}>
                         <p style={{ fontSize: '48px', marginBottom: '12px' }}>🚑</p>
                         <p style={{ fontWeight: 700, fontSize: '18px', marginBottom: '8px' }}>사상자 이송현황</p>

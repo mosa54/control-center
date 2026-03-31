@@ -161,7 +161,7 @@ export default function MediaResponsePage() {
                 <h1 className="header-title">언론 대응 (Q&A)</h1>
             </div>
 
-            <div className="page-content" style={{ padding: '0 0 96px 0' }}>
+            <div className="page-content" style={{ padding: '0' }}>
                 {/* 탭 헤더 */}
                 <div style={{ display: 'flex', background: 'white', borderBottom: '1px solid #e0e0e0', position: 'sticky', top: 0, zIndex: 10 }}>
                     <button 

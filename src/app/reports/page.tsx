@@ -43,7 +43,7 @@ function ReportsContent() {
                 <h1 className="header-title">보고서 작성 또는 보기</h1>
             </div>
 
-            <div className="page-content" style={{ padding: '16px 16px 96px 16px' }}>
+            <div className="page-content" style={{ padding: '16px' }}>
                 <p style={{ textAlign: 'center', color: '#757575', marginBottom: '16px' }}>
                     작성하거나 확인할 보고서를 선택하세요
                 </p>

@@ -68,7 +68,7 @@ export default function AdminPage() {
                     <h1 className="header-title">관리자 로그인</h1>
                 </div>
 
-                <div className="page-content" style={{ padding: '16px 16px 96px 16px' }}>
+                <div className="page-content" style={{ padding: '16px' }}>
                     <div className="card">
                         <div className="form-group">
                             <label className="form-label">관리자 PIN</label>

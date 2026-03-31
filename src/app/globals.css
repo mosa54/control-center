@@ -437,11 +437,11 @@ body {
   min-height: 100vh;
   display: flex;
   flex-direction: column;
+  padding-bottom: 80px; /* 하단 탭 바 영역 확보 - 모든 페이지에 강제 적용 */
 }
 
 .page-content {
   flex: 1;
-  padding-bottom: 80px; /* 하단 탭 바 영역 확보 */
   overflow-x: hidden;
 }
 
