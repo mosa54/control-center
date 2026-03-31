@@ -15,6 +15,13 @@ export default function InstallPrompt() {
     const [isVisible, setIsVisible] = useState(false);
 
     useEffect(() => {
+        // 현재 세션에서 사용자가 이미 닫기(X)를 눌렀는지 확인
+        const isDismissed = sessionStorage.getItem('installPromptDismissed');
+        if (isDismissed === 'true') {
+            setIsVisible(false);
+            return;
+        }
+
         // 이미 앱 모드(standalone)인지 확인
         const isStandaloneMode = window.matchMedia('(display-mode: standalone)').matches
             || (window.navigator as any).standalone
@@ -71,6 +78,7 @@ export default function InstallPrompt() {
 
     const handleClose = () => {
         setIsVisible(false);
+        sessionStorage.setItem('installPromptDismissed', 'true');
     };
 
     if (!isVisible || isStandalone) return null;
