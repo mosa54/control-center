@@ -28,8 +28,6 @@ export default function RootLayout({
       <body>
         <AppProvider>
           {children}
-          {/* 하단 네비게이션 바에 콘텐츠가 가려지지 않도록 실제 빈 공간 삽입 */}
-          <div aria-hidden="true" style={{ height: '80px', flexShrink: 0 }} />
           <BottomNav />
           <InstallPrompt />
         </AppProvider>

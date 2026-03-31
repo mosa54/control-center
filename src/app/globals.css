@@ -374,7 +374,7 @@ body {
   display: flex;
   align-items: flex-end;
   justify-content: center;
-  z-index: 100;
+  z-index: 1000;
 }
 
 @media (min-width: 768px) {
@@ -441,6 +441,7 @@ body {
 
 .page-content {
   flex: 1;
+  padding-bottom: 96px !important; /* 하단 네비게이션 가림 현상 완벽 방지 */
   overflow-x: hidden;
 }
 
