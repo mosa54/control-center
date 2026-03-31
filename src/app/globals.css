@@ -439,15 +439,6 @@ body {
   flex-direction: column;
 }
 
-/* 하단 탭 바에 콘텐츠가 가려지지 않도록 빈 공간 강제 삽입 */
-.page::after {
-  content: '';
-  display: block;
-  width: 100%;
-  min-height: 80px;
-  flex-shrink: 0;
-}
-
 .page-content {
   flex: 1;
   overflow-x: hidden;
