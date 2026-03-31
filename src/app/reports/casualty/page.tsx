@@ -287,7 +287,7 @@ function CasualtyReportContent() {
                     <h1 className="header-title">사상자 이송현황</h1>
                 </div>
 
-                <div className="page-content" style={{ padding: '16px' }}>
+                <div className="page-content" style={{ padding: '16px 16px 96px 16px' }}>
                     <div className="card" style={{ textAlign: 'center' }}>
                         <p style={{ fontSize: '48px', marginBottom: '12px' }}>🚑</p>
                         <p style={{ fontWeight: 700, fontSize: '18px', marginBottom: '8px' }}>사상자 이송현황</p>
@@ -362,7 +362,7 @@ function CasualtyReportContent() {
                 <button className="btn" style={{ background: '#43A047', color: 'white' }} onClick={handleDownloadHwpx}>📥 HWPX</button>
             </div>
 
-            <div className="page-content" style={{ padding: '16px' }}>
+            <div className="page-content" style={{ padding: '16px 16px 96px 16px' }}>
                 {/* 상단 정보 */}
 
                 {/* 사상자 목록 */}

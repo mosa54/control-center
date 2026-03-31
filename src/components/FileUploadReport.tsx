@@ -494,7 +494,7 @@ function FileUploadReportContent({ reportId, title, label, icon }: FileUploadRep
                     <h1 className="header-title">{title}</h1>
                 </div>
 
-                <div className="page-content" style={{ padding: '16px' }}>
+                <div className="page-content" style={{ padding: '16px 16px 96px 16px' }}>
                     <div className="card" style={{ textAlign: 'center' }}>
                         <p style={{ fontSize: '48px', marginBottom: '12px' }}>{icon}</p>
                         <p style={{ fontWeight: 700, fontSize: '18px', marginBottom: '8px' }}>{label}</p>
@@ -559,7 +559,7 @@ function FileUploadReportContent({ reportId, title, label, icon }: FileUploadRep
                 </button>
             </div>
 
-            <div className="page-content" style={{ padding: '16px' }}>
+            <div className="page-content" style={{ padding: '16px 16px 96px 16px' }}>
                 <div className="card">
                     <div
                         className="report-form-section"
