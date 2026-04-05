@@ -16,7 +16,7 @@ export default function InstallPrompt() {
 
     useEffect(() => {
         // 현재 세션에서 사용자가 이미 닫기(X)를 눌렀는지 확인
-        const isDismissed = sessionStorage.getItem('installPromptDismissed');
+        const isDismissed = localStorage.getItem('installPromptDismissed');
         if (isDismissed === 'true') {
             setIsVisible(false);
             return;
@@ -78,7 +78,7 @@ export default function InstallPrompt() {
 
     const handleClose = () => {
         setIsVisible(false);
-        sessionStorage.setItem('installPromptDismissed', 'true');
+        localStorage.setItem('installPromptDismissed', 'true');
     };
 
     if (!isVisible || isStandalone) return null;
