@@ -848,6 +848,30 @@ body {
   z-index: 50;
 }
 
+/* Toast 메시지 */
+.toast {
+  position: fixed;
+  bottom: 80px;
+  left: 50%;
+  transform: translateX(-50%);
+  color: white;
+  padding: 12px 24px;
+  border-radius: 24px;
+  font-size: 14px;
+  font-weight: 600;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+  z-index: 3000;
+  white-space: nowrap;
+  animation: toast-in-out 3s ease forwards;
+}
+
+@keyframes toast-in-out {
+  0% { opacity: 0; bottom: 60px; }
+  10% { opacity: 1; bottom: 80px; }
+  90% { opacity: 1; bottom: 80px; }
+  100% { opacity: 0; bottom: 100px; }
+}
+
 /* PIN 입력 모달 */
 .pin-overlay {
   position: fixed;
