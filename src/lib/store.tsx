@@ -12,7 +12,23 @@ export type SessionMode = 'training' | 'emergency';
 export interface CheckedInEmployee extends Employee {
     checkedInAt: Date;
     selectedDutyStatus?: '당번' | '비번';
-    // DB의 id (uuid)는 필요하면 추가
+}
+
+// 상황부여 이벤트
+export interface ScenarioEvent {
+    id: string;
+    time_label: string;
+    title: string;
+    description?: string;
+    category: string;
+    delivery_type: string;
+    scheduled_delay_min: number;
+    condition_note?: string;
+    status: string;
+    scheduled_at?: string;
+    delivered_at?: string;
+    sort_order: number;
+    created_at?: string;
 }
 
 // 앱 상태 인터페이스
@@ -22,7 +38,8 @@ interface AppState {
     excelData: ExcelData | null;
     checkedInEmployees: CheckedInEmployee[];
     currentEmployee: CheckedInEmployee | null;
-    isLoaded: boolean; // 데이터 로딩 완료 여부
+    isLoaded: boolean;
+    scenarioEvents: ScenarioEvent[];
 }
 
 // 컨텍스트 액션
@@ -41,6 +58,13 @@ interface AppActions {
     getMyMission: () => Mission | undefined;
     resetAllCheckIns: () => Promise<void>;
     cancelMyCheckIn: () => Promise<void>;
+    addScenarioEvent: (event: Omit<ScenarioEvent, 'id' | 'created_at'>) => Promise<void>;
+    updateScenarioEvent: (id: string, updates: Partial<ScenarioEvent>) => Promise<void>;
+    deleteScenarioEvent: (id: string) => Promise<void>;
+    deliverScenarioEvent: (id: string) => Promise<void>;
+    resetScenarioEvents: () => Promise<void>;
+    getDeliveredEvents: () => ScenarioEvent[];
+    getPendingEvents: () => ScenarioEvent[];
 }
 
 type AppContextType = AppState & AppActions;
@@ -60,6 +84,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
     const [checkedInEmployees, setCheckedInEmployees] = useState<CheckedInEmployee[]>([]);
     const [currentEmployee, setCurrentEmployee] = useState<CheckedInEmployee | null>(null);
     const [isLoaded, setIsLoaded] = useState(false);
+    const [scenarioEvents, setScenarioEvents] = useState<ScenarioEvent[]>([]);
 
     // 1. 초기 데이터 로드 및 Realtime 구독
     useEffect(() => {
@@ -105,6 +130,15 @@ export function AppProvider({ children }: { children: ReactNode }) {
                         };
                     }).filter(Boolean) as CheckedInEmployee[];
                     setCheckedInEmployees(mapped);
+                }
+
+                // 상황 이벤트 로드
+                const { data: events } = await supabase
+                    .from('scenario_events')
+                    .select('*')
+                    .order('sort_order');
+                if (events) {
+                    setScenarioEvents(events as ScenarioEvent[]);
                 }
             } catch (error) {
                 console.error('Error fetching data:', error);
@@ -160,6 +194,19 @@ export function AppProvider({ children }: { children: ReactNode }) {
                         }
                         return prev;
                     });
+                }
+            )
+            .on(
+                'postgres_changes',
+                { event: '*', schema: 'public', table: 'scenario_events' },
+                async () => {
+                    const { data: events } = await supabase
+                        .from('scenario_events')
+                        .select('*')
+                        .order('sort_order');
+                    if (events) {
+                        setScenarioEvents(events as ScenarioEvent[]);
+                    }
                 }
             )
             .subscribe();
@@ -252,6 +299,53 @@ export function AppProvider({ children }: { children: ReactNode }) {
         await checkOut(currentEmployee.id);
     }, [currentEmployee, checkOut]);
 
+    // === 상황부여 타임라인 액션 ===
+    const fetchScenarioEventsLocal = async () => {
+        const { data } = await supabase.from('scenario_events').select('*').order('sort_order');
+        if (data) setScenarioEvents(data as ScenarioEvent[]);
+    };
+
+    const addScenarioEvent = useCallback(async (event: Omit<ScenarioEvent, 'id' | 'created_at'>) => {
+        const { error } = await supabase.from('scenario_events').insert(event);
+        if (error) console.error('insert event error', error);
+        await fetchScenarioEventsLocal();
+    }, []);
+
+    const updateScenarioEvent = useCallback(async (id: string, updates: Partial<ScenarioEvent>) => {
+        await supabase.from('scenario_events').update(updates).eq('id', id);
+        await fetchScenarioEventsLocal();
+    }, []);
+
+    const deleteScenarioEvent = useCallback(async (id: string) => {
+        await supabase.from('scenario_events').delete().eq('id', id);
+        await fetchScenarioEventsLocal();
+    }, []);
+
+    const deliverScenarioEvent = useCallback(async (id: string) => {
+        await supabase.from('scenario_events').update({
+            status: 'delivered',
+            delivered_at: new Date().toISOString()
+        }).eq('id', id);
+        await fetchScenarioEventsLocal();
+    }, []);
+
+    const resetScenarioEvents = useCallback(async () => {
+        await supabase.from('scenario_events').delete().neq('id', '00000000-0000-0000-0000-000000000000');
+        await fetchScenarioEventsLocal();
+    }, []);
+
+    const getDeliveredEvents = useCallback((): ScenarioEvent[] => {
+        return scenarioEvents
+            .filter(e => e.status === 'delivered')
+            .sort((a, b) => a.sort_order - b.sort_order);
+    }, [scenarioEvents]);
+
+    const getPendingEvents = useCallback((): ScenarioEvent[] => {
+        return scenarioEvents
+            .filter(e => e.status === 'pending')
+            .sort((a, b) => a.sort_order - b.sort_order);
+    }, [scenarioEvents]);
+
     const changeDept = useCallback(async (newDept: string) => {
         if (!currentEmployee) return;
         await supabase.from('checkins').update({ dept: newDept }).eq('employee_id', currentEmployee.id);
@@ -291,6 +385,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
         checkedInEmployees,
         currentEmployee,
         isLoaded,
+        scenarioEvents,
         setSessionMode,
         setSessionSummary,
         setExcelData,
@@ -305,6 +400,13 @@ export function AppProvider({ children }: { children: ReactNode }) {
         getMyMission,
         resetAllCheckIns,
         cancelMyCheckIn,
+        addScenarioEvent,
+        updateScenarioEvent,
+        deleteScenarioEvent,
+        deliverScenarioEvent,
+        resetScenarioEvents,
+        getDeliveredEvents,
+        getPendingEvents,
     };
 
     return (

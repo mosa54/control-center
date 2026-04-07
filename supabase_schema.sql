@@ -32,5 +32,36 @@ create policy "Enable all for checkins" on checkins for all using (true) with ch
 -- 이 쿼리가 실패하면 Supabase 대시보드 -> Database -> Replication 에서 직접 설정해야 함
 begin;
   drop publication if exists supabase_realtime;
-  create publication supabase_realtime for table system_settings, checkins;
+  create publication supabase_realtime for table system_settings, checkins, scenario_events;
 commit;
+
+-- 5. 상황부여 타임라인 테이블
+create table scenario_events (
+  id uuid default gen_random_uuid() primary key,
+  time_label text not null,
+  title text not null,
+  description text,
+  category text default 'other',
+  delivery_type text default 'instant',    -- instant / scheduled / conditional
+  scheduled_delay_min integer default 0,
+  condition_note text,
+  status text default 'pending',           -- pending / delivered
+  scheduled_at timestamp with time zone,   -- 예약 부여 시각
+  delivered_at timestamp with time zone,
+  sort_order integer default 0,
+  created_at timestamp with time zone default timezone('utc'::text, now())
+);
+
+alter table scenario_events enable row level security;
+create policy "Enable all for scenario_events" on scenario_events for all using (true) with check (true);
+
+-- 6. 시나리오 템플릿 테이블
+create table scenario_templates (
+  id uuid default gen_random_uuid() primary key,
+  name text not null,
+  events jsonb not null default '[]',
+  created_at timestamp with time zone default timezone('utc'::text, now())
+);
+
+alter table scenario_templates enable row level security;
+create policy "Enable all for scenario_templates" on scenario_templates for all using (true) with check (true);

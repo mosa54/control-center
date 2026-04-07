@@ -894,6 +894,316 @@ body {
   flex: 1;
 }
 
+/* === 상황부여 타임라인 (글로벌 알림 방식) === */
+.scenario-timeline {
+  position: fixed;
+  top: 16px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 92%;
+  max-width: 500px;
+  z-index: 2000;
+  pointer-events: none;
+}
+
+.scenario-timeline-header {
+  pointer-events: auto;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 16px;
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--color-text-primary);
+  background: white;
+  border-radius: var(--radius-lg);
+  box-shadow: 0 4px 16px rgba(0,0,0,0.2);
+  border: 1px solid var(--color-border);
+}
+
+.scenario-count {
+  font-size: 12px;
+  background: #FFEBEE;
+  color: #D32F2F;
+  padding: 2px 10px;
+  border-radius: 12px;
+  font-weight: 700;
+}
+
+.scenario-cards-container {
+  pointer-events: auto;
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-sm);
+  margin-top: 8px;
+  max-height: 60vh;
+  overflow-y: auto;
+  border-radius: var(--radius-md);
+  padding-bottom: 8px;
+}
+
+/* 스크롤바 숨기기 (선택) */
+.scenario-cards-container::-webkit-scrollbar {
+  display: none;
+}
+.scenario-cards-container {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+/* 접힌 상태: 작은 미니 버튼 */
+.scenario-mini-fab {
+  position: fixed;
+  top: 16px;
+  right: 16px;
+  z-index: 2000;
+  background: white;
+  border: 1px solid var(--color-border);
+  border-radius: 24px;
+  padding: 8px 14px;
+  font-size: 16px;
+  font-weight: 700;
+  box-shadow: 0 2px 12px rgba(0,0,0,0.15);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-family: inherit;
+  transition: transform 0.2s, box-shadow 0.2s;
+}
+
+.scenario-mini-fab:active {
+  transform: scale(0.95);
+}
+
+.scenario-mini-count {
+  background: #D32F2F;
+  color: white;
+  font-size: 12px;
+  padding: 1px 8px;
+  border-radius: 10px;
+}
+
+.scenario-card {
+  background: white;
+  border-radius: 12px;
+  padding: 14px 16px;
+  border: 1px solid #E0E0E0;
+  transition: all 0.3s ease;
+}
+
+.scenario-card.new {
+  animation: scenario-slide-in 0.4s ease;
+  border-color: #BDBDBD;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+}
+
+@keyframes scenario-slide-in {
+  from { opacity: 0; transform: translateY(-8px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.scenario-card-header {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-bottom: 6px;
+}
+
+.scenario-card-icon { font-size: 16px; }
+
+.scenario-card-time {
+  font-size: 12px;
+  font-weight: 600;
+  color: #616161;
+  background: #F5F5F5;
+  padding: 2px 8px;
+  border-radius: 4px;
+}
+
+.scenario-card-title {
+  font-size: 15px;
+  font-weight: 700;
+  color: #212121;
+}
+
+.scenario-card-desc {
+  font-size: 13px;
+  color: #757575;
+  line-height: 1.5;
+  margin-top: 4px;
+}
+
+.scenario-card-meta {
+  font-size: 11px;
+  color: #9E9E9E;
+  margin-top: 6px;
+  text-align: right;
+}
+
+/* 관리자 타임라인 카드 */
+.admin-event-card {
+  background: var(--color-surface);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-sm);
+  padding: var(--spacing-md);
+  margin-bottom: var(--spacing-sm);
+  border-left: 4px solid transparent;
+}
+
+.admin-event-card.delivered {
+  opacity: 0.6;
+  background: #F5F5F5;
+}
+
+.event-header {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-sm);
+  margin-bottom: var(--spacing-sm);
+}
+
+.event-title {
+  font-size: 15px;
+  font-weight: 700;
+  flex: 1;
+}
+
+.event-badges {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  align-items: center;
+  margin-bottom: var(--spacing-sm);
+}
+
+.delivery-badge {
+  font-size: 11px;
+  padding: 2px 8px;
+  border-radius: 10px;
+  font-weight: 600;
+}
+
+.delivery-badge.instant { background: #E3F2FD; color: #1565C0; }
+.delivery-badge.scheduled { background: #FFF3E0; color: #E65100; }
+.delivery-badge.conditional { background: #F3E5F5; color: #7B1FA2; }
+
+.status-badge {
+  font-size: 11px;
+  padding: 2px 8px;
+  border-radius: 10px;
+  font-weight: 600;
+}
+
+.status-badge.pending { background: #FFF9C4; color: #F57F17; }
+.status-badge.delivered { background: #E8F5E9; color: #2E7D32; }
+
+.event-actions {
+  display: flex;
+  gap: var(--spacing-sm);
+  margin-top: var(--spacing-sm);
+}
+
+.event-actions .btn {
+  flex: 1;
+  font-size: 13px;
+  min-height: 36px;
+  padding: 4px 8px;
+}
+
+.countdown-display {
+  font-size: 18px;
+  font-weight: 700;
+  color: #E65100;
+  text-align: center;
+  padding: var(--spacing-sm);
+  background: #FFF3E0;
+  border-radius: var(--radius-sm);
+  margin-top: var(--spacing-sm);
+  font-variant-numeric: tabular-nums;
+}
+
+.timeline-fab {
+  position: fixed;
+  bottom: 80px;
+  right: 16px;
+  width: 56px;
+  height: 56px;
+  border-radius: 50%;
+  background: var(--color-dept-4);
+  color: white;
+  border: none;
+  font-size: 28px;
+  box-shadow: 0 4px 12px rgba(30, 136, 229, 0.4);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 100;
+  transition: transform 0.2s, box-shadow 0.2s;
+}
+
+.timeline-fab:hover {
+  transform: scale(1.1);
+  box-shadow: 0 6px 16px rgba(30, 136, 229, 0.5);
+}
+
+.timeline-fab:active { transform: scale(0.95); }
+
+.category-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: var(--spacing-sm);
+  margin-bottom: var(--spacing-md);
+}
+
+.category-option {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: var(--spacing-sm);
+  border: 2px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  transition: all 0.15s;
+  background: none;
+  font-family: inherit;
+}
+
+.category-option.selected {
+  border-color: var(--color-dept-4);
+  background: #E3F2FD;
+}
+
+.cat-icon { font-size: 24px; }
+.cat-label { font-size: 11px; font-weight: 600; margin-top: 2px; }
+
+.delivery-options {
+  display: flex;
+  gap: var(--spacing-sm);
+  margin-bottom: var(--spacing-md);
+}
+
+.delivery-option {
+  flex: 1;
+  padding: var(--spacing-sm) 4px;
+  border: 2px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  text-align: center;
+  font-size: 14px;
+  font-weight: 600;
+  background: none;
+  font-family: inherit;
+  transition: all 0.15s;
+}
+
+.delivery-option.selected {
+  border-color: var(--color-dept-4);
+  background: #E3F2FD;
+  color: #1565C0;
+}
+
 /* 인쇄용 CSS */
 @media print {
 

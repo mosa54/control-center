@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useEffect } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useApp, SessionMode } from '@/lib/store';
@@ -30,10 +30,17 @@ export default function AdminPage() {
         if (pin === '1234') {
             setIsLoggedIn(true);
             setPinError(false);
+            sessionStorage.setItem('adminAuth', 'true');
         } else {
             setPinError(true);
         }
     };
+
+    useEffect(() => {
+        if (typeof window !== 'undefined' && sessionStorage.getItem('adminAuth') === 'true') {
+            setIsLoggedIn(true);
+        }
+    }, []);
 
     const handleSave = async () => {
         await setSessionMode(tempMode);
@@ -223,6 +230,19 @@ export default function AdminPage() {
                     >
                         설정 저장
                     </button>
+                </div>
+
+                {/* 상황부여 타임라인 */}
+                <div className="card">
+                    <div className="card-title">📋 상황부여 타임라인</div>
+                    <div style={{ padding: '12px', background: '#F3E5F5', borderRadius: '8px', fontSize: '14px', marginBottom: '16px' }}>
+                        훈련 중 시간순 상황 카드를 만들고, 즉시·예약·조건부로 참가자에게 부여합니다.
+                    </div>
+                    <Link href="/admin/timeline">
+                        <button className="btn btn-block" style={{ background: '#7B1FA2', color: 'white' }}>
+                            타임라인 관리
+                        </button>
+                    </Link>
                 </div>
 
                 {/* 통제단 소집 응소부 */}
