@@ -3,7 +3,6 @@ import "./globals.css";
 import { AppProvider } from "@/lib/store";
 import InstallPrompt from "@/components/InstallPrompt";
 import BottomNav from "@/components/BottomNav";
-import ScenarioTimeline from "@/components/ScenarioTimeline";
 
 export const viewport: Viewport = {
   themeColor: "#0D47A1",
@@ -29,7 +28,6 @@ export default function RootLayout({
       <body>
         <AppProvider>
           {children}
-          <ScenarioTimeline />
           <BottomNav />
           <InstallPrompt />
         </AppProvider>

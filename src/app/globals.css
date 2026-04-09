@@ -918,108 +918,21 @@ body {
   flex: 1;
 }
 
-/* === 상황부여 타임라인 (글로벌 알림 방식) === */
-.scenario-timeline {
-  position: fixed;
-  top: 16px;
-  left: 50%;
-  transform: translateX(-50%);
-  width: 92%;
-  max-width: 500px;
-  z-index: 2000;
-  pointer-events: none;
-}
-
-.scenario-timeline-header {
-  pointer-events: auto;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 12px 16px;
-  font-size: 15px;
-  font-weight: 700;
-  color: var(--color-text-primary);
-  background: white;
-  border-radius: var(--radius-lg);
-  box-shadow: 0 4px 16px rgba(0,0,0,0.2);
-  border: 1px solid var(--color-border);
-}
-
-.scenario-count {
-  font-size: 12px;
-  background: #FFEBEE;
-  color: #D32F2F;
-  padding: 2px 10px;
-  border-radius: 12px;
-  font-weight: 700;
-}
-
-.scenario-cards-container {
-  pointer-events: auto;
-  display: flex;
-  flex-direction: column;
-  gap: var(--spacing-sm);
-  margin-top: 8px;
-  max-height: 60vh;
-  overflow-y: auto;
-  border-radius: var(--radius-md);
-  padding-bottom: 8px;
-}
-
-/* 스크롤바 숨기기 (선택) */
-.scenario-cards-container::-webkit-scrollbar {
-  display: none;
-}
-.scenario-cards-container {
-  -ms-overflow-style: none;
-  scrollbar-width: none;
-}
-
-/* 접힌 상태: 작은 미니 버튼 */
-.scenario-mini-fab {
-  position: fixed;
-  top: 16px;
-  right: 16px;
-  z-index: 2000;
-  background: white;
-  border: 1px solid var(--color-border);
-  border-radius: 24px;
-  padding: 8px 14px;
-  font-size: 16px;
-  font-weight: 700;
-  box-shadow: 0 2px 12px rgba(0,0,0,0.15);
-  cursor: pointer;
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  font-family: inherit;
-  transition: transform 0.2s, box-shadow 0.2s;
-}
-
-.scenario-mini-fab:active {
-  transform: scale(0.95);
-}
-
-.scenario-mini-count {
-  background: #D32F2F;
-  color: white;
-  font-size: 12px;
-  padding: 1px 8px;
-  border-radius: 10px;
-}
+/* === 상황부여 타임라인 카드 스타일 === */
 
 .scenario-card {
   background: white;
   border-radius: 12px;
-  padding: 14px 16px;
   border: 1px solid #E0E0E0;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.05); /* 은은한 기본 그림자 */
+  padding: 16px 20px; /* 누락된 패딩 복구 */
   transition: all 0.3s ease;
+  overflow: hidden; /* 상단 그래디언트 바 때문에 필수 */
 }
 
 .scenario-card.new {
   animation: scenario-slide-in 0.4s ease;
-  border-color: #BDBDBD;
-  box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+  box-shadow: 0 4px 16px rgba(0,0,0,0.1);
 }
 
 @keyframes scenario-slide-in {

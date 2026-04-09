@@ -21,6 +21,7 @@ export interface ScenarioEvent {
     title: string;
     description?: string;
     category: string;
+    sub_types?: string[];
     delivery_type: string;
     scheduled_delay_min: number;
     condition_note?: string;

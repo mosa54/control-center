@@ -7,15 +7,28 @@ import { supabase } from '@/lib/supabase';
 import Toast from '@/components/Toast';
 
 const CATEGORIES = [
-    { value: 'fire', label: '화재', icon: '🔥', color: '#E53935' },
-    { value: 'explosion', label: '폭발', icon: '💥', color: '#FF6D00' },
-    { value: 'casualty', label: '사상자', icon: '🚑', color: '#D32F2F' },
-    { value: 'collapse', label: '붕괴', icon: '🏚️', color: '#795548' },
-    { value: 'traffic', label: '교통', icon: '🚧', color: '#FB8C00' },
-    { value: 'comm', label: '통신', icon: '📡', color: '#1565C0' },
-    { value: 'media', label: '언론', icon: '🎤', color: '#7B1FA2' },
-    { value: 'other', label: '기타', icon: '📋', color: '#757575' },
+    { value: 'phase_start', label: '훈련개시·재난인지', icon: '🚨', color: '#C62828', subTypes: ['훈련메시지', '출동지령', '최초신고', '위험물정보'] },
+    { value: 'phase_info', label: '상황정보 취득·전파', icon: '📡', color: '#1565C0', subTypes: ['상황전파', '추가정보', '관계자진술', '구조대상자정보', '채널운영'] },
+    { value: 'phase_arrival', label: '현장도착·초기지휘', icon: '🚒', color: '#AD1457', subTypes: ['현장도착', '현장확인', '최초보고', '지휘권선언', '안전평가'] },
+    { value: 'phase_command', label: '지휘전략·방면설정', icon: '🗺️', color: '#4527A0', subTypes: ['전략결정', '방면지정', '전술변경', '지휘유지'] },
+    { value: 'phase_response', label: '대응단계·통제단 가동', icon: '🏛️', color: '#E65100', subTypes: ['대응단계', '증원판단', '통제단가동', '상황판단회의', '보고'] },
+    { value: 'phase_resource', label: '자원배치·임무부여', icon: '🚛', color: '#2E7D32', subTypes: ['자원배치', '임무부여', '부서위치', '자원대기소', '임무재지정'] },
+    { value: 'phase_rescue', label: '구조·인명검색', icon: '🦺', color: '#FF6F00', subTypes: ['요구조자발견', '구조개시', '구조완료', '고립구조', '고층구조'] },
+    { value: 'phase_ems', label: '구급·다수사상자 대응', icon: '🏥', color: '#D32F2F', subTypes: ['MCI가동', '응급의료소', '병상파악', '의료지원요청', '이송조정'] },
+    { value: 'phase_safety', label: '안전관리·비상상황 대응', icon: '⚠️', color: '#F57F17', subTypes: ['안전점검', '교대조', '유해물질', '폭발', '고립', '탈출', '활동대원점검'] },
+    { value: 'phase_close', label: '지원기관·대외대응·종료', icon: '🏁', color: '#37474F', subTypes: ['기관지원요청', '기관도착', '공보', '초진', '완진', '종료'] },
 ];
+
+const MIGRATION_MAP: Record<string, string> = {
+    fire: 'phase_start',
+    explosion: 'phase_safety',
+    casualty: 'phase_ems',
+    collapse: 'phase_safety',
+    traffic: 'phase_resource',
+    comm: 'phase_info',
+    media: 'phase_close',
+    other: 'phase_close',
+};
 
 interface ScenarioTemplate {
     id: string;
@@ -24,7 +37,7 @@ interface ScenarioTemplate {
     created_at?: string;
 }
 
-const getCat = (v: string) => CATEGORIES.find(c => c.value === v) || CATEGORIES[7];
+const getCat = (v: string) => CATEGORIES.find(c => c.value === v) || CATEGORIES[9];
 
 export default function TimelinePage() {
     const router = useRouter();
@@ -54,10 +67,13 @@ export default function TimelinePage() {
 
     // 폼
     const defaultForm = {
-        time_label: '', title: '', description: '', category: 'fire',
+        time_label: '', title: '', description: '', category: 'phase_start', sub_types: [] as string[],
         delivery_type: 'instant', scheduled_delay_min: 5, condition_note: '', sort_order: 0,
     };
     const [form, setForm] = useState(defaultForm);
+    const [subTypeInput, setSubTypeInput] = useState('');
+    const [filterCategory, setFilterCategory] = useState<string>('all');
+    const [isMigrating, setIsMigrating] = useState(false);
 
     // 인증
     useEffect(() => {
@@ -118,14 +134,30 @@ export default function TimelinePage() {
 
     useEffect(() => () => { timersRef.current.forEach(t => clearTimeout(t)); }, []);
 
+    // 마이그레이션 실행
+    useEffect(() => {
+        const runMigration = async () => {
+            if (!isLoggedIn || scenarioEvents.length === 0 || isMigrating) return;
+            const needsMigration = scenarioEvents.filter(ev => MIGRATION_MAP[ev.category]);
+            if (needsMigration.length > 0) {
+                setIsMigrating(true);
+                for (const ev of needsMigration) {
+                    await updateScenarioEvent(ev.id, { category: MIGRATION_MAP[ev.category], sub_types: [] });
+                }
+                setIsMigrating(false);
+            }
+        };
+        runMigration();
+    }, [isLoggedIn, scenarioEvents, updateScenarioEvent, isMigrating]);
+
     // 폼 제출
     const handleSubmit = async () => {
         if (!form.time_label || !form.title) { setToast('시간과 제목은 필수입니다.'); return; }
         if (editingEvent) {
-            await updateScenarioEvent(editingEvent.id, { ...form, description: form.description || undefined, condition_note: form.condition_note || undefined });
+            await updateScenarioEvent(editingEvent.id, { ...form, description: form.description || undefined, condition_note: form.condition_note || undefined, sub_types: form.sub_types });
             setToast('수정 완료');
         } else {
-            await addScenarioEvent({ ...form, status: 'pending', description: form.description || undefined, condition_note: form.condition_note || undefined });
+            await addScenarioEvent({ ...form, status: 'pending', description: form.description || undefined, condition_note: form.condition_note || undefined, sub_types: form.sub_types });
             setToast('상황 카드 추가 완료');
         }
         closeModal();
@@ -134,20 +166,23 @@ export default function TimelinePage() {
     const closeModal = () => {
         setShowModal(false);
         setEditingEvent(null);
+        setSubTypeInput('');
         setForm({ ...defaultForm, sort_order: scenarioEvents.length });
     };
 
     const openAdd = () => {
         setEditingEvent(null);
+        setSubTypeInput('');
         setForm({ ...defaultForm, sort_order: scenarioEvents.length });
         setShowModal(true);
     };
 
     const openEdit = (ev: ScenarioEvent) => {
         setEditingEvent(ev);
+        setSubTypeInput('');
         setForm({
             time_label: ev.time_label, title: ev.title, description: ev.description || '',
-            category: ev.category, delivery_type: ev.delivery_type,
+            category: ev.category, sub_types: ev.sub_types || [], delivery_type: ev.delivery_type,
             scheduled_delay_min: ev.scheduled_delay_min, condition_note: ev.condition_note || '',
             sort_order: ev.sort_order,
         });
@@ -187,7 +222,7 @@ export default function TimelinePage() {
         if (!templateName.trim()) { setToast('이름을 입력하세요.'); return; }
         const evts = scenarioEvents.map(e => ({
             time_label: e.time_label, title: e.title, description: e.description,
-            category: e.category, delivery_type: e.delivery_type,
+            category: e.category, sub_types: e.sub_types, delivery_type: e.delivery_type,
             scheduled_delay_min: e.scheduled_delay_min, condition_note: e.condition_note,
             sort_order: e.sort_order,
         }));
@@ -202,7 +237,7 @@ export default function TimelinePage() {
     const loadTemplate = async (tpl: ScenarioTemplate) => {
         await resetScenarioEvents();
         for (const ev of tpl.events) {
-            await addScenarioEvent({ ...ev, status: 'pending', sort_order: ev.sort_order ?? 0, scheduled_delay_min: ev.scheduled_delay_min ?? 0 });
+            await addScenarioEvent({ ...ev, sub_types: ev.sub_types || [], status: 'pending', sort_order: ev.sort_order ?? 0, scheduled_delay_min: ev.scheduled_delay_min ?? 0 });
         }
         setShowTemplateList(false);
         setToast(`"${tpl.name}" 불러옴`);
@@ -216,7 +251,8 @@ export default function TimelinePage() {
 
     const fmtCountdown = (s: number) => `${Math.floor(s / 60)}:${(s % 60).toString().padStart(2, '0')}`;
 
-    const sorted = [...scenarioEvents].sort((a, b) => {
+    const filteredEvents = filterCategory === 'all' ? scenarioEvents : scenarioEvents.filter(e => e.category === filterCategory);
+    const sorted = [...filteredEvents].sort((a, b) => {
         if (a.status === b.status) return a.sort_order - b.sort_order;
         return a.status === 'pending' ? -1 : 1;
     });
@@ -275,6 +311,23 @@ export default function TimelinePage() {
                 </button>
             </div>
 
+            {/* 카테고리 필터 */}
+            <div className="filter-scroll-container" style={{ display: 'flex', gap: 8, padding: '8px 16px', overflowX: 'auto', background: '#FAFAFA', borderBottom: '1px solid #E0E0E0', WebkitOverflowScrolling: 'touch' }}>
+                <button
+                    onClick={() => setFilterCategory('all')}
+                    style={{ padding: '6px 16px', borderRadius: 20, border: '1px solid #E0E0E0', background: filterCategory === 'all' ? '#212121' : '#fff', color: filterCategory === 'all' ? '#fff' : '#424242', fontSize: 13, fontWeight: filterCategory === 'all' ? 600 : 400, cursor: 'pointer', whiteSpace: 'nowrap', transition: 'all 0.2s' }}>
+                    전체
+                </button>
+                {CATEGORIES.map(c => (
+                    <button
+                        key={c.value}
+                        onClick={() => setFilterCategory(c.value)}
+                        style={{ padding: '6px 16px', borderRadius: 20, border: filterCategory === c.value ? `1px solid ${c.color}` : '1px solid #E0E0E0', background: filterCategory === c.value ? c.color : '#fff', color: filterCategory === c.value ? '#fff' : '#424242', fontSize: 13, fontWeight: filterCategory === c.value ? 600 : 400, cursor: 'pointer', whiteSpace: 'nowrap', transition: 'all 0.2s' }}>
+                        {c.icon} {c.label}
+                    </button>
+                ))}
+            </div>
+
             <div className="page-content" style={{ padding: '8px 16px 120px 16px' }}>
                 {sorted.length === 0 && (
                     <div className="card" style={{ textAlign: 'center', color: '#757575' }}>
@@ -297,6 +350,15 @@ export default function TimelinePage() {
                                 <span className="event-title">{ev.title}</span>
                             </div>
                             {ev.description && <div style={{ fontSize: 13, color: '#757575', marginBottom: 8 }}>{ev.description}</div>}
+                            {ev.sub_types && ev.sub_types.length > 0 && (
+                                <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4, marginBottom: 10 }}>
+                                    {ev.sub_types.map(st => (
+                                        <span key={st} style={{ background: '#F5F5F5', color: '#616161', padding: '2px 8px', borderRadius: 12, fontSize: 11, border: '1px solid #E0E0E0', display: 'flex', alignItems: 'center' }}>
+                                            <span style={{ color: cat.color, marginRight: 4, fontSize: 8 }}>●</span> {st}
+                                        </span>
+                                    ))}
+                                </div>
+                            )}
                             <div className="event-badges">
                                 <span className={`delivery-badge ${ev.delivery_type}`}>
                                     {ev.delivery_type === 'instant' ? '즉시' : ev.delivery_type === 'scheduled' ? `${ev.scheduled_delay_min}분 후` : '조건'}
@@ -390,17 +452,67 @@ export default function TimelinePage() {
                                     onChange={e => setForm(p => ({ ...p, description: e.target.value }))} style={{ resize: 'none' }} />
                             </div>
                             <div className="form-group">
-                                <label className="form-label">카테고리</label>
-                                <div className="category-grid">
+                                <label className="form-label">카테고리 (훈련 단계)</label>
+                                <div className="category-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 8 }}>
                                     {CATEGORIES.map(c => (
                                         <button key={c.value} type="button"
                                             className={`category-option ${form.category === c.value ? 'selected' : ''}`}
-                                            onClick={() => setForm(p => ({ ...p, category: c.value }))}>
-                                            <span className="cat-icon">{c.icon}</span>
-                                            <span className="cat-label">{c.label}</span>
+                                            onClick={() => setForm(p => ({ ...p, category: c.value, sub_types: [] }))}
+                                            style={{ textAlign: 'left', padding: '10px', border: form.category === c.value ? `2px solid ${c.color}` : '1px solid #E0E0E0', borderRadius: 10, background: form.category === c.value ? '#FFF' : '#FAFAFA', display: 'flex', alignItems: 'center', gap: 8 }}>
+                                            <span style={{ fontSize: 24 }}>{c.icon}</span>
+                                            <span style={{ fontSize: 13, fontWeight: form.category === c.value ? 700 : 400, color: form.category === c.value ? '#212121' : '#616161' }}>{c.label}</span>
                                         </button>
                                     ))}
                                 </div>
+                            </div>
+                            <div className="form-group">
+                                <label className="form-label" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                                    세부유형 (다중 선택/입력)
+                                    <span style={{ fontSize: 11, color: '#9E9E9E', fontWeight: 400 }}>분류 선택 후 항목 조정</span>
+                                </label>
+                                <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginBottom: 12 }}>
+                                    {(getCat(form.category) as any).subTypes.map((st: string) => {
+                                        const isSelected = form.sub_types.includes(st);
+                                        return (
+                                            <button key={st} type="button"
+                                                onClick={() => setForm(p => ({ ...p, sub_types: isSelected ? p.sub_types.filter(t => t !== st) : [...p.sub_types, st] }))}
+                                                style={{ padding: '6px 12px', borderRadius: 16, border: isSelected ? `1px solid ${getCat(form.category).color}` : '1px solid #E0E0E0', background: isSelected ? `${getCat(form.category).color}10` : '#fff', color: isSelected ? getCat(form.category).color : '#757575', fontSize: 13, cursor: 'pointer', transition: 'all 0.2s' }}>
+                                                {isSelected ? '✓ ' : ''}{st}
+                                            </button>
+                                        );
+                                    })}
+                                </div>
+                                <div style={{ display: 'flex', gap: 8 }}>
+                                    <input className="form-input" placeholder="직접 입력 (Enter로 추가)" value={subTypeInput}
+                                        onChange={e => setSubTypeInput(e.target.value)}
+                                        onKeyDown={e => {
+                                            if (e.key === 'Enter') {
+                                                e.preventDefault();
+                                                const val = subTypeInput.trim();
+                                                if (val && !form.sub_types.includes(val)) {
+                                                    setForm(p => ({ ...p, sub_types: [...p.sub_types, val] }));
+                                                }
+                                                setSubTypeInput('');
+                                            }
+                                        }} />
+                                    <button type="button" className="btn btn-secondary" onClick={() => {
+                                        const val = subTypeInput.trim();
+                                        if (val && !form.sub_types.includes(val)) {
+                                            setForm(p => ({ ...p, sub_types: [...p.sub_types, val] }));
+                                        }
+                                        setSubTypeInput('');
+                                    }}>추가</button>
+                                </div>
+                                {form.sub_types.filter(st => !(getCat(form.category) as any).subTypes.includes(st)).length > 0 && (
+                                    <div style={{ marginTop: 8, display: 'flex', flexWrap: 'wrap', gap: 6 }}>
+                                        {form.sub_types.filter(st => !(getCat(form.category) as any).subTypes.includes(st)).map(st => (
+                                            <span key={st} style={{ padding: '4px 12px', borderRadius: 16, background: '#EEEEEE', color: '#424242', fontSize: 12, display: 'flex', alignItems: 'center', gap: 4 }}>
+                                                {st}
+                                                <button type="button" onClick={() => setForm(p => ({ ...p, sub_types: p.sub_types.filter(t => t !== st) }))} style={{ background: 'none', border: 'none', color: '#9E9E9E', cursor: 'pointer', fontSize: 14, padding: 0 }}>✕</button>
+                                            </span>
+                                        ))}
+                                    </div>
+                                )}
                             </div>
                             <div className="form-group">
                                 <label className="form-label">부여 방식</label>
