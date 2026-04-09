@@ -39,6 +39,21 @@ interface ScenarioTemplate {
 
 const getCat = (v: string) => CATEGORIES.find(c => c.value === v) || CATEGORIES[9];
 
+const getCurrentHHMM = () => {
+    const now = new Date();
+    return `${now.getHours().toString().padStart(2, '0')}:${now.getMinutes().toString().padStart(2, '0')}`;
+};
+
+const addMinutesToHHMM = (timeStr: string, minutes: number) => {
+    const match = timeStr.match(/^(\d{1,2}):(\d{1,2})$/);
+    if (!match) return timeStr;
+    const h = parseInt(match[1]);
+    const m = parseInt(match[2]);
+    const date = new Date();
+    date.setHours(h, m + minutes, 0, 0);
+    return `${date.getHours().toString().padStart(2, '0')}:${date.getMinutes().toString().padStart(2, '0')}`;
+};
+
 export default function TimelinePage() {
     const router = useRouter();
     const {
@@ -74,6 +89,37 @@ export default function TimelinePage() {
     const [subTypeInput, setSubTypeInput] = useState('');
     const [filterCategory, setFilterCategory] = useState<string>('all');
     const [isMigrating, setIsMigrating] = useState(false);
+
+    const handleTimeChange = (val: string) => {
+        // 숫자만 남기기
+        let nums = val.replace(/[^0-9]/g, '');
+
+        // 덮어쓰기 로직: 기존에 이미 4자리가 차 있는데 숫자가 하나 더 들어온 경우 (nums.length가 5)
+        // 새로운 숫자로 시작하도록 처리
+        if (nums.length === 5 && form.time_label.replace(':', '').length === 4) {
+            nums = nums.charAt(4);
+        }
+
+        if (nums.length > 4) nums = nums.substring(0, 4);
+
+        // 시간 유효성 검사 (실시간 차단)
+        if (nums.length >= 1 && parseInt(nums[0]) > 2) return; // 첫 자리는 0,1,2만 가능
+        if (nums.length >= 2) {
+            const h = parseInt(nums.substring(0, 2));
+            if (h > 23) return; // 시간은 23시까지
+        }
+        if (nums.length >= 3) {
+            const m1 = parseInt(nums[2]);
+            if (m1 > 5) return; // 분 첫 자리는 5까지만 가능
+        }
+
+        let formatted = nums;
+        if (nums.length >= 3) {
+            formatted = nums.substring(0, 2) + ':' + nums.substring(2);
+        }
+
+        setForm(p => ({ ...p, time_label: formatted }));
+    };
 
     // 인증
     useEffect(() => {
@@ -173,7 +219,19 @@ export default function TimelinePage() {
     const openAdd = () => {
         setEditingEvent(null);
         setSubTypeInput('');
-        setForm({ ...defaultForm, sort_order: scenarioEvents.length });
+        
+        // 시간 추측: 마지막 이벤트 시간 + 5분
+        let nextTime = '';
+        if (scenarioEvents.length > 0) {
+            const sortedEvents = [...scenarioEvents].sort((a, b) => b.sort_order - a.sort_order);
+            const lastEvent = sortedEvents[0];
+            if (lastEvent.time_label && lastEvent.time_label.includes(':')) {
+                nextTime = addMinutesToHHMM(lastEvent.time_label, 5);
+            }
+        }
+        if (!nextTime) nextTime = getCurrentHHMM();
+
+        setForm({ ...defaultForm, time_label: nextTime, sort_order: scenarioEvents.length });
         setShowModal(true);
     };
 
@@ -437,9 +495,28 @@ export default function TimelinePage() {
                         </div>
                         <div className="modal-body">
                             <div className="form-group">
-                                <label className="form-label">시간 라벨 *</label>
-                                <input className="form-input" placeholder="예: 14:00" value={form.time_label}
-                                    onChange={e => setForm(p => ({ ...p, time_label: e.target.value }))} />
+                                <label className="form-label" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                    시간 라벨 *
+                                    <button type="button" onClick={() => setForm(p => ({ ...p, time_label: getCurrentHHMM() }))}
+                                        style={{ background: '#f0f0f0', border: '1px solid #ccc', borderRadius: 4, padding: '2px 8px', fontSize: 11, cursor: 'pointer' }}>
+                                        🕒 현재 시각
+                                    </button>
+                                </label>
+                                <div style={{ display: 'flex', gap: 6, marginBottom: 8 }}>
+                                    <input className="form-input" style={{ flex: 1 }} placeholder="예: 14:00" value={form.time_label}
+                                        maxLength={5}
+                                        onFocus={e => e.target.select()}
+                                        onClick={e => (e.target as HTMLInputElement).select()}
+                                        onChange={e => handleTimeChange(e.target.value)} />
+                                </div>
+                                <div style={{ display: 'flex', gap: 4, flexWrap: 'wrap' }}>
+                                    {[-10, -5, -3, -1, 1, 3, 5, 10].map(min => (
+                                        <button key={min} type="button" onClick={() => setForm(p => ({ ...p, time_label: addMinutesToHHMM(form.time_label, min) }))}
+                                            style={{ flex: 1, padding: '4px 0', fontSize: 11, borderRadius: 4, border: '1px solid #E0E0E0', background: '#fff', cursor: 'pointer', minWidth: 40 }}>
+                                            {min > 0 ? `+${min}` : min}
+                                        </button>
+                                    ))}
+                                </div>
                             </div>
                             <div className="form-group">
                                 <label className="form-label">제목 *</label>
