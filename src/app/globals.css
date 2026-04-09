@@ -923,8 +923,7 @@ body {
 .scenario-card {
   background: white;
   border-radius: 12px;
-  border: 1px solid #E0E0E0;
-  box-shadow: 0 4px 12px rgba(0,0,0,0.05); /* 은은한 기본 그림자 */
+  box-shadow: none; /* 카테고리 컬러 글로우는 인라인으로 적용 */
   padding: 16px 20px; /* 누락된 패딩 복구 */
   transition: all 0.3s ease;
   overflow: hidden; /* 상단 그래디언트 바 때문에 필수 */

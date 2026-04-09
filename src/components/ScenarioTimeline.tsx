@@ -19,6 +19,13 @@ const CATEGORIES: Record<string, { icon: string; color: string }> = {
 
 const getCat = (v: string) => CATEGORIES[v] || CATEGORIES.phase_close;
 
+const hexToRgba = (hex: string, alpha: number) => {
+    const r = parseInt(hex.slice(1, 3), 16);
+    const g = parseInt(hex.slice(3, 5), 16);
+    const b = parseInt(hex.slice(5, 7), 16);
+    return `rgba(${r}, ${g}, ${b}, ${alpha})`;
+};
+
 export default function ScenarioTimeline() {
     const { getDeliveredEvents } = useApp();
     const delivered = getDeliveredEvents();
@@ -56,12 +63,12 @@ export default function ScenarioTimeline() {
                 const cat = getCat(ev.category);
                 return (
                     <div key={ev.id}
-                        className={`scenario-card ${newId === ev.id ? 'new' : ''}`}>
+                        className={`scenario-card ${newId === ev.id ? 'new' : ''}`}
+                        style={{ boxShadow: `0 4px 16px ${hexToRgba(cat.color, 0.18)}, 0 1px 4px rgba(0,0,0,0.06)` }}>
                         <div className="scenario-card-header" style={{
                             background: `linear-gradient(to right, ${cat.color}15, transparent)`,
                             margin: '-16px -20px 16px -20px',
                             padding: '12px 20px',
-                            borderTop: `3px solid ${cat.color}`
                         }}>
                             <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
                                 <span className="scenario-card-icon">{cat.icon}</span>
