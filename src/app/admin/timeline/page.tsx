@@ -510,10 +510,10 @@ export default function TimelinePage() {
                                         onChange={e => handleTimeChange(e.target.value)} />
                                 </div>
                                 <div style={{ display: 'flex', gap: 4, flexWrap: 'wrap' }}>
-                                    {[-10, -5, -3, -1, 1, 3, 5, 10].map(min => (
+                                    {[1, 3, 5, 7, 10].map(min => (
                                         <button key={min} type="button" onClick={() => setForm(p => ({ ...p, time_label: addMinutesToHHMM(form.time_label, min) }))}
                                             style={{ flex: 1, padding: '4px 0', fontSize: 11, borderRadius: 4, border: '1px solid #E0E0E0', background: '#fff', cursor: 'pointer', minWidth: 40 }}>
-                                            {min > 0 ? `+${min}` : min}
+                                            +{min}
                                         </button>
                                     ))}
                                 </div>
