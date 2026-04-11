@@ -5,19 +5,19 @@ import { usePathname } from 'next/navigation';
 import { useApp } from '@/lib/store';
 
 const CATEGORIES: Record<string, { icon: string; color: string }> = {
-    phase_start: { icon: '🚨', color: '#C62828' },
-    phase_info: { icon: '📡', color: '#1565C0' },
-    phase_arrival: { icon: '🚒', color: '#AD1457' },
-    phase_command: { icon: '🗺️', color: '#4527A0' },
-    phase_response: { icon: '🏛️', color: '#E65100' },
-    phase_resource: { icon: '🚛', color: '#2E7D32' },
-    phase_rescue: { icon: '🦺', color: '#FF6F00' },
-    phase_ems: { icon: '🏥', color: '#D32F2F' },
-    phase_safety: { icon: '⚠️', color: '#F57F17' },
-    phase_close: { icon: '🏁', color: '#37474F' },
+    phase_1: { icon: '🚨', color: '#C62828' },
+    phase_2: { icon: '📡', color: '#1565C0' },
+    phase_3: { icon: '🚒', color: '#AD1457' },
+    phase_4: { icon: '🏛️', color: '#E65100' },
+    phase_5: { icon: '🗺️', color: '#4527A0' },
+    phase_6: { icon: '🚛', color: '#2E7D32' },
+    phase_7: { icon: '🦺', color: '#FF6F00' },
+    phase_8: { icon: '🏥', color: '#D32F2F' },
+    phase_9: { icon: '⚠️', color: '#F57F17' },
+    phase_10: { icon: '🏁', color: '#37474F' },
 };
 
-const getCat = (v: string) => CATEGORIES[v] || CATEGORIES.phase_close;
+const getCat = (v: string) => CATEGORIES[v] || CATEGORIES.phase_10;
 
 const hexToRgba = (hex: string, alpha: number) => {
     const r = parseInt(hex.slice(1, 3), 16);

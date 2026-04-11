@@ -7,27 +7,37 @@ import { supabase } from '@/lib/supabase';
 import Toast from '@/components/Toast';
 
 const CATEGORIES = [
-    { value: 'phase_start', label: '훈련개시·재난인지', icon: '🚨', color: '#C62828', subTypes: ['훈련메시지', '출동지령', '최초신고', '위험물정보'] },
-    { value: 'phase_info', label: '상황정보 취득·전파', icon: '📡', color: '#1565C0', subTypes: ['상황전파', '추가정보', '관계자진술', '구조대상자정보', '채널운영'] },
-    { value: 'phase_arrival', label: '현장도착·초기지휘', icon: '🚒', color: '#AD1457', subTypes: ['현장도착', '현장확인', '최초보고', '지휘권선언', '안전평가'] },
-    { value: 'phase_command', label: '지휘전략·방면설정', icon: '🗺️', color: '#4527A0', subTypes: ['전략결정', '방면지정', '전술변경', '지휘유지'] },
-    { value: 'phase_response', label: '대응단계·통제단 가동', icon: '🏛️', color: '#E65100', subTypes: ['대응단계', '증원판단', '통제단가동', '상황판단회의', '보고'] },
-    { value: 'phase_resource', label: '자원배치·임무부여', icon: '🚛', color: '#2E7D32', subTypes: ['자원배치', '임무부여', '부서위치', '자원대기소', '임무재지정'] },
-    { value: 'phase_rescue', label: '구조·인명검색', icon: '🦺', color: '#FF6F00', subTypes: ['요구조자발견', '구조개시', '구조완료', '고립구조', '고층구조'] },
-    { value: 'phase_ems', label: '구급·다수사상자 대응', icon: '🏥', color: '#D32F2F', subTypes: ['MCI가동', '응급의료소', '병상파악', '의료지원요청', '이송조정'] },
-    { value: 'phase_safety', label: '안전관리·비상상황 대응', icon: '⚠️', color: '#F57F17', subTypes: ['안전점검', '교대조', '유해물질', '폭발', '고립', '탈출', '활동대원점검'] },
-    { value: 'phase_close', label: '지원기관·대외대응·종료', icon: '🏁', color: '#37474F', subTypes: ['기관지원요청', '기관도착', '공보', '초진', '완진', '종료'] },
+    { value: 'phase_1', label: '재난인지·출동지령', icon: '🚨', color: '#C62828', subTypes: ['훈련메시지', '최초신고', '출동지령', '추가출동', '재난유형통보', '대상물정보', '위험물정보'] },
+    { value: 'phase_2', label: '상황정보·통신운영', icon: '📡', color: '#1565C0', subTypes: ['상황전파', '추가정보', '관계자진술', '구조대상자정보', '건물정보', '무전채널운영', '상황보고'] },
+    { value: 'phase_3', label: '현장지휘·지휘권확립', icon: '🚒', color: '#AD1457', subTypes: ['현장도착', '현장확인', '지휘권선언', '최초보고', '고정지휘', '안전평가'] },
+    { value: 'phase_4', label: '대응단계·통제단가동', icon: '🏛️', color: '#E65100', subTypes: ['대응단계발령', '증원판단', '통제단가동', '통제단설치', '기능확대', '기능축소'] },
+    { value: 'phase_5', label: '작전계획·상황판단', icon: '🗺️', color: '#4527A0', subTypes: ['전략결정', '방면설정', '전술변경', '상황판단회의', '통합지휘회의', '우선순위결정'] },
+    { value: 'phase_6', label: '자원운용·지원기관조정', icon: '🚛', color: '#2E7D32', subTypes: ['자원배치', '임무부여', '부서위치선정', '자원집결지운영', '지원기관요청', '지원기관도착', '임무재지정'] },
+    { value: 'phase_7', label: '구조·진압·인명검색', icon: '🦺', color: '#FF6F00', subTypes: ['요구조자발견', '인명검색', '구조개시', '구조완료', '고립구조', '고층구조', '진압곤란'] },
+    { value: 'phase_8', label: '구급·다수사상자대응', icon: '🏥', color: '#D32F2F', subTypes: ['MCI가동', '응급의료소', '중증도분류', '병상파악', '의료지원요청', '이송조정', '사상자현황관리'] },
+    { value: 'phase_9', label: '안전관리·RIT·비상탈출', icon: '⚠️', color: '#F57F17', subTypes: ['안전점검', 'RIT지정', 'RIT활동', '대원고립', '긴급탈출', '교대조편성', '활동대원점검', '특수위험'] },
+    { value: 'phase_10', label: '공보·언론대응·상황종결', icon: '🏁', color: '#37474F', subTypes: ['언론브리핑', '공보자료', '오보대응', 'VIP대응', '대응단계해제', '최종상황보고', '지휘권이양', '종료·강평'] },
 ];
 
 const MIGRATION_MAP: Record<string, string> = {
-    fire: 'phase_start',
-    explosion: 'phase_safety',
-    casualty: 'phase_ems',
-    collapse: 'phase_safety',
-    traffic: 'phase_resource',
-    comm: 'phase_info',
-    media: 'phase_close',
-    other: 'phase_close',
+    fire: 'phase_1',
+    explosion: 'phase_9',
+    casualty: 'phase_8',
+    collapse: 'phase_9',
+    traffic: 'phase_6',
+    comm: 'phase_2',
+    media: 'phase_10',
+    other: 'phase_10',
+    phase_start: 'phase_1',
+    phase_info: 'phase_2',
+    phase_arrival: 'phase_3',
+    phase_command: 'phase_5',
+    phase_response: 'phase_4',
+    phase_resource: 'phase_6',
+    phase_rescue: 'phase_7',
+    phase_ems: 'phase_8',
+    phase_safety: 'phase_9',
+    phase_close: 'phase_10',
 };
 
 interface ScenarioTemplate {
@@ -82,7 +92,7 @@ export default function TimelinePage() {
 
     // 폼
     const defaultForm = {
-        time_label: '', title: '', description: '', category: 'phase_start', sub_types: [] as string[],
+        time_label: '', title: '', description: '', category: 'phase_1', sub_types: [] as string[],
         delivery_type: 'instant', scheduled_delay_min: 5, condition_note: '', sort_order: 0,
     };
     const [form, setForm] = useState(defaultForm);
