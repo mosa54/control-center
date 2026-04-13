@@ -96,7 +96,7 @@ export default function TimelinePage() {
     // 폼
     const defaultForm = {
         time_label: '', title: '', description: '', category: 'phase_1', sub_types: [] as string[],
-        delivery_type: 'instant' as const, scheduled_delay_min: 5, condition_note: '', sort_order: 0,
+        delivery_type: 'instant' as 'instant' | 'scheduled' | 'conditional', scheduled_delay_min: 5, condition_note: '', sort_order: 0,
         roles: [] as RoleChecklist[]
     };
     const [form, setForm] = useState(defaultForm);
@@ -142,7 +142,7 @@ export default function TimelinePage() {
     const removeFormTask = (roleIndex: number, taskId: string) => {
         setForm(p => {
             const newRoles = [...(p.roles || [])];
-            newRoles[roleIndex].tasks = newRoles[roleIndex].tasks.filter(t => t.id !== taskId);
+            newRoles[roleIndex].tasks = newRoles[roleIndex].tasks.filter(t => t.id && t.id !== taskId);
             return { ...p, roles: newRoles };
         });
     };
@@ -297,7 +297,8 @@ export default function TimelinePage() {
         setSubTypeInput('');
         setForm({
             time_label: ev.time_label, title: ev.title, description: ev.description || '',
-            category: ev.category, sub_types: ev.sub_types || [], delivery_type: ev.delivery_type,
+            category: ev.category, sub_types: ev.sub_types || [], 
+            delivery_type: ev.delivery_type as 'instant' | 'scheduled',
             scheduled_delay_min: ev.scheduled_delay_min, condition_note: ev.condition_note || '',
             sort_order: ev.sort_order,
             roles: ev.roles || []
@@ -720,7 +721,7 @@ export default function TimelinePage() {
                                                         <li key={t.id} style={{ marginBottom: '6px' }}>
                                                             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
                                                                 <span style={{ flex: 1 }}>{t.label}</span>
-                                                                <button type="button" onClick={() => removeFormTask(rIdx, t.id)} style={{ background: 'none', border: 'none', color: '#9E9E9E', cursor: 'pointer', padding: '0 4px', fontSize: '14px', marginLeft: '8px' }}>✕</button>
+                                                                <button type="button" onClick={() => t.id && removeFormTask(rIdx, t.id)} style={{ background: 'none', border: 'none', color: '#9E9E9E', cursor: 'pointer', padding: '0 4px', fontSize: '14px', marginLeft: '8px' }}>✕</button>
                                                             </div>
                                                         </li>
                                                     ))}
@@ -746,7 +747,7 @@ export default function TimelinePage() {
                                     {[{ v: 'instant', l: '즉시' }, { v: 'scheduled', l: '예약' }, { v: 'conditional', l: '조건' }].map(o => (
                                         <button key={o.v} type="button"
                                             className={`delivery-option ${form.delivery_type === o.v ? 'selected' : ''}`}
-                                            onClick={() => setForm(p => ({ ...p, delivery_type: o.v }))}>
+                                            onClick={() => setForm(p => ({ ...p, delivery_type: o.v as any }))}>
                                             {o.l}
                                         </button>
                                     ))}

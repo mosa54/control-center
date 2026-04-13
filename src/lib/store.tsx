@@ -16,6 +16,7 @@ export interface CheckedInEmployee extends Employee {
 
 // 주체별 임무 체크리스트 타입
 export interface RoleTask {
+    id?: string;       // 고유 ID (선택사항)
     label: string;     // "대상물명·주소·발생층 확인"
 }
 
