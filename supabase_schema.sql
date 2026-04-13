@@ -65,3 +65,7 @@ create table scenario_templates (
 
 alter table scenario_templates enable row level security;
 create policy "Enable all for scenario_templates" on scenario_templates for all using (true) with check (true);
+
+-- 7. 마이그레이션: scenario_events 에 roles(주체별 체크리스트) 컬럼 추가
+-- ★ Supabase SQL Editor에서 아래 한 줄만 실행하면 됩니다 ★
+ALTER TABLE scenario_events ADD COLUMN IF NOT EXISTS roles jsonb;

@@ -2,9 +2,12 @@
 
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
-import { useApp, ScenarioEvent } from '@/lib/store';
+import { useApp, ScenarioEvent, RoleChecklist, RoleTask } from '@/lib/store';
 import { supabase } from '@/lib/supabase';
 import Toast from '@/components/Toast';
+import { PHASE1_PRESET } from '@/lib/scenarioPresets';
+
+const PREDEFINED_ROLES = ['상황실', '현장지휘대', '선착분대', '구조대', '구급대', '통제단', '통제단장', '대응계획부', '현장지휘부', '자원지원부', '후착부대'];
 
 const CATEGORIES = [
     { value: 'phase_1', label: '재난인지·출동지령', icon: '🚨', color: '#C62828', subTypes: ['훈련메시지', '최초신고', '출동지령', '추가출동', '재난유형통보', '대상물정보', '위험물정보'] },
@@ -93,12 +96,56 @@ export default function TimelinePage() {
     // 폼
     const defaultForm = {
         time_label: '', title: '', description: '', category: 'phase_1', sub_types: [] as string[],
-        delivery_type: 'instant', scheduled_delay_min: 5, condition_note: '', sort_order: 0,
+        delivery_type: 'instant' as const, scheduled_delay_min: 5, condition_note: '', sort_order: 0,
+        roles: [] as RoleChecklist[]
     };
     const [form, setForm] = useState(defaultForm);
     const [subTypeInput, setSubTypeInput] = useState('');
     const [filterCategory, setFilterCategory] = useState<string>('all');
     const [isMigrating, setIsMigrating] = useState(false);
+
+    // 역할 및 임무 상태
+    const [customRoleInput, setCustomRoleInput] = useState('');
+    const [taskInputs, setTaskInputs] = useState<Record<number, string>>({});
+
+    const addFormRole = (roleName: string) => {
+        if (!roleName.trim()) return;
+        // 이미 해당 역할이 있는지 검사
+        if (form.roles.some(r => r.roleName === roleName.trim())) {
+            setToast('이미 추가된 주체(역할)입니다.');
+            return;
+        }
+        setForm(p => ({ ...p, roles: [...(p.roles || []), { roleName: roleName.trim(), tasks: [] }] }));
+        setCustomRoleInput('');
+    };
+
+    const removeFormRole = (index: number) => {
+        if (!confirm('해당 주체와 임무를 모두 삭제하시겠습니까?')) return;
+        setForm(p => {
+            const newRoles = [...(p.roles || [])];
+            newRoles.splice(index, 1);
+            return { ...p, roles: newRoles };
+        });
+    };
+
+    const addFormTask = (roleIndex: number, label: string) => {
+        if (!label.trim()) return;
+        setForm(p => {
+            const newRoles = [...(p.roles || [])];
+            const t: RoleTask = { id: crypto.randomUUID(), label: label.trim() };
+            newRoles[roleIndex].tasks = [...newRoles[roleIndex].tasks, t];
+            return { ...p, roles: newRoles };
+        });
+        setTaskInputs(p => ({ ...p, [roleIndex]: '' }));
+    };
+
+    const removeFormTask = (roleIndex: number, taskId: string) => {
+        setForm(p => {
+            const newRoles = [...(p.roles || [])];
+            newRoles[roleIndex].tasks = newRoles[roleIndex].tasks.filter(t => t.id !== taskId);
+            return { ...p, roles: newRoles };
+        });
+    };
 
     const handleTimeChange = (val: string) => {
         // 숫자만 남기기
@@ -253,6 +300,7 @@ export default function TimelinePage() {
             category: ev.category, sub_types: ev.sub_types || [], delivery_type: ev.delivery_type,
             scheduled_delay_min: ev.scheduled_delay_min, condition_note: ev.condition_note || '',
             sort_order: ev.sort_order,
+            roles: ev.roles || []
         });
         setShowModal(true);
     };
@@ -293,6 +341,7 @@ export default function TimelinePage() {
             category: e.category, sub_types: e.sub_types, delivery_type: e.delivery_type,
             scheduled_delay_min: e.scheduled_delay_min, condition_note: e.condition_note,
             sort_order: e.sort_order,
+            roles: e.roles
         }));
         await supabase.from('scenario_templates').insert({ name: templateName.trim(), events: evts });
         const { data } = await supabase.from('scenario_templates').select('*').order('created_at', { ascending: false });
@@ -309,6 +358,38 @@ export default function TimelinePage() {
         }
         setShowTemplateList(false);
         setToast(`"${tpl.name}" 불러옴`);
+    };
+
+    const loadPhase1Preset = async () => {
+        if (!confirm('기존 상황부여 목록이 모두 삭제되고 1단계 프리셋 10개가 로드됩니다. 진행하시겠습니까?')) return;
+        
+        await resetScenarioEvents();
+        
+        // 09:30 부터 시작해서 5분 간격으로 시간 부여
+        const startTime = new Date();
+        startTime.setHours(9, 30, 0, 0);
+
+        for (let i = 0; i < PHASE1_PRESET.length; i++) {
+            const ev = PHASE1_PRESET[i];
+            const eventTime = new Date(startTime.getTime() + i * 5 * 60000);
+            const time_label = `${eventTime.getHours().toString().padStart(2, '0')}:${eventTime.getMinutes().toString().padStart(2, '0')}`;
+            
+            await addScenarioEvent({
+                time_label,
+                title: ev.title || '',
+                description: ev.description || '',
+                category: ev.category || 'phase_1',
+                sub_types: ev.sub_types || [],
+                delivery_type: ev.delivery_type || 'instant',
+                scheduled_delay_min: ev.scheduled_delay_min || 0,
+                condition_note: ev.condition_note || '',
+                status: 'pending',
+                sort_order: i,
+                roles: ev.roles
+            });
+        }
+        
+        setToast('1단계 프리셋 로드 완료');
     };
 
     const deleteTemplate = async (id: string) => {
@@ -361,7 +442,7 @@ export default function TimelinePage() {
             </div>
 
             {/* 요약 바 */}
-            <div style={{ display: 'flex', gap: 8, padding: '8px 16px', background: '#fff', borderBottom: '1px solid #E0E0E0' }}>
+            <div style={{ display: 'flex', gap: 8, padding: '8px 16px', background: '#fff', borderBottom: '1px solid #E0E0E0', flexWrap: 'wrap' }}>
                 <span className="delivery-badge pending" style={{ background: '#FFF9C4', color: '#F57F17' }}>
                     대기 {pendingCount}
                 </span>
@@ -369,6 +450,10 @@ export default function TimelinePage() {
                     부여됨 {deliveredCount}
                 </span>
                 <div style={{ flex: 1 }} />
+                <button onClick={loadPhase1Preset}
+                    style={{ background: '#E3F2FD', border: '1px solid #90CAF9', borderRadius: '4px', fontSize: 13, color: '#1565C0', fontWeight: 600, cursor: 'pointer', padding: '4px 8px' }}>
+                    🚀 1단계 프리셋
+                </button>
                 <button onClick={() => setShowTemplateList(true)}
                     style={{ background: 'none', border: 'none', fontSize: 14, color: '#1565C0', fontWeight: 600, cursor: 'pointer' }}>
                     📂 불러오기
@@ -598,6 +683,60 @@ export default function TimelinePage() {
                                                 <button type="button" onClick={() => setForm(p => ({ ...p, sub_types: p.sub_types.filter(t => t !== st) }))} style={{ background: 'none', border: 'none', color: '#9E9E9E', cursor: 'pointer', fontSize: 14, padding: 0 }}>✕</button>
                                             </span>
                                         ))}
+                                    </div>
+                                )}
+                            </div>
+                            
+                            {/* 주체별 체크리스트 관리 */}
+                            <div className="form-group" style={{ background: '#F5F5F5', padding: '16px', borderRadius: '8px', border: '1px solid #E0E0E0' }}>
+                                <label className="form-label" style={{ marginBottom: '12px', fontWeight: 800, color: '#1565C0', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                                    <span style={{ fontSize: '16px' }}>☑️</span> 주체별 임무 체크리스트 설정
+                                </label>
+                                
+                                <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px', marginBottom: '12px' }}>
+                                    {PREDEFINED_ROLES.map(role => (
+                                        <button key={role} type="button" onClick={() => addFormRole(role)}
+                                            style={{ padding: '4px 10px', borderRadius: '4px', border: '1px solid #BBDEFB', background: '#E3F2FD', color: '#0D47A1', fontSize: '12px', fontWeight: 600, cursor: 'pointer', transition: 'all 0.2s' }}>
+                                            + {role}
+                                        </button>
+                                    ))}
+                                </div>
+                                <div style={{ display: 'flex', gap: '6px', marginBottom: '16px' }}>
+                                    <input className="form-input" style={{ flex: 1, padding: '6px 10px', fontSize: '13px' }} placeholder="직접 주체명 입력 (예: 소방서장)" value={customRoleInput} onChange={e => setCustomRoleInput(e.target.value)} onKeyDown={e => e.key === 'Enter' && (e.preventDefault(), addFormRole(customRoleInput))} />
+                                    <button type="button" className="btn btn-secondary" style={{ padding: '6px 16px', fontSize: '13px' }} onClick={() => addFormRole(customRoleInput)}>추가</button>
+                                </div>
+
+                                {form.roles && form.roles.length > 0 ? (
+                                    <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                                        {form.roles.map((kr, rIdx) => (
+                                            <div key={rIdx} style={{ background: '#fff', border: '1px solid #E0E0E0', borderRadius: '6px', padding: '12px', boxShadow: '0 1px 3px rgba(0,0,0,0.05)' }}>
+                                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px', borderBottom: '1px solid #EEEEEE', paddingBottom: '8px' }}>
+                                                    <span style={{ fontWeight: 800, color: '#0D47A1', fontSize: '15px' }}>{kr.roleName}</span>
+                                                    <button type="button" onClick={() => removeFormRole(rIdx)} style={{ background: '#FFEBEE', border: '1px solid #FFCDD2', color: '#C62828', borderRadius: '4px', cursor: 'pointer', fontSize: '11px', fontWeight: 600, padding: '4px 8px' }}>삭제</button>
+                                                </div>
+                                                
+                                                <ul style={{ paddingLeft: '22px', margin: '0 0 12px 0', fontSize: '13px', color: '#424242', lineHeight: '1.6' }}>
+                                                    {kr.tasks.map(t => (
+                                                        <li key={t.id} style={{ marginBottom: '6px' }}>
+                                                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                                                                <span style={{ flex: 1 }}>{t.label}</span>
+                                                                <button type="button" onClick={() => removeFormTask(rIdx, t.id)} style={{ background: 'none', border: 'none', color: '#9E9E9E', cursor: 'pointer', padding: '0 4px', fontSize: '14px', marginLeft: '8px' }}>✕</button>
+                                                            </div>
+                                                        </li>
+                                                    ))}
+                                                    {kr.tasks.length === 0 && <li style={{ listStyle: 'none', marginLeft: '-22px', color: '#9E9E9E', fontSize: '12px', textAlign: 'center', padding: '8px 0', background: '#FAFAFA', borderRadius: '4px' }}>등록된 임무가 없습니다. 추가해 주세요.</li>}
+                                                </ul>
+
+                                                <div style={{ display: 'flex', gap: '6px' }}>
+                                                    <input className="form-input" style={{ flex: 1, padding: '8px 10px', fontSize: '12px' }} placeholder="수행해야 할 세부 임무 입력" value={taskInputs[rIdx] || ''} onChange={e => setTaskInputs(p => ({ ...p, [rIdx]: e.target.value }))} onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); addFormTask(rIdx, taskInputs[rIdx] || ''); } }} />
+                                                    <button type="button" className="btn btn-secondary" style={{ padding: '6px 12px', fontSize: '12px', background: '#E0E0E0', color: '#424242', border: 'none' }} onClick={() => addFormTask(rIdx, taskInputs[rIdx] || '')}>임무 추가</button>
+                                                </div>
+                                            </div>
+                                        ))}
+                                    </div>
+                                ) : (
+                                    <div style={{ textAlign: 'center', padding: '20px', color: '#9E9E9E', fontSize: '13px', border: '1px dashed #BDBDBD', borderRadius: '6px', background: '#fff' }}>
+                                        아직 추가된 주체가 없습니다.<br />위 메뉴에서 주체를 추가해 보세요.
                                     </div>
                                 )}
                             </div>

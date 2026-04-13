@@ -1,30 +1,23 @@
 'use client';
 
 import { useEffect, useRef, useState } from 'react';
-import { usePathname } from 'next/navigation';
 import { useApp } from '@/lib/store';
+import FlipCard from './FlipCard';
 
-const CATEGORIES: Record<string, { icon: string; color: string }> = {
-    phase_1: { icon: '🚨', color: '#C62828' },
-    phase_2: { icon: '📡', color: '#1565C0' },
-    phase_3: { icon: '🚒', color: '#AD1457' },
-    phase_4: { icon: '🏛️', color: '#E65100' },
-    phase_5: { icon: '🗺️', color: '#4527A0' },
-    phase_6: { icon: '🚛', color: '#2E7D32' },
-    phase_7: { icon: '🦺', color: '#FF6F00' },
-    phase_8: { icon: '🏥', color: '#D32F2F' },
-    phase_9: { icon: '⚠️', color: '#F57F17' },
-    phase_10: { icon: '🏁', color: '#37474F' },
+const CATEGORIES: Record<string, { icon: string; color: string; label: string }> = {
+    phase_1: { icon: '🚨', color: '#C62828', label: '재난인지·출동지령' },
+    phase_2: { icon: '📡', color: '#1565C0', label: '상황정보·통신운영' },
+    phase_3: { icon: '🚒', color: '#AD1457', label: '현장지휘·지휘권확립' },
+    phase_4: { icon: '🏛️', color: '#E65100', label: '대응단계·통제단가동' },
+    phase_5: { icon: '🗺️', color: '#4527A0', label: '작전계획·상황판단' },
+    phase_6: { icon: '🚛', color: '#2E7D32', label: '자원운용·지원기관조정' },
+    phase_7: { icon: '🦺', color: '#FF6F00', label: '구조·진압·인명검색' },
+    phase_8: { icon: '🏥', color: '#D32F2F', label: '구급·다수사상자대응' },
+    phase_9: { icon: '⚠️', color: '#F57F17', label: '안전관리·RIT·비상탈출' },
+    phase_10: { icon: '🏁', color: '#37474F', label: '공보·언론대응·상황종결' },
 };
 
 const getCat = (v: string) => CATEGORIES[v] || CATEGORIES.phase_10;
-
-const hexToRgba = (hex: string, alpha: number) => {
-    const r = parseInt(hex.slice(1, 3), 16);
-    const g = parseInt(hex.slice(3, 5), 16);
-    const b = parseInt(hex.slice(5, 7), 16);
-    return `rgba(${r}, ${g}, ${b}, ${alpha})`;
-};
 
 export default function ScenarioTimeline() {
     const { getDeliveredEvents } = useApp();
@@ -62,36 +55,12 @@ export default function ScenarioTimeline() {
             {reversed.map(ev => {
                 const cat = getCat(ev.category);
                 return (
-                    <div key={ev.id}
-                        className={`scenario-card ${newId === ev.id ? 'new' : ''}`}
-                        style={{ boxShadow: `0 4px 16px ${hexToRgba(cat.color, 0.18)}, 0 1px 4px rgba(0,0,0,0.06)` }}>
-                        <div className="scenario-card-header" style={{
-                            background: `linear-gradient(to right, ${cat.color}15, transparent)`,
-                            margin: '-16px -20px 16px -20px',
-                            padding: '12px 20px',
-                        }}>
-                            <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                                <span className="scenario-card-icon">{cat.icon}</span>
-                                <span className="scenario-card-time">{ev.time_label}</span>
-                            </div>
-                            {ev.delivered_at && (
-                                <span className="scenario-card-meta" style={{ marginTop: 0 }}>
-                                    {new Date(ev.delivered_at).toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit', second: '2-digit' })}
-                                </span>
-                            )}
-                        </div>
-                        <div className="scenario-card-title" style={{ fontSize: '17px', lineHeight: '1.4', marginBottom: '6px' }}>{ev.title}</div>
-                        {ev.description && <div className="scenario-card-desc">{ev.description}</div>}
-                        {ev.sub_types && ev.sub_types.length > 0 && (
-                            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4, marginTop: 8 }}>
-                                {ev.sub_types.map(st => (
-                                    <span key={st} style={{ background: '#F5F5F5', color: '#616161', padding: '1px 6px', borderRadius: 4, fontSize: 10, border: '1px solid #E0E0E0' }}>
-                                        {st}
-                                    </span>
-                                ))}
-                            </div>
-                        )}
-                    </div>
+                    <FlipCard 
+                        key={ev.id} 
+                        ev={ev} 
+                        cat={cat} 
+                        isNew={newId === ev.id} 
+                    />
                 );
             })}
         </div>

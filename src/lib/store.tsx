@@ -14,6 +14,16 @@ export interface CheckedInEmployee extends Employee {
     selectedDutyStatus?: '당번' | '비번';
 }
 
+// 주체별 임무 체크리스트 타입
+export interface RoleTask {
+    label: string;     // "대상물명·주소·발생층 확인"
+}
+
+export interface RoleChecklist {
+    roleName: string;  // "상황실", "현장지휘대" 등
+    tasks: RoleTask[];
+}
+
 // 상황부여 이벤트
 export interface ScenarioEvent {
     id: string;
@@ -30,6 +40,7 @@ export interface ScenarioEvent {
     delivered_at?: string;
     sort_order: number;
     created_at?: string;
+    roles?: RoleChecklist[];  // 주체별 체크리스트 (없으면 기존 앞면 전용 카드)
 }
 
 // 앱 상태 인터페이스
@@ -308,7 +319,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
 
     const addScenarioEvent = useCallback(async (event: Omit<ScenarioEvent, 'id' | 'created_at'>) => {
         const { error } = await supabase.from('scenario_events').insert(event);
-        if (error) console.error('insert event error', error);
+        if (error) console.error('insert event error', error.message || error.details || error, JSON.stringify(error));
         await fetchScenarioEventsLocal();
     }, []);
 
