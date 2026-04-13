@@ -917,3 +917,401 @@ export const PHASE2_PRESET: Partial<ScenarioEvent>[] = [
         ]
     }
 ];
+
+export const PHASE3_PRESET: Partial<ScenarioEvent>[] = [
+    {
+        title: '선착 지휘차 및 분대 현장 도착',
+        description: '선착 지휘차와 관할 선착분대가 로지스포인트 암남 동측 주출입구 전면 도착. 6층 상부에서 검은 연기 다량 분출 확인.',
+        sub_types: ['현장도착'],
+        category: 'phase_3',
+        delivery_type: 'instant',
+        scheduled_delay_min: 0,
+        roles: [
+            {
+                roleName: '현장지휘대',
+                tasks: [
+                    { label: '선착 도착 시각 확인' },
+                    { label: '지휘차 부서 위치 적정성 확인' },
+                    { label: '전면부 육안관찰 시작' }
+                ]
+            },
+            {
+                roleName: '선착분대',
+                tasks: [
+                    { label: '차량 부서 및 초기 전개 준비' },
+                    { label: '현장 접근 시 안전 확보' },
+                    { label: '지휘대 지시 대기' }
+                ]
+            },
+            {
+                roleName: '구조대',
+                tasks: [
+                    { label: '현장 도착 후 구조장비 전개 준비' },
+                    { label: '지휘대 지시 전 임의 진입 금지' }
+                ]
+            },
+            {
+                roleName: '구급대',
+                tasks: [
+                    { label: '현장 접근 가능한 위치 확인' },
+                    { label: '대피자 응급평가 준비' }
+                ]
+            }
+        ]
+    },
+    {
+        title: '현장지휘권 선언 및 지휘체계 확립',
+        description: '현 시간부로 중부지휘가 로지스포인트 암남 화재현장의 현장지휘권을 행사. 지휘체계는 동측 주출입구 전면을 기준으로 운영.',
+        sub_types: ['지휘권선언'],
+        category: 'phase_3',
+        delivery_type: 'instant',
+        scheduled_delay_min: 0,
+        roles: [
+            {
+                roleName: '현장지휘대',
+                tasks: [
+                    { label: '지휘권 선언' },
+                    { label: '지휘주체를 전 출동대에 전파' },
+                    { label: '초기 지휘체계 운용 개시' }
+                ]
+            },
+            {
+                roleName: '상황실',
+                tasks: [
+                    { label: '지휘권 선언 내용 수신' },
+                    { label: '현장지휘 주체를 상황관리체계에 반영' }
+                ]
+            },
+            {
+                roleName: '선착분대',
+                tasks: [
+                    { label: '지휘권 선언 수신 확인' },
+                    { label: '지휘대 통제 하 활동 준비' }
+                ]
+            },
+            {
+                roleName: '후착부대',
+                tasks: [
+                    { label: '현장지휘 주체 확인' },
+                    { label: '현장 도착 후 보고 절차 준비' }
+                ]
+            }
+        ]
+    },
+    {
+        title: '전면부 육안관찰 및 현장확인 개시',
+        description: '동측 전면부 확인 결과 6층 주 화점 추정, 7층 창측 연기 체류 관찰. 내부 대피 인원 일부는 외부로 이동 중이며, 상층부 추가 고립 우려 존재.',
+        sub_types: ['현장확인'],
+        category: 'phase_3',
+        delivery_type: 'instant',
+        scheduled_delay_min: 0,
+        roles: [
+            {
+                roleName: '현장지휘대',
+                tasks: [
+                    { label: '6층 화점 추정 위치 확인' },
+                    { label: '7층 연기 체류 여부 확인' },
+                    { label: '외부 대피 인원 유무 확인' }
+                ]
+            },
+            {
+                roleName: '선착분대',
+                tasks: [
+                    { label: '전면부 연기량 확인' },
+                    { label: '창문·출입구 화염 유무 확인' },
+                    { label: '초기 방수 가능 위치 파악' }
+                ]
+            },
+            {
+                roleName: '구조대',
+                tasks: [
+                    { label: '외부 구조대상자 유무 확인' },
+                    { label: '상층 고립 가능성 재검토' }
+                ]
+            },
+            {
+                roleName: '구급대',
+                tasks: [
+                    { label: '자력 대피자 중 응급환자 유무 확인' }
+                ]
+            }
+        ]
+    },
+    {
+        title: '고정지휘 위치 선정 및 현장지휘 기준점 설정',
+        description: '동측 주출입구 전면 지휘차 인근을 고정지휘 위치로 설정. 단일 주출입구 혼잡을 고려하여 지휘·진입·구급 동선을 분리 운용.',
+        sub_types: ['고정지휘'],
+        category: 'phase_3',
+        delivery_type: 'instant',
+        scheduled_delay_min: 0,
+        roles: [
+            {
+                roleName: '현장지휘대',
+                tasks: [
+                    { label: '고정지휘 위치 지정' },
+                    { label: '지휘·진입·구급 동선 분리 기준 설정' },
+                    { label: '현장지휘 기준점 전파' }
+                ]
+            },
+            {
+                roleName: '선착분대',
+                tasks: [
+                    { label: '진입 동선과 지휘공간 구분 인지' },
+                    { label: '주출입구 혼잡 방지 준수' }
+                ]
+            },
+            {
+                roleName: '구급대',
+                tasks: [
+                    { label: '구급차 집결 가능 위치 확인' },
+                    { label: '환자 이송 동선 후보 검토' }
+                ]
+            },
+            {
+                roleName: '후착부대',
+                tasks: [
+                    { label: '도착 후 임의 부서 금지' },
+                    { label: '지휘대 지시에 따른 부서 준비' }
+                ]
+            }
+        ]
+    },
+    {
+        title: '건물 관계자 및 방재실 정보 현장 재확인',
+        description: '건물 관계자 및 방재실 확인 결과 6층 감지기·경보 작동 확인. 승강기 사용 제한, 스프링클러·제연설비 일부 작동 여부 추가 확인 중.',
+        sub_types: ['현장확인'],
+        category: 'phase_3',
+        delivery_type: 'instant',
+        scheduled_delay_min: 0,
+        roles: [
+            {
+                roleName: '현장지휘대',
+                tasks: [
+                    { label: '관계자 정보 청취' },
+                    { label: '방재실 정보와 신고내용 대조' },
+                    { label: '승강기 사용 제한 여부 확인' }
+                ]
+            },
+            {
+                roleName: '상황실',
+                tasks: [
+                    { label: '현장 확인정보 재수신' },
+                    { label: '설비 작동 정보 상황판 반영 준비' }
+                ]
+            },
+            {
+                roleName: '선착분대',
+                tasks: [
+                    { label: '계단실 접근 전제 활동 준비' },
+                    { label: '설비 미작동 가능성 염두에 둔 진입 준비' }
+                ]
+            },
+            {
+                roleName: '구조대',
+                tasks: [
+                    { label: '관계자 제공 고립 추정구역 재확인' },
+                    { label: '승강기 미사용 원칙 확인' }
+                ]
+            }
+        ]
+    },
+    {
+        title: '현장 안전평가 개시',
+        description: '현장 안전평가 결과 밀폐형 창고 구조, 배연 곤란, 패널 마감, 열 축적 및 급격한 연소확대 우려 높음. 시야 확보 전 무리한 내부진입 금지 필요.',
+        sub_types: ['안전평가'],
+        category: 'phase_3',
+        delivery_type: 'instant',
+        scheduled_delay_min: 0,
+        roles: [
+            {
+                roleName: '현장지휘대',
+                tasks: [
+                    { label: '배연 곤란 여부 확인' },
+                    { label: '패널 구조 및 열 축적 위험 반영' },
+                    { label: '무리한 내부진입 제한 원칙 설정' }
+                ]
+            },
+            {
+                roleName: '선착분대',
+                tasks: [
+                    { label: '시야 확보 전 무리한 진입 금지 준수' },
+                    { label: '화재 이상현상 가능성 인지' }
+                ]
+            },
+            {
+                roleName: '구조대',
+                tasks: [
+                    { label: 'TIC 활용 우선 준비' },
+                    { label: '고온·유독가스 환경 구조 대비' }
+                ]
+            },
+            {
+                roleName: '구급대',
+                tasks: [
+                    { label: '열손상·연기흡입 환자 발생 대비' }
+                ]
+            }
+        ]
+    },
+    {
+        title: '선착대 1차 전략적 임무부여',
+        description: '선착분대는 전면부 방수 및 상황확인, 구조대는 인명검색 우선, 구급대는 대피자 응급평가 및 임시의료소 후보지 확인. 후착대는 추가 지시 대기.',
+        sub_types: ['현장확인', '안전평가'],
+        category: 'phase_3',
+        delivery_type: 'instant',
+        scheduled_delay_min: 0,
+        roles: [
+            {
+                roleName: '현장지휘대',
+                tasks: [
+                    { label: '선착분대 임무 부여' },
+                    { label: '구조대 임무 부여' },
+                    { label: '구급대 임무 부여' },
+                    { label: '후착대 대기 및 연계지시 준비' }
+                ]
+            },
+            {
+                roleName: '선착분대',
+                tasks: [
+                    { label: '전면부 방수 가능 여부 확인' },
+                    { label: '화점 접근 가능 출입구 확인' },
+                    { label: '초기 상황을 지휘대에 재보고' }
+                ]
+            },
+            {
+                roleName: '구조대',
+                tasks: [
+                    { label: '인명검색 우선구역 확인' },
+                    { label: '계단실·중층구조 중심 탐색 준비' }
+                ]
+            },
+            {
+                roleName: '구급대',
+                tasks: [
+                    { label: '자력 대피자 응급평가 실시 준비' },
+                    { label: '임시의료소 후보 위치 확인' }
+                ]
+            },
+            {
+                roleName: '후착부대',
+                tasks: [
+                    { label: '지휘대 추가 지시 대기' }
+                ]
+            }
+        ]
+    },
+    {
+        title: '현장 최초상황보고',
+        description: '최초상황보고: 로지스포인트 암남 6층 주 화점 추정, 7층 연기 유입, 내부 고립 우려 지속. 단일 주출입구 혼잡 예상, 배연 곤란으로 신중한 진입 필요.',
+        sub_types: ['최초보고'],
+        category: 'phase_3',
+        delivery_type: 'instant',
+        scheduled_delay_min: 0,
+        roles: [
+            {
+                roleName: '현장지휘대',
+                tasks: [
+                    { label: '최초상황보고 실시' },
+                    { label: '화점·연기·인명정보를 포함해 보고' },
+                    { label: '추가 자원 필요성 판단 근거 포함' }
+                ]
+            },
+            {
+                roleName: '상황실',
+                tasks: [
+                    { label: '최초상황보고 수신' },
+                    { label: '상황판 및 전파 내용 갱신' },
+                    { label: '대응단계 상향 가능성 검토 준비' }
+                ]
+            },
+            {
+                roleName: '선착분대',
+                tasks: [
+                    { label: '지휘대 보고내용과 현장상황 일치 여부 확인' }
+                ]
+            },
+            {
+                roleName: '구조대',
+                tasks: [
+                    { label: '최초상황보고 반영해 검색 우선구역 조정 준비' }
+                ]
+            }
+        ]
+    },
+    {
+        title: '주출입구 통제 및 대피유도 구역 설정',
+        description: '동측 주출입구 전면 혼잡이 가중됨. 관계자·직원·출동대 동선이 혼재하므로 출입통제 및 대피유도 구역 설정이 필요.',
+        sub_types: ['현장확인', '고정지휘'],
+        category: 'phase_3',
+        delivery_type: 'instant',
+        scheduled_delay_min: 0,
+        roles: [
+            {
+                roleName: '현장지휘대',
+                tasks: [
+                    { label: '출입통제 필요성 판단' },
+                    { label: '대피유도 구역 설정' },
+                    { label: '차량·인원 동선 분리 지시' }
+                ]
+            },
+            {
+                roleName: '선착분대',
+                tasks: [
+                    { label: '주출입구 주변 안전구역 확보' },
+                    { label: '관계자·직원 접근 통제' }
+                ]
+            },
+            {
+                roleName: '구급대',
+                tasks: [
+                    { label: '응급평가 구역과 통제구역 충돌 여부 확인' }
+                ]
+            },
+            {
+                roleName: '후착부대',
+                tasks: [
+                    { label: '현장 혼잡 가중 방지' },
+                    { label: '지시 전 임의 하차·분산 금지' }
+                ]
+            }
+        ]
+    },
+    {
+        title: '대응단계 상향 및 통제단 가동 건의 준비',
+        description: '현장확인 결과 대형 대상, 상층 연기 확산, 고립 우려, 단일 진입동선, 배연 곤란이 복합됨. 대응단계 상향 및 통제단 가동 건의 필요.',
+        sub_types: ['최초보고', '안전평가'],
+        category: 'phase_3',
+        delivery_type: 'instant',
+        scheduled_delay_min: 0,
+        roles: [
+            {
+                roleName: '현장지휘대',
+                tasks: [
+                    { label: '대응단계 상향 필요성 판단' },
+                    { label: '통제단 가동 건의 준비' },
+                    { label: '지속 대응 시 한계요인 정리' }
+                ]
+            },
+            {
+                roleName: '상황실',
+                tasks: [
+                    { label: '대응단계 상향 보고 대비' },
+                    { label: '통제단 가동 전파 준비' }
+                ]
+            },
+            {
+                roleName: '통제단 준비요원',
+                tasks: [
+                    { label: '통제단 가동 가능 상태 확인' },
+                    { label: '집결 및 부별 임무 개시 준비' }
+                ]
+            },
+            {
+                roleName: '후착부대',
+                tasks: [
+                    { label: '통제단 가동 시 지휘체계 전환 대비' }
+                ]
+            }
+        ]
+    }
+];
