@@ -1,6 +1,6 @@
 'use client';
 
-import { createContext, useContext, useState, useCallback, ReactNode, useEffect } from 'react';
+import { createContext, useContext, useState, useCallback, ReactNode, useEffect, useRef } from 'react';
 import { Employee, Mission, ExcelData, getMissionByCode } from './excel';
 import { supabase } from './supabase';
 import { DEFAULT_DATA } from './defaultData';
@@ -101,112 +101,96 @@ export function AppProvider({ children }: { children: ReactNode }) {
     const [isLoaded, setIsLoaded] = useState(false);
     const [scenarioEvents, setScenarioEvents] = useState<ScenarioEvent[]>([]);
     const [realtimeStatus, setRealtimeStatus] = useState<'connecting' | 'connected' | 'error' | 'disconnected'>('connecting');
+    const channelRef = useRef<any>(null);
 
-    // 1. 초기 데이터 로드 및 Realtime 구독
-    useEffect(() => {
-        const fetchData = async () => {
-            try {
-                // 시스템 설정 로드
-                const { data: settings } = await supabase
-                    .from('system_settings')
-                    .select('*')
-                    .eq('id', SETTINGS_ID)
-                    .single();
+    // 1. 데이터 로드 및 실시간 구독 초기화 로직
+    const fetchData = useCallback(async () => {
+        try {
+            // 시스템 설정 로드
+            const { data: settings } = await supabase
+                .from('system_settings')
+                .select('*')
+                .eq('id', SETTINGS_ID)
+                .single();
 
-                if (settings) {
-                    setSessionModeState(settings.mode as SessionMode);
-                    setSessionSummaryState(settings.summary || '');
-                    if (settings.excel_data) {
-                        try {
-                            const parsedExcel = settings.excel_data as any; // 타입 단언 필요 시
-                            // Date 객체 복원
-                            if (parsedExcel.uploadedAt) parsedExcel.uploadedAt = new Date(parsedExcel.uploadedAt);
-                            setExcelDataState(parsedExcel);
-                        } catch (e) {
-                            console.error('Excel parse error', e);
-                        }
+            if (settings) {
+                setSessionModeState(settings.mode as SessionMode);
+                setSessionSummaryState(settings.summary || '');
+                if (settings.excel_data) {
+                    try {
+                        const parsedExcel = settings.excel_data as any;
+                        if (parsedExcel.uploadedAt) parsedExcel.uploadedAt = new Date(parsedExcel.uploadedAt);
+                        setExcelDataState(parsedExcel);
+                    } catch (e) {
+                        console.error('Excel parse error', e);
                     }
                 }
-
-                // 체크인 현황 로드
-                const { data: checkins } = await supabase.from('checkins').select('*');
-                if (checkins && settings?.excel_data) {
-                    const employees = (settings.excel_data as ExcelData).employees;
-                    // DB checkins 데이터를 CheckedInEmployee 형태로 변환
-                    const mapped: CheckedInEmployee[] = checkins.map(c => {
-                        const original = employees.find(e => e.id === c.employee_id);
-                        if (!original) return null;
-                        return {
-                            ...original,
-                            checkedInAt: new Date(c.checked_in_at),
-                            selectedDutyStatus: c.duty_status as any,
-                            // DB의 최신 정보(직위 등)가 있으면 덮어쓰기
-                            직위: c.position || original.직위,
-                            통제단편성부: c.dept || original.통제단편성부,
-                        };
-                    }).filter(Boolean) as CheckedInEmployee[];
-                    setCheckedInEmployees(mapped);
-                }
-
-                // 상황 이벤트 로드
-                const { data: events } = await supabase
-                    .from('scenario_events')
-                    .select('*')
-                    .order('sort_order');
-                if (events) {
-                    setScenarioEvents(events as ScenarioEvent[]);
-                }
-            } catch (error) {
-                console.error('Error fetching data:', error);
-            } finally {
-                setIsLoaded(true);
             }
-        };
 
-        fetchData();
+            // 체크인 현황 로드
+            const { data: checkins } = await supabase.from('checkins').select('*');
+            if (checkins && settings?.excel_data) {
+                const employees = (settings.excel_data as ExcelData).employees;
+                const mapped: CheckedInEmployee[] = checkins.map(c => {
+                    const original = employees.find(e => e.id === c.employee_id);
+                    if (!original) return null;
+                    return {
+                        ...original,
+                        checkedInAt: new Date(c.checked_in_at),
+                        selectedDutyStatus: c.duty_status as any,
+                        직위: c.position || original.직위,
+                        통제단편성부: c.dept || original.통제단편성부,
+                    };
+                }).filter(Boolean) as CheckedInEmployee[];
+                setCheckedInEmployees(mapped);
+            }
 
-        // Realtime 구독 (안정적인 연결을 위해 로그 및 상태 확인 추가)
+            // 상황 이벤트 로드
+            const { data: events } = await supabase
+                .from('scenario_events')
+                .select('*')
+                .order('sort_order');
+            if (events) {
+                setScenarioEvents(events as ScenarioEvent[]);
+            }
+        } catch (error) {
+            console.error('Error fetching data:', error);
+        } finally {
+            setIsLoaded(true);
+        }
+    }, []);
+
+    const initRealtime = useCallback(() => {
+        if (channelRef.current) {
+            supabase.removeChannel(channelRef.current);
+            channelRef.current = null;
+        }
+
         console.log('실시간 채널 초기화 중...');
+        setRealtimeStatus('connecting');
+
         const channel = supabase.channel('realtime-updates')
             .on(
                 'postgres_changes',
                 { event: '*', schema: 'public', table: 'system_settings' },
-                (payload) => {
-                    console.log('시스템 설정 데이터 변경 감지:', payload);
+                () => {
+                    console.log('시스템 설정 데이터 변경 감지');
                     fetchData();
                 }
             )
             .on(
                 'postgres_changes',
                 { event: '*', schema: 'public', table: 'checkins' },
-                async (payload) => {
-                    console.log('체크인 데이터 변경 감지:', payload);
-                    const { data: checkins } = await supabase.from('checkins').select('*');
-                    setExcelDataState(prev => {
-                        if (!prev) return prev;
-                        if (checkins) {
-                            const mapped: CheckedInEmployee[] = checkins.map(c => {
-                                const original = prev.employees.find(e => e.id === c.employee_id);
-                                if (!original) return null;
-                                return {
-                                    ...original,
-                                    checkedInAt: new Date(c.checked_in_at),
-                                    selectedDutyStatus: c.duty_status as any,
-                                    직위: c.position || original.직위,
-                                    통제단편성부: c.dept || original.통제단편성부,
-                                };
-                            }).filter(Boolean) as CheckedInEmployee[];
-                            setCheckedInEmployees(mapped);
-                        }
-                        return prev;
-                    });
+                () => {
+                    console.log('체크인 데이터 변경 감지');
+                    fetchData();
                 }
             )
             .on(
                 'postgres_changes',
                 { event: '*', schema: 'public', table: 'scenario_events' },
-                async (payload) => {
-                    console.log('상황 이벤트(Scenario) 데이터 변경 감지:', payload);
+                async () => {
+                    console.log('상황 이벤트 데이터 변경 감지');
                     const { data: events } = await supabase
                         .from('scenario_events')
                         .select('*')
@@ -221,21 +205,39 @@ export function AppProvider({ children }: { children: ReactNode }) {
                 if (status === 'SUBSCRIBED') {
                     setRealtimeStatus('connected');
                     console.log('✅ 서버와 실시간으로 연결되었습니다.');
-                } else if (status === 'CHANNEL_ERROR') {
+                } else if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT') {
                     setRealtimeStatus('error');
-                    console.error('❌ 실시간 연결 에러: Supabase Dashboard의 Replication 설정에서 테이블들을 활성화했는지 확인하세요.');
-                } else if (status === 'TIMED_OUT') {
-                    setRealtimeStatus('error');
+                    console.error('실시간 연결 실패 (Replication 설정을 확인하세요)');
                 } else if (status === 'CLOSED') {
                     setRealtimeStatus('disconnected');
                 }
             });
 
-        return () => {
-            setRealtimeStatus('disconnected');
-            supabase.removeChannel(channel);
+        channelRef.current = channel;
+    }, [fetchData]);
+
+    useEffect(() => {
+        fetchData();
+        initRealtime();
+
+        const handleVisibilityChange = () => {
+            if (document.visibilityState === 'visible') {
+                console.log('앱 복귀 감지: 데이터 동기화 및 실시간 재연결 시도...');
+                fetchData();
+                initRealtime();
+            }
         };
-    }, []);
+
+        document.addEventListener('visibilitychange', handleVisibilityChange);
+
+        return () => {
+            document.removeEventListener('visibilitychange', handleVisibilityChange);
+            if (channelRef.current) {
+                supabase.removeChannel(channelRef.current);
+            }
+        };
+    }, [fetchData, initRealtime]);
+
 
     // 2. 내 정보 복원 (로컬 스토리지 myId + loaded checkedInEmployees)
     useEffect(() => {
@@ -300,7 +302,6 @@ export function AppProvider({ children }: { children: ReactNode }) {
         const { error } = await supabase.from('checkins').delete().eq('employee_id', employeeId);
         if (error) {
             console.error('Checkout failed', error);
-            // 필요시 에러 처리 로직 추가
         } else {
             if (localStorage.getItem(STORAGE_KEYS.myId) === employeeId) {
                 localStorage.removeItem(STORAGE_KEYS.myId);
