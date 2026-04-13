@@ -15,30 +15,18 @@ export default function RealtimeIndicator() {
         }
     };
 
-    const getStatusText = () => {
-        switch (realtimeStatus) {
-            case 'connected': return '실시간 연결됨';
-            case 'connecting': return '연결 중...';
-            case 'error': return '연결 오류 (DB 설정 확인 필요)';
-            case 'disconnected': return '연결 끊김';
-            default: return '상태 확인 불가';
-        }
-    };
-
     return (
         <div style={{
             position: 'fixed',
-            top: '12px',
-            right: '12px',
+            top: '14px',
+            right: '14px',
             display: 'flex',
             alignItems: 'center',
-            gap: '6px',
-            padding: '4px 10px',
+            justifyContent: 'center',
+            width: '24px',
+            height: '24px',
             background: 'rgba(255,255,255,0.9)',
-            borderRadius: '20px',
-            fontSize: '11px',
-            fontWeight: 700,
-            color: '#333',
+            borderRadius: '50%',
             boxShadow: '0 2px 8px rgba(0,0,0,0.1)',
             zIndex: 10000,
             border: `1px solid ${getStatusColor()}44`,
@@ -46,14 +34,13 @@ export default function RealtimeIndicator() {
             pointerEvents: 'none'
         }}>
             <span style={{
-                width: '8px',
-                height: '8px',
+                width: '10px',
+                height: '10px',
                 borderRadius: '50%',
                 background: getStatusColor(),
                 boxShadow: `0 0 8px ${getStatusColor()}`,
                 animation: realtimeStatus === 'connecting' ? 'blink 1s infinite' : 'none'
             }} />
-            <span>{getStatusText()}</span>
 
             <style>
                 {`
