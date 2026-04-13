@@ -3,6 +3,7 @@ import "./globals.css";
 import { AppProvider } from "@/lib/store";
 import InstallPrompt from "@/components/InstallPrompt";
 import BottomNav from "@/components/BottomNav";
+import GlobalNotifier from "@/components/GlobalNotifier";
 
 export const viewport: Viewport = {
   themeColor: "#0D47A1",
@@ -29,6 +30,7 @@ export default function RootLayout({
         <AppProvider>
           {children}
           <BottomNav />
+          <GlobalNotifier />
           <InstallPrompt />
         </AppProvider>
       </body>
