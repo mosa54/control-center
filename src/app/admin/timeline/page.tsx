@@ -362,6 +362,10 @@ export default function TimelinePage() {
     };
 
     const loadPhase1Preset = async () => {
+        if (scenarioEvents.some(ev => ev.category === 'phase_1')) {
+            setToast('1단계 상황이 이미 추가되어 있습니다.');
+            return;
+        }
         if (!confirm('1단계 상황 10개를 타임라인에 추가하시겠습니까?')) return;
         
         // 09:30 부터 시작해서 5분 간격으로 시간 부여
@@ -395,6 +399,10 @@ export default function TimelinePage() {
     };
 
     const loadPhase2Preset = async () => {
+        if (scenarioEvents.some(ev => ev.category === 'phase_2')) {
+            setToast('2단계 상황이 이미 추가되어 있습니다.');
+            return;
+        }
         if (!confirm('2단계 상황 10개를 타임라인에 추가하시겠습니까?')) return;
         
         // 10:15 부터 시작해서 5분 간격으로 시간 부여
