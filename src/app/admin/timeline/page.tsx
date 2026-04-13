@@ -362,13 +362,13 @@ export default function TimelinePage() {
     };
 
     const loadPhase1Preset = async () => {
-        if (!confirm('기존 상황부여 목록이 모두 삭제되고 1단계 프리셋 10개가 로드됩니다. 진행하시겠습니까?')) return;
-        
-        await resetScenarioEvents();
+        if (!confirm('1단계 상황 10개를 타임라인에 추가하시겠습니까?')) return;
         
         // 09:30 부터 시작해서 5분 간격으로 시간 부여
         const startTime = new Date();
         startTime.setHours(9, 30, 0, 0);
+
+        const currentCount = scenarioEvents.length;
 
         for (let i = 0; i < PHASE1_PRESET.length; i++) {
             const ev = PHASE1_PRESET[i];
@@ -385,23 +385,23 @@ export default function TimelinePage() {
                 scheduled_delay_min: ev.scheduled_delay_min || 0,
                 condition_note: ev.condition_note || '',
                 status: 'pending',
-                sort_order: i,
+                sort_order: currentCount + i,
                 roles: ev.roles
             });
         }
         
         setShowTemplateList(false);
-        setToast('1단계 프리셋 로드 완료');
+        setToast('1단계 상황 추가 완료');
     };
 
     const loadPhase2Preset = async () => {
-        if (!confirm('기존 상황부여 목록이 모두 삭제되고 2단계 프리셋 10개가 로드됩니다. 진행하시겠습니까?')) return;
-        
-        await resetScenarioEvents();
+        if (!confirm('2단계 상황 10개를 타임라인에 추가하시겠습니까?')) return;
         
         // 10:15 부터 시작해서 5분 간격으로 시간 부여
         const startTime = new Date();
         startTime.setHours(10, 15, 0, 0);
+
+        const currentCount = scenarioEvents.length;
 
         for (let i = 0; i < PHASE2_PRESET.length; i++) {
             const ev = PHASE2_PRESET[i];
@@ -418,13 +418,13 @@ export default function TimelinePage() {
                 scheduled_delay_min: ev.scheduled_delay_min || 0,
                 condition_note: ev.condition_note || '',
                 status: 'pending',
-                sort_order: i,
+                sort_order: currentCount + i,
                 roles: ev.roles
             });
         }
         
         setShowTemplateList(false);
-        setToast('2단계 프리셋 로드 완료');
+        setToast('2단계 상황 추가 완료');
     };
 
     const deleteTemplate = async (id: string) => {
@@ -843,17 +843,17 @@ export default function TimelinePage() {
                             <button className="modal-close" onClick={() => setShowTemplateList(false)}>✕</button>
                         </div>
                         <div className="modal-body">
-                            {/* 상황부여 프리셋 로드 섹션 */}
+                            {/* 상황부여 로드 섹션 */}
                             <div style={{ marginBottom: 20 }}>
-                                <h4 style={{ margin: '0 0 12px 0', fontSize: 14, color: '#424242' }}>🔥 시스템 제공 상황 프리셋</h4>
+                                <h4 style={{ margin: '0 0 12px 0', fontSize: 14, color: '#424242' }}>🔥 단계별 상황 추가</h4>
                                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
                                     <button className="btn" onClick={loadPhase1Preset}
                                         style={{ background: '#E3F2FD', border: '1px solid #90CAF9', color: '#1565C0', fontWeight: 600, padding: '12px 0', fontSize: '13px' }}>
-                                        🚀 1단계 (09:30)
+                                        🚀 1단계 상황 (09:30)
                                     </button>
                                     <button className="btn" onClick={loadPhase2Preset}
                                         style={{ background: '#FCE4EC', border: '1px solid #F48FB1', color: '#AD1457', fontWeight: 600, padding: '12px 0', fontSize: '13px' }}>
-                                        🚀 2단계 (10:15)
+                                        🚀 2단계 상황 (10:15)
                                     </button>
                                 </div>
                             </div>
