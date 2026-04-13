@@ -13,35 +13,15 @@ interface RoleChecklistProps {
 
 export default function RoleChecklist({ eventId, roles, checkedTasks, onToggleTask }: RoleChecklistProps) {
     const { currentEmployee } = useApp();
-    const myDept = currentEmployee?.통제단편성부 || '';
+    // const myDept = currentEmployee?.통제단편성부 || '';
 
-    // 내 부서의 역할군 매핑 (단순화: 부서명과 roleName이 포함 관계인지 확인)
-    const isMyRole = (roleName: string) => {
-        if (!myDept) return false;
-        
-        // 상황실, 현장지휘대, 선착분대, 구조대, 구급대, 통제단 준비요원 등
-        if (roleName.includes('상황실') && myDept.includes('상황')) return true;
-        if (roleName.includes('구조대') && myDept.includes('구조')) return true;
-        if (roleName.includes('구급대') && myDept.includes('구급')) return true;
-        if (roleName.includes('지휘') && myDept.includes('지휘')) return true;
-        // 다른 매핑 규칙을 여기에 추가할 수 있습니다.
-        
-        return myDept.includes(roleName) || roleName.includes(myDept);
-    };
-
-    // 역할 정렬: 내 역할이 속한 것을 최상단으로
-    const sortedRoles = [...roles].sort((a, b) => {
-        const aIsMine = isMyRole(a.roleName);
-        const bIsMine = isMyRole(b.roleName);
-        if (aIsMine && !bIsMine) return -1;
-        if (!aIsMine && bIsMine) return 1;
-        return 0;
-    });
+    // 역할 정렬: 현재는 정렬 없이 원본 순서대로 유지 (추후 필요시 내 역할 우선순위 적용)
+    const sortedRoles = [...roles];
 
     const [expandedRoles, setExpandedRoles] = useState<Record<string, boolean>>(() => {
         const initial: Record<string, boolean> = {};
         sortedRoles.forEach(role => {
-            initial[role.roleName] = true; // 모든 نقش 펼침
+            initial[role.roleName] = true; // 모든 역할 펼침
         });
         return initial;
     });
@@ -63,7 +43,6 @@ export default function RoleChecklist({ eventId, roles, checkedTasks, onToggleTa
             
             <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
                 {sortedRoles.map((role) => {
-                    const isMine = isMyRole(role.roleName);
                     const isExpanded = expandedRoles[role.roleName];
                     const completedCount = role.tasks.filter((_, idx) => checkedTasks[getTaskStateId(role.roleName, idx)]).length;
                     const totalCount = role.tasks.length;
@@ -71,9 +50,9 @@ export default function RoleChecklist({ eventId, roles, checkedTasks, onToggleTa
 
                     return (
                         <div key={role.roleName} style={{ 
-                            background: isMine ? '#E3F2FD' : '#F5F5F5', 
+                            background: '#F5F5F5', 
                             borderRadius: '8px', 
-                            border: `1px solid ${isMine ? '#90CAF9' : '#E0E0E0'}`,
+                            border: '1px solid #E0E0E0',
                             overflow: 'hidden'
                         }}>
                             <div 
@@ -84,13 +63,13 @@ export default function RoleChecklist({ eventId, roles, checkedTasks, onToggleTa
                                     justifyContent: 'space-between',
                                     alignItems: 'center',
                                     cursor: 'pointer',
-                                    fontWeight: isMine ? 700 : 600,
-                                    color: isMine ? '#1565C0' : '#424242'
+                                    fontWeight: 600,
+                                    color: '#424242'
                                 }}
                             >
                                 <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                                     <span>{isExpanded ? '▼' : '▶'}</span>
-                                    <span>{role.roleName} {isMine && <span style={{ fontSize: '11px', background: '#1565C0', color: 'white', padding: '2px 6px', borderRadius: '4px', marginLeft: '4px' }}>내 담당</span>}</span>
+                                    <span>{role.roleName}</span>
                                 </div>
                                 <div style={{ fontSize: '12px', color: isAllCompleted ? '#2E7D32' : '#757575', fontWeight: 600 }}>
                                     {completedCount}/{totalCount}
@@ -98,7 +77,7 @@ export default function RoleChecklist({ eventId, roles, checkedTasks, onToggleTa
                             </div>
                             
                             {isExpanded && (
-                                <div style={{ padding: '0 12px 12px 12px', borderTop: `1px solid ${isMine ? '#BBDEFB' : '#EEEEEE'}`, paddingTop: '8px', background: '#FFFFFF' }}>
+                                <div style={{ padding: '0 12px 12px 12px', borderTop: '1px solid #EEEEEE', paddingTop: '8px', background: '#FFFFFF' }}>
                                     {role.tasks.map((task, idx) => {
                                         const taskId = getTaskStateId(role.roleName, idx);
                                         const isChecked = !!checkedTasks[taskId];
