@@ -75,6 +75,7 @@ interface AppActions {
     updateScenarioEvent: (id: string, updates: Partial<ScenarioEvent>) => Promise<void>;
     deleteScenarioEvent: (id: string) => Promise<void>;
     deliverScenarioEvent: (id: string) => Promise<void>;
+    cancelDeliverScenarioEvent: (id: string) => Promise<void>;
     resetScenarioEvents: () => Promise<void>;
     getDeliveredEvents: () => ScenarioEvent[];
     getPendingEvents: () => ScenarioEvent[];
@@ -342,6 +343,14 @@ export function AppProvider({ children }: { children: ReactNode }) {
         await fetchScenarioEventsLocal();
     }, []);
 
+    const cancelDeliverScenarioEvent = useCallback(async (id: string) => {
+        await supabase.from('scenario_events').update({
+            status: 'pending',
+            delivered_at: null
+        }).eq('id', id);
+        await fetchScenarioEventsLocal();
+    }, []);
+
     const resetScenarioEvents = useCallback(async () => {
         await supabase.from('scenario_events').delete().neq('id', '00000000-0000-0000-0000-000000000000');
         await fetchScenarioEventsLocal();
@@ -417,6 +426,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
         updateScenarioEvent,
         deleteScenarioEvent,
         deliverScenarioEvent,
+        cancelDeliverScenarioEvent,
         resetScenarioEvents,
         getDeliveredEvents,
         getPendingEvents,

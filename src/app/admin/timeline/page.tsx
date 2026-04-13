@@ -71,7 +71,8 @@ export default function TimelinePage() {
     const router = useRouter();
     const {
         scenarioEvents, addScenarioEvent, updateScenarioEvent,
-        deleteScenarioEvent, deliverScenarioEvent, resetScenarioEvents,
+        deleteScenarioEvent, deliverScenarioEvent, cancelDeliverScenarioEvent,
+        resetScenarioEvents,
     } = useApp();
 
     const [isLoggedIn, setIsLoggedIn] = useState(false);
@@ -324,6 +325,12 @@ export default function TimelinePage() {
             await deliverScenarioEvent(ev.id);
             setToast('상황 부여 완료');
         }
+    };
+
+    const handleCancelDeliver = async (id: string) => {
+        if (!confirm('상황 부여를 취소하고 대기 상태로 되돌리시겠습니까?')) return;
+        await cancelDeliverScenarioEvent(id);
+        setToast('부여 취소 완료');
     };
 
     const cancelSchedule = (id: string) => {
@@ -625,6 +632,12 @@ export default function TimelinePage() {
                                         <button className="btn" onClick={() => deleteScenarioEvent(ev.id)}
                                             style={{ background: '#FFEBEE', color: '#D32F2F' }}>삭제</button>
                                     </>
+                                )}
+                                {isDelivered && (
+                                    <button className="btn" onClick={() => handleCancelDeliver(ev.id)}
+                                        style={{ background: '#FFF3E0', color: '#E65100', border: '1px solid #FFE0B2' }}>
+                                        부여 취소
+                                    </button>
                                 )}
                             </div>
                         </div>
