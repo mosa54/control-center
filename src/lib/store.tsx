@@ -53,6 +53,7 @@ interface AppState {
     currentEmployee: CheckedInEmployee | null;
     isLoaded: boolean;
     scenarioEvents: ScenarioEvent[];
+    realtimeStatus: 'connecting' | 'connected' | 'error' | 'disconnected';
 }
 
 // 컨텍스트 액션
@@ -99,6 +100,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
     const [currentEmployee, setCurrentEmployee] = useState<CheckedInEmployee | null>(null);
     const [isLoaded, setIsLoaded] = useState(false);
     const [scenarioEvents, setScenarioEvents] = useState<ScenarioEvent[]>([]);
+    const [realtimeStatus, setRealtimeStatus] = useState<'connecting' | 'connected' | 'error' | 'disconnected'>('connecting');
 
     // 1. 초기 데이터 로드 및 Realtime 구독
     useEffect(() => {
@@ -217,17 +219,20 @@ export function AppProvider({ children }: { children: ReactNode }) {
             .subscribe((status) => {
                 console.log('Supabase Realtime 연결 상태:', status);
                 if (status === 'SUBSCRIBED') {
+                    setRealtimeStatus('connected');
                     console.log('✅ 서버와 실시간으로 연결되었습니다.');
-                }
-                if (status === 'CLOSED') {
-                    console.log('ℹ️ 실시간 서버 연결이 닫혔습니다.');
-                }
-                if (status === 'CHANNEL_ERROR') {
+                } else if (status === 'CHANNEL_ERROR') {
+                    setRealtimeStatus('error');
                     console.error('❌ 실시간 연결 에러: Supabase Dashboard의 Replication 설정에서 테이블들을 활성화했는지 확인하세요.');
+                } else if (status === 'TIMED_OUT') {
+                    setRealtimeStatus('error');
+                } else if (status === 'CLOSED') {
+                    setRealtimeStatus('disconnected');
                 }
             });
 
         return () => {
+            setRealtimeStatus('disconnected');
             supabase.removeChannel(channel);
         };
     }, []);
@@ -432,6 +437,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
         resetScenarioEvents,
         getDeliveredEvents,
         getPendingEvents,
+        realtimeStatus,
     };
 
     return (
