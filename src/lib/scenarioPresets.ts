@@ -465,3 +465,455 @@ export const PHASE1_PRESET: Partial<ScenarioEvent>[] = [
         ]
     }
 ];
+
+export const PHASE2_PRESET: Partial<ScenarioEvent>[] = [
+    {
+        title: '출동 중 6층 화점 및 상층 연기 유입 상황 전파',
+        description: '지휘차 및 출동대에 추가 상황 전파. 6층 작업구역이 주 화점으로 추정되며, 7층 사무·작업구역까지 연기 유입이 시작됨.',
+        sub_types: ['상황전파'],
+        category: 'phase_2',
+        delivery_type: 'instant',
+        scheduled_delay_min: 0,
+        roles: [
+            {
+                roleName: '상황실',
+                tasks: [
+                    { label: '6층 화점 추정 정보 전파' },
+                    { label: '7층 연기 유입 정보 전파' },
+                    { label: '출동대별 수신 여부 확인' }
+                ]
+            },
+            {
+                roleName: '현장지휘대',
+                tasks: [
+                    { label: '단일층 화재가 아닌 상층 영향 상황으로 재판단' },
+                    { label: '출동 중 방면 확대 가능성 검토' }
+                ]
+            },
+            {
+                roleName: '선착분대',
+                tasks: [
+                    { label: '6층 진입 및 7층 확인 병행 가능성 인지' },
+                    { label: '연기 확산 방향 확인 준비' }
+                ]
+            },
+            {
+                roleName: '구조대',
+                tasks: [
+                    { label: '상층 탐색 가능성 반영' },
+                    { label: '계단실 중심 구조 동선 검토' }
+                ]
+            },
+            {
+                roleName: '구급대',
+                tasks: [
+                    { label: '상층 대피자 응급평가 가능성 대비' }
+                ]
+            }
+        ]
+    },
+    {
+        title: '건물 관계자 1차 진술 확보',
+        description: '건물 관계자 진술: 6층 작업구역에서 최초 화염 확인, 내부 시야 확보 곤란. 7층 일부 직원은 계단 대피 중이며, 연락 두절 인원 존재.',
+        sub_types: ['관계자진술'],
+        category: 'phase_2',
+        delivery_type: 'instant',
+        scheduled_delay_min: 0,
+        roles: [
+            {
+                roleName: '상황실',
+                tasks: [
+                    { label: '관계자 진술 핵심내용 정리' },
+                    { label: '최초 화염 확인 위치 기록' },
+                    { label: '연락 두절 정보 재전파' }
+                ]
+            },
+            {
+                roleName: '현장지휘대',
+                tasks: [
+                    { label: '관계자 진술을 반영해 초기 검색 우선구역 검토' },
+                    { label: '계단 대피와 내부 고립 상황을 구분 인지' }
+                ]
+            },
+            {
+                roleName: '선착분대',
+                tasks: [
+                    { label: '관계자 지목 구역 우선 확인 준비' },
+                    { label: '자력 대피 인원 유도 가능성 검토' }
+                ]
+            },
+            {
+                roleName: '구조대',
+                tasks: [
+                    { label: '관계자 진술 기준 구조 우선구역 정리' },
+                    { label: '연락 두절 인원 위치 추정 준비' }
+                ]
+            },
+            {
+                roleName: '구급대',
+                tasks: [
+                    { label: '자력 대피자 중 연기흡입 환자 발생 가능성 대비' }
+                ]
+            }
+        ]
+    },
+    {
+        title: '구조대상자 세부 정보 갱신',
+        description: '구조대상자 정보 갱신. 6층 작업자 4명 위치 미확인, 7층 사무·작업구역 6명 대피 지연 가능성, 계단 대피 중 연기흡입 호소자 발생 우려.',
+        sub_types: ['구조대상자정보'],
+        category: 'phase_2',
+        delivery_type: 'instant',
+        scheduled_delay_min: 0,
+        roles: [
+            {
+                roleName: '상황실',
+                tasks: [
+                    { label: '6층 미확인 인원 수 정리' },
+                    { label: '7층 대피 지연 인원 정보 정리' },
+                    { label: '구조대상자 정보 표준화 전파' }
+                ]
+            },
+            {
+                roleName: '현장지휘대',
+                tasks: [
+                    { label: '구조 우선순위 검토' },
+                    { label: '6층 고립자와 7층 대피 지연자를 분리 판단' }
+                ]
+            },
+            {
+                roleName: '선착분대',
+                tasks: [
+                    { label: '대피 가능 인원과 고립 가능 인원 구분 인지' },
+                    { label: '계단실 안전 확인 준비' }
+                ]
+            },
+            {
+                roleName: '구조대',
+                tasks: [
+                    { label: '6층 우선 탐색 계획 정리' },
+                    { label: '7층 확인조 운영 가능성 검토' }
+                ]
+            },
+            {
+                roleName: '구급대',
+                tasks: [
+                    { label: '연기흡입 호소자 발생 대비' },
+                    { label: '임시 환자분류 지점 후보 구상' }
+                ]
+            }
+        ]
+    },
+    {
+        title: '대상물 내부 동선 및 주출입구 운용 정보 공유',
+        description: '대상물 내부 접근은 동측 주출입구 중심. 주출입구 1개소로 차량 및 인원 집중 예상, 내부 규모가 커 방향 상실 및 현장지휘 사각 우려.',
+        sub_types: ['건물정보'],
+        category: 'phase_2',
+        delivery_type: 'instant',
+        scheduled_delay_min: 0,
+        roles: [
+            {
+                roleName: '상황실',
+                tasks: [
+                    { label: '동측 주출입구 1개소 정보 전파' },
+                    { label: '내부 규모 및 현장지휘 사각 우려 전파' }
+                ]
+            },
+            {
+                roleName: '현장지휘대',
+                tasks: [
+                    { label: '고정지휘 위치 재검토' },
+                    { label: '방면구역 분리 필요성 검토' }
+                ]
+            },
+            {
+                roleName: '선착분대',
+                tasks: [
+                    { label: '단일 진입동선 혼잡 가능성 인지' },
+                    { label: '진입 후 퇴로 확보 필요성 인지' }
+                ]
+            },
+            {
+                roleName: '구조대',
+                tasks: [
+                    { label: '내부 방향 상실 위험 인지' },
+                    { label: '탐색 시 기준점 설정 준비' }
+                ]
+            },
+            {
+                roleName: '후착부대',
+                tasks: [
+                    { label: '주출입구 혼잡 시 대기 및 부서 조정 준비' }
+                ]
+            }
+        ]
+    },
+    {
+        title: '방재실 확인 및 소방시설 작동 정보 공유',
+        description: '방재실 확인 결과 6층 감지기 동작 및 일부 경보 작동 확인. 스프링클러 및 제연설비 작동 여부 추가 확인 중, 승강기 사용 제한 필요.',
+        sub_types: ['건물정보', '추가정보'],
+        category: 'phase_2',
+        delivery_type: 'instant',
+        scheduled_delay_min: 0,
+        roles: [
+            {
+                roleName: '상황실',
+                tasks: [
+                    { label: '방재실 확인 내용 정리' },
+                    { label: '감지기·경보 작동 정보 전파' },
+                    { label: '스프링클러·제연설비 추가 확인 지시' }
+                ]
+            },
+            {
+                roleName: '현장지휘대',
+                tasks: [
+                    { label: '설비 작동 정보 반영해 초기 전략 검토' },
+                    { label: '승강기 사용 제한 필요성 인지' }
+                ]
+            },
+            {
+                roleName: '선착분대',
+                tasks: [
+                    { label: '방재실 정보 기반 현장확인 준비' },
+                    { label: '승강기 통제 전제 활동 준비' }
+                ]
+            },
+            {
+                roleName: '구조대',
+                tasks: [
+                    { label: '계단실 중심 접근 준비' },
+                    { label: '설비 미작동 가능성 염두에 둔 탐색 준비' }
+                ]
+            },
+            {
+                roleName: '통제단 준비요원',
+                tasks: [
+                    { label: '소방시설 정보 공유 준비' }
+                ]
+            }
+        ]
+    },
+    {
+        title: '출동 중 추가 정보: 배연 곤란 및 패널 구조 위험 재강조',
+        description: '내부는 밀폐형 창고 구조로 배연이 곤란하며, 패널 마감 및 다량 가연물 적재로 은폐화염·급격한 연소확대 가능성 높음.',
+        sub_types: ['추가정보'],
+        category: 'phase_2',
+        delivery_type: 'instant',
+        scheduled_delay_min: 0,
+        roles: [
+            {
+                roleName: '상황실',
+                tasks: [
+                    { label: '배연 곤란 정보 재전파' },
+                    { label: '패널 구조 및 가연물 적재 정보 재전파' }
+                ]
+            },
+            {
+                roleName: '현장지휘대',
+                tasks: [
+                    { label: '시야 확보 전 무리한 진입 제한 원칙 재확인' },
+                    { label: 'TIC 및 배연전략 적용 필요성 검토' }
+                ]
+            },
+            {
+                roleName: '선착분대',
+                tasks: [
+                    { label: '무리한 내부진입 자제 인지' },
+                    { label: '열 축적 및 급격한 연소확대 가능성 인지' }
+                ]
+            },
+            {
+                roleName: '구조대',
+                tasks: [
+                    { label: 'TIC 우선 사용 준비' },
+                    { label: '고온·저시야 환경 구조 대비' }
+                ]
+            },
+            {
+                roleName: '구급대',
+                tasks: [
+                    { label: '열손상·연기흡입 환자 대응 준비' }
+                ]
+            }
+        ]
+    },
+    {
+        title: '후착 출동대 및 특수차량 현황 공유',
+        description: '후착 출동대 및 특수차량 출동 중. 대상 규모상 후착부대 연계가 필요하며, 주출입구 혼잡 방지 및 자원 분산 배치가 요구됨.',
+        sub_types: ['상황전파', '추가정보'],
+        category: 'phase_2',
+        delivery_type: 'instant',
+        scheduled_delay_min: 0,
+        roles: [
+            {
+                roleName: '상황실',
+                tasks: [
+                    { label: '후착 출동대 현황 정리' },
+                    { label: '특수차량 접근 가능 여부 확인' },
+                    { label: '현장 도착 예상시간 전파' }
+                ]
+            },
+            {
+                roleName: '현장지휘대',
+                tasks: [
+                    { label: '후착 자원 활용 계획 검토' },
+                    { label: '현장 도착 직후 부서 조정 계획 수립' }
+                ]
+            },
+            {
+                roleName: '선착분대',
+                tasks: [
+                    { label: '후착대 연계 전제 초기활동 준비' }
+                ]
+            },
+            {
+                roleName: '후착부대',
+                tasks: [
+                    { label: '선착대 보고 수신 준비' },
+                    { label: '지휘 지시 전 임의 진입 금지 인지' }
+                ]
+            },
+            {
+                roleName: '통제단 준비요원',
+                tasks: [
+                    { label: '자원 수용 및 배치 준비' }
+                ]
+            }
+        ]
+    },
+    {
+        title: '지휘망 및 공통 통신채널 운용 지시',
+        description: '현장상황 보고는 지정 지휘망으로 통일. 관계기관은 공통 통신채널 입장 준비, 불필요한 무전은 최소화.',
+        sub_types: ['무전채널운영'],
+        category: 'phase_2',
+        delivery_type: 'instant',
+        scheduled_delay_min: 0,
+        roles: [
+            {
+                roleName: '상황실',
+                tasks: [
+                    { label: '지휘망 지정' },
+                    { label: '공통 통신채널 공유' },
+                    { label: '관계기관 채널 입장 준비 확인' }
+                ]
+            },
+            {
+                roleName: '현장지휘대',
+                tasks: [
+                    { label: '핵심보고 위주 무전기준 설정 준비' },
+                    { label: '상황보고 우선순위 정리' }
+                ]
+            },
+            {
+                roleName: '선착분대',
+                tasks: [
+                    { label: '최초보고 문안 정리' },
+                    { label: '불필요한 무전 자제' }
+                ]
+            },
+            {
+                roleName: '구조대',
+                tasks: [
+                    { label: '탐색·구조상황 핵심보고 기준 숙지' }
+                ]
+            },
+            {
+                roleName: '구급대',
+                tasks: [
+                    { label: '환자 수·중증도 중심 보고 준비' }
+                ]
+            }
+        ]
+    },
+    {
+        title: '선착 직전 1차 상황보고 준비',
+        description: '현장 접근 중 전면부에서 6층 연기 다량 확인. 7층 일부 창측에도 연기 체류 관찰. 선착대는 도착 즉시 화점·연기·인명대피 상황을 최초 보고할 것.',
+        sub_types: ['상황보고'],
+        category: 'phase_2',
+        delivery_type: 'instant',
+        scheduled_delay_min: 0,
+        roles: [
+            {
+                roleName: '현장지휘대',
+                tasks: [
+                    { label: '최초 상황보고 핵심항목 정리' },
+                    { label: '현장 도착 즉시 지휘권 선언 준비' }
+                ]
+            },
+            {
+                roleName: '선착분대',
+                tasks: [
+                    { label: '화점 위치 확인 준비' },
+                    { label: '연기 유동 방향 확인 준비' },
+                    { label: '대피 인원 및 고립 우려 확인 준비' }
+                ]
+            },
+            {
+                roleName: '구조대',
+                tasks: [
+                    { label: '현장 도착 즉시 검색 우선구역 재확인 준비' }
+                ]
+            },
+            {
+                roleName: '구급대',
+                tasks: [
+                    { label: '대피자 응급평가 위치 확인 준비' }
+                ]
+            },
+            {
+                roleName: '후착부대',
+                tasks: [
+                    { label: '선착대 최초보고 수신 준비' }
+                ]
+            }
+        ]
+    },
+    {
+        title: '도착 직전 종합상황 재전파 및 공통상황도 형성',
+        description: '현재 상황 종합: 6층 주 화점 추정, 7층 연기 유입, 내부 연락 두절자 존재, 단일 주출입구 혼잡 예상, 배연 곤란 및 급격한 연소확대 우려. 전 출동대 공통상황도 형성 유지.',
+        sub_types: ['상황전파', '상황보고'],
+        category: 'phase_2',
+        delivery_type: 'instant',
+        scheduled_delay_min: 0,
+        roles: [
+            {
+                roleName: '상황실',
+                tasks: [
+                    { label: '현재까지 종합상황 일괄 재전파' },
+                    { label: '누락 정보 여부 최종 확인' }
+                ]
+            },
+            {
+                roleName: '현장지휘대',
+                tasks: [
+                    { label: '도착 직후 초기지휘 절차 머릿속 정리' },
+                    { label: '지휘권 선언·현장확인·최초보고 순서 정리' }
+                ]
+            },
+            {
+                roleName: '선착분대',
+                tasks: [
+                    { label: '공통상황도 기준으로 초기활동 준비' },
+                    { label: '현장 도착 후 임의 분산행동 금지 인지' }
+                ]
+            },
+            {
+                roleName: '구조대',
+                tasks: [
+                    { label: '선착대 지휘하 구조 투입 준비' }
+                ]
+            },
+            {
+                roleName: '구급대',
+                tasks: [
+                    { label: '현장 접근 후 구급집결 위치 확인 준비' }
+                ]
+            },
+            {
+                roleName: '통제단 준비요원',
+                tasks: [
+                    { label: '상황 확대 시 통제단 가동 대비' }
+                ]
+            }
+        ]
+    }
+];

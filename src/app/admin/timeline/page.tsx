@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation';
 import { useApp, ScenarioEvent, RoleChecklist, RoleTask } from '@/lib/store';
 import { supabase } from '@/lib/supabase';
 import Toast from '@/components/Toast';
-import { PHASE1_PRESET } from '@/lib/scenarioPresets';
+import { PHASE1_PRESET, PHASE2_PRESET } from '@/lib/scenarioPresets';
 
 const PREDEFINED_ROLES = ['상황실', '현장지휘대', '선착분대', '구조대', '구급대', '통제단', '통제단장', '대응계획부', '현장지휘부', '자원지원부', '후착부대'];
 
@@ -390,7 +390,41 @@ export default function TimelinePage() {
             });
         }
         
+        setShowTemplateList(false);
         setToast('1단계 프리셋 로드 완료');
+    };
+
+    const loadPhase2Preset = async () => {
+        if (!confirm('기존 상황부여 목록이 모두 삭제되고 2단계 프리셋 10개가 로드됩니다. 진행하시겠습니까?')) return;
+        
+        await resetScenarioEvents();
+        
+        // 10:15 부터 시작해서 5분 간격으로 시간 부여
+        const startTime = new Date();
+        startTime.setHours(10, 15, 0, 0);
+
+        for (let i = 0; i < PHASE2_PRESET.length; i++) {
+            const ev = PHASE2_PRESET[i];
+            const eventTime = new Date(startTime.getTime() + i * 5 * 60000);
+            const time_label = `${eventTime.getHours().toString().padStart(2, '0')}:${eventTime.getMinutes().toString().padStart(2, '0')}`;
+            
+            await addScenarioEvent({
+                time_label,
+                title: ev.title || '',
+                description: ev.description || '',
+                category: ev.category || 'phase_2',
+                sub_types: ev.sub_types || [],
+                delivery_type: ev.delivery_type as 'instant' | 'scheduled' | 'conditional' || 'instant',
+                scheduled_delay_min: ev.scheduled_delay_min || 0,
+                condition_note: ev.condition_note || '',
+                status: 'pending',
+                sort_order: i,
+                roles: ev.roles
+            });
+        }
+        
+        setShowTemplateList(false);
+        setToast('2단계 프리셋 로드 완료');
     };
 
     const deleteTemplate = async (id: string) => {
@@ -451,12 +485,8 @@ export default function TimelinePage() {
                     부여됨 {deliveredCount}
                 </span>
                 <div style={{ flex: 1 }} />
-                <button onClick={loadPhase1Preset}
-                    style={{ background: '#E3F2FD', border: '1px solid #90CAF9', borderRadius: '4px', fontSize: 13, color: '#1565C0', fontWeight: 600, cursor: 'pointer', padding: '4px 8px' }}>
-                    🚀 1단계 프리셋
-                </button>
                 <button onClick={() => setShowTemplateList(true)}
-                    style={{ background: 'none', border: 'none', fontSize: 14, color: '#1565C0', fontWeight: 600, cursor: 'pointer' }}>
+                    style={{ background: 'none', border: 'none', fontSize: 13, color: '#1565C0', fontWeight: 600, cursor: 'pointer', padding: '4px 8px' }}>
                     📂 불러오기
                 </button>
                 <button onClick={() => { if (scenarioEvents.length === 0) { setToast('저장할 이벤트가 없습니다.'); return; } setShowTemplateSave(true); }}
@@ -813,8 +843,24 @@ export default function TimelinePage() {
                             <button className="modal-close" onClick={() => setShowTemplateList(false)}>✕</button>
                         </div>
                         <div className="modal-body">
+                            {/* 상황부여 프리셋 로드 섹션 */}
+                            <div style={{ marginBottom: 20 }}>
+                                <h4 style={{ margin: '0 0 12px 0', fontSize: 14, color: '#424242' }}>🔥 시스템 제공 상황 프리셋</h4>
+                                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
+                                    <button className="btn" onClick={loadPhase1Preset}
+                                        style={{ background: '#E3F2FD', border: '1px solid #90CAF9', color: '#1565C0', fontWeight: 600, padding: '12px 0', fontSize: '13px' }}>
+                                        🚀 1단계 (09:30)
+                                    </button>
+                                    <button className="btn" onClick={loadPhase2Preset}
+                                        style={{ background: '#FCE4EC', border: '1px solid #F48FB1', color: '#AD1457', fontWeight: 600, padding: '12px 0', fontSize: '13px' }}>
+                                        🚀 2단계 (10:15)
+                                    </button>
+                                </div>
+                            </div>
+                            
+                            <h4 style={{ margin: '0 0 12px 0', fontSize: 14, color: '#424242', paddingTop: 16, borderTop: '1px solid #EEEEEE' }}>💾 저장된 내 템플릿 목록</h4>
                             {templates.length === 0 ? (
-                                <p style={{ textAlign: 'center', color: '#757575' }}>저장된 템플릿이 없습니다.</p>
+                                <p style={{ textAlign: 'center', color: '#757575', padding: '12px 0' }}>저장된 템플릿이 없습니다.</p>
                             ) : templates.map(tpl => (
                                 <div key={tpl.id} style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '12px 0', borderBottom: '1px solid #E0E0E0' }}>
                                     <div style={{ flex: 1 }}>
