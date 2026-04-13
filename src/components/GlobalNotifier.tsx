@@ -13,9 +13,14 @@ export default function GlobalNotifier() {
     const [show, setShow] = useState<string | null>(null);
 
     useEffect(() => {
+        // 데이터 변경 확인용 로그
+        console.log('실시간 상황 모니터링 중... (전체 상황 수:', delivered.length, ')');
+        
         if (delivered.length > prevCount.current) {
             // 새 상황 부여됨
             const latest = delivered[delivered.length - 1];
+            console.log('신규 상황 감지됨:', latest.title);
+
             // 훈련 모드 화면을 보고 있는 중이 아니거나 관리자 페이지가 아닌 경우에만 팝업 표시
             if (pathname !== '/training' && !pathname.startsWith('/admin')) {
                 setShow(latest.title || '새 상황 메시지');
@@ -30,6 +35,7 @@ export default function GlobalNotifier() {
                 return () => clearTimeout(t);
             }
         }
+        
         prevCount.current = delivered.length;
     // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [delivered.length, pathname]);

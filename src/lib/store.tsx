@@ -163,33 +163,23 @@ export function AppProvider({ children }: { children: ReactNode }) {
 
         fetchData();
 
-        // Realtime 구독
-        const channel = supabase.channel('schema-db-changes')
+        // Realtime 구독 (안정적인 연결을 위해 로그 및 상태 확인 추가)
+        console.log('실시간 채널 초기화 중...');
+        const channel = supabase.channel('realtime-updates')
             .on(
                 'postgres_changes',
                 { event: '*', schema: 'public', table: 'system_settings' },
                 (payload) => {
-                    const newRow = payload.new as any;
-                    if (newRow) {
-                        setSessionModeState(newRow.mode as SessionMode);
-                        setSessionSummaryState(newRow.summary || '');
-                        if (newRow.excel_data) {
-                            const parsedExcel = newRow.excel_data;
-                            if (parsedExcel.uploadedAt) parsedExcel.uploadedAt = new Date(parsedExcel.uploadedAt);
-                            setExcelDataState(parsedExcel);
-                        }
-                    }
+                    console.log('시스템 설정 데이터 변경 감지:', payload);
+                    fetchData();
                 }
             )
             .on(
                 'postgres_changes',
                 { event: '*', schema: 'public', table: 'checkins' },
-                async () => {
-                    // 체크인 변경 시 전체 다시 불러오기 (간단한 동기화)
-                    // 최적화를 위해 insert/update/delete를 구분할 수도 있지만,
-                    // 조인(Join) 데이터가 필요하므로 다시 fetch 하는게 안전함.
+                async (payload) => {
+                    console.log('체크인 데이터 변경 감지:', payload);
                     const { data: checkins } = await supabase.from('checkins').select('*');
-                    // excelData 상태가 있어야 매핑 가능
                     setExcelDataState(prev => {
                         if (!prev) return prev;
                         if (checkins) {
@@ -213,7 +203,8 @@ export function AppProvider({ children }: { children: ReactNode }) {
             .on(
                 'postgres_changes',
                 { event: '*', schema: 'public', table: 'scenario_events' },
-                async () => {
+                async (payload) => {
+                    console.log('상황 이벤트(Scenario) 데이터 변경 감지:', payload);
                     const { data: events } = await supabase
                         .from('scenario_events')
                         .select('*')
@@ -223,7 +214,18 @@ export function AppProvider({ children }: { children: ReactNode }) {
                     }
                 }
             )
-            .subscribe();
+            .subscribe((status) => {
+                console.log('Supabase Realtime 연결 상태:', status);
+                if (status === 'SUBSCRIBED') {
+                    console.log('✅ 서버와 실시간으로 연결되었습니다.');
+                }
+                if (status === 'CLOSED') {
+                    console.log('ℹ️ 실시간 서버 연결이 닫혔습니다.');
+                }
+                if (status === 'CHANNEL_ERROR') {
+                    console.error('❌ 실시간 연결 에러: Supabase Dashboard의 Replication 설정에서 테이블들을 활성화했는지 확인하세요.');
+                }
+            });
 
         return () => {
             supabase.removeChannel(channel);
