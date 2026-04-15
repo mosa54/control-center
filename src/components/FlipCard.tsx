@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { ScenarioEvent } from '@/lib/store';
+import { useApp } from '@/lib/store';
 import RoleChecklist from './RoleChecklist';
 
 const hexToRgba = (hex: string, alpha: number) => {
@@ -26,29 +27,20 @@ interface FlipCardProps {
 
 export default function FlipCard({ ev, cat, isNew }: FlipCardProps) {
     const [isFlipped, setIsFlipped] = useState(false);
-    const [checkedTasks, setCheckedTasks] = useState<Record<string, boolean>>({});
+    const { taskChecks, fetchTaskChecks, toggleTaskCheck } = useApp();
     
     const hasRoles = ev.roles && ev.roles.length > 0;
+    const checkedTasks = taskChecks[ev.id] || {};
 
-    // 로컬 스토리지에서 체크 상태 복원
+    // 카드가 뒤집힐 때 서버에서 최신 체크 상태를 가져옴
     useEffect(() => {
-        if (!hasRoles) return;
-        try {
-            const stored = localStorage.getItem(`scenario_checks_${ev.id}`);
-            if (stored) {
-                setCheckedTasks(JSON.parse(stored));
-            }
-        } catch (e) {
-            console.error("체크 상태 복원 실패", e);
+        if (isFlipped && hasRoles) {
+            fetchTaskChecks(ev.id);
         }
-    }, [ev.id, hasRoles]);
+    }, [isFlipped, hasRoles, ev.id, fetchTaskChecks]);
 
-    const handleToggleTask = (taskId: string) => {
-        setCheckedTasks(prev => {
-            const next = { ...prev, [taskId]: !prev[taskId] };
-            localStorage.setItem(`scenario_checks_${ev.id}`, JSON.stringify(next));
-            return next;
-        });
+    const handleToggleTask = (taskKey: string) => {
+        toggleTaskCheck(ev.id, taskKey);
     };
 
     const toggleFlip = (e?: React.MouseEvent) => {

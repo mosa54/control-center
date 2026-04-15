@@ -25,6 +25,13 @@ export interface RoleChecklist {
     tasks: RoleTask[];
 }
 
+// 체크 상태 정보
+export interface TaskCheckInfo {
+    checked: boolean;
+    checked_by?: string;
+    checked_at?: string;
+}
+
 // 상황부여 이벤트
 export interface ScenarioEvent {
     id: string;
@@ -54,6 +61,7 @@ interface AppState {
     isLoaded: boolean;
     scenarioEvents: ScenarioEvent[];
     realtimeStatus: 'connecting' | 'connected' | 'error' | 'disconnected';
+    taskChecks: Record<string, Record<string, TaskCheckInfo>>; // taskChecks[eventId][taskKey]
 }
 
 // 컨텍스트 액션
@@ -80,6 +88,8 @@ interface AppActions {
     resetScenarioEvents: () => Promise<void>;
     getDeliveredEvents: () => ScenarioEvent[];
     getPendingEvents: () => ScenarioEvent[];
+    fetchTaskChecks: (eventId: string) => Promise<void>;
+    toggleTaskCheck: (eventId: string, taskKey: string) => Promise<void>;
 }
 
 type AppContextType = AppState & AppActions;
@@ -101,7 +111,9 @@ export function AppProvider({ children }: { children: ReactNode }) {
     const [isLoaded, setIsLoaded] = useState(false);
     const [scenarioEvents, setScenarioEvents] = useState<ScenarioEvent[]>([]);
     const [realtimeStatus, setRealtimeStatus] = useState<'connecting' | 'connected' | 'error' | 'disconnected'>('connecting');
+    const [taskChecks, setTaskChecks] = useState<Record<string, Record<string, TaskCheckInfo>>>({});
     const channelRef = useRef<any>(null);
+    const retryRef = useRef<{ count: number; timer: NodeJS.Timeout | null }>({ count: 0, timer: null });
 
     // 1. 데이터 로드 및 실시간 구독 초기화 로직
     const fetchData = useCallback(async () => {
@@ -200,14 +212,63 @@ export function AppProvider({ children }: { children: ReactNode }) {
                     }
                 }
             )
+            .on(
+                'postgres_changes',
+                { event: '*', schema: 'public', table: 'reports' },
+                () => {
+                    console.log('보고서 데이터 변경 감지');
+                    fetchData();
+                }
+            )
+            .on(
+                'postgres_changes',
+                { event: '*', schema: 'public', table: 'task_checks' },
+                async (payload: any) => {
+                    console.log('체크리스트 상태 변경 감지');
+                    const eventId = payload.new?.event_id || payload.old?.event_id;
+                    if (eventId) {
+                        // 해당 이벤트의 체크 상태만 다시 가져오기
+                        const { data } = await supabase
+                            .from('task_checks')
+                            .select('*')
+                            .eq('event_id', eventId);
+                        if (data) {
+                            const checks: Record<string, TaskCheckInfo> = {};
+                            data.forEach((row: any) => {
+                                checks[row.task_key] = {
+                                    checked: row.checked,
+                                    checked_by: row.checked_by,
+                                    checked_at: row.checked_at,
+                                };
+                            });
+                            setTaskChecks(prev => ({ ...prev, [eventId]: checks }));
+                        }
+                    }
+                }
+            )
             .subscribe((status) => {
                 console.log('Supabase Realtime 연결 상태:', status);
                 if (status === 'SUBSCRIBED') {
                     setRealtimeStatus('connected');
+                    retryRef.current.count = 0; // 재연결 카운터 리셋
                     console.log('✅ 서버와 실시간으로 연결되었습니다.');
                 } else if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT') {
                     setRealtimeStatus('error');
                     console.error('실시간 연결 실패 (Replication 설정을 확인하세요)');
+
+                    // 자동 재연결 (지수 백오프: 3초 → 6초 → 12초, 최대 5회)
+                    const MAX_RETRIES = 5;
+                    if (retryRef.current.count < MAX_RETRIES) {
+                        const delay = Math.min(3000 * Math.pow(2, retryRef.current.count), 30000);
+                        retryRef.current.count += 1;
+                        console.log(`🔄 ${delay / 1000}초 후 재연결 시도 (${retryRef.current.count}/${MAX_RETRIES})...`);
+                        if (retryRef.current.timer) clearTimeout(retryRef.current.timer);
+                        retryRef.current.timer = setTimeout(() => {
+                            initRealtime();
+                        }, delay);
+                    } else {
+                        console.error('❌ 최대 재연결 횟수 초과. 페이지 새로고침을 권장합니다.');
+                    }
                 } else if (status === 'CLOSED') {
                     setRealtimeStatus('disconnected');
                 }
@@ -234,6 +295,9 @@ export function AppProvider({ children }: { children: ReactNode }) {
             document.removeEventListener('visibilitychange', handleVisibilityChange);
             if (channelRef.current) {
                 supabase.removeChannel(channelRef.current);
+            }
+            if (retryRef.current.timer) {
+                clearTimeout(retryRef.current.timer);
             }
         };
     }, [fetchData, initRealtime]);
@@ -360,7 +424,9 @@ export function AppProvider({ children }: { children: ReactNode }) {
     }, []);
 
     const resetScenarioEvents = useCallback(async () => {
+        // task_checks는 on delete cascade로 자동 삭제됨
         await supabase.from('scenario_events').delete().neq('id', '00000000-0000-0000-0000-000000000000');
+        setTaskChecks({});
         await fetchScenarioEventsLocal();
     }, []);
 
@@ -380,6 +446,60 @@ export function AppProvider({ children }: { children: ReactNode }) {
         if (!currentEmployee) return;
         await supabase.from('checkins').update({ dept: newDept }).eq('employee_id', currentEmployee.id);
     }, [currentEmployee]);
+
+    // === 체크리스트 체크 상태 액션 ===
+    const fetchTaskChecks = useCallback(async (eventId: string) => {
+        const { data } = await supabase
+            .from('task_checks')
+            .select('*')
+            .eq('event_id', eventId);
+        if (data) {
+            const checks: Record<string, TaskCheckInfo> = {};
+            data.forEach((row: any) => {
+                checks[row.task_key] = {
+                    checked: row.checked,
+                    checked_by: row.checked_by,
+                    checked_at: row.checked_at,
+                };
+            });
+            setTaskChecks(prev => ({ ...prev, [eventId]: checks }));
+        }
+    }, []);
+
+    const toggleTaskCheck = useCallback(async (eventId: string, taskKey: string) => {
+        const currentCheck = taskChecks[eventId]?.[taskKey];
+        const newChecked = !currentCheck?.checked;
+        const checkerName = currentEmployee?.성명 || '알 수 없음';
+
+        // Optimistic update
+        setTaskChecks(prev => ({
+            ...prev,
+            [eventId]: {
+                ...prev[eventId],
+                [taskKey]: {
+                    checked: newChecked,
+                    checked_by: newChecked ? checkerName : undefined,
+                    checked_at: newChecked ? new Date().toISOString() : undefined,
+                },
+            },
+        }));
+
+        // DB upsert
+        if (newChecked) {
+            await supabase.from('task_checks').upsert({
+                event_id: eventId,
+                task_key: taskKey,
+                checked: true,
+                checked_by: checkerName,
+                checked_at: new Date().toISOString(),
+            }, { onConflict: 'event_id,task_key' });
+        } else {
+            await supabase.from('task_checks')
+                .update({ checked: false, checked_by: null, checked_at: null })
+                .eq('event_id', eventId)
+                .eq('task_key', taskKey);
+        }
+    }, [taskChecks, currentEmployee]);
 
 
     // Read-only helpers (상태 기반)
@@ -439,6 +559,9 @@ export function AppProvider({ children }: { children: ReactNode }) {
         getDeliveredEvents,
         getPendingEvents,
         realtimeStatus,
+        taskChecks,
+        fetchTaskChecks,
+        toggleTaskCheck,
     };
 
     return (

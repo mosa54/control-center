@@ -32,7 +32,7 @@ create policy "Enable all for checkins" on checkins for all using (true) with ch
 -- 이 쿼리가 실패하면 Supabase 대시보드 -> Database -> Replication 에서 직접 설정해야 함
 begin;
   drop publication if exists supabase_realtime;
-  create publication supabase_realtime for table system_settings, checkins, scenario_events;
+  create publication supabase_realtime for table system_settings, checkins, scenario_events, reports, task_checks;
 commit;
 
 -- 5. 상황부여 타임라인 테이블
@@ -69,3 +69,17 @@ create policy "Enable all for scenario_templates" on scenario_templates for all 
 -- 7. 마이그레이션: scenario_events 에 roles(주체별 체크리스트) 컬럼 추가
 -- ★ Supabase SQL Editor에서 아래 한 줄만 실행하면 됩니다 ★
 ALTER TABLE scenario_events ADD COLUMN IF NOT EXISTS roles jsonb;
+
+-- 8. 체크리스트 체크 상태 테이블 (실시간 동기화용)
+create table if not exists task_checks (
+  id uuid default gen_random_uuid() primary key,
+  event_id uuid not null references scenario_events(id) on delete cascade,
+  task_key text not null,           -- "이벤트ID_역할명_taskIdx" 형태의 고유 키
+  checked boolean default false,
+  checked_by text,                  -- 체크한 사람 이름
+  checked_at timestamp with time zone default timezone('utc'::text, now()),
+  unique(event_id, task_key)        -- 같은 이벤트에서 같은 태스크는 1개만
+);
+
+alter table task_checks enable row level security;
+create policy "Enable all for task_checks" on task_checks for all using (true) with check (true);

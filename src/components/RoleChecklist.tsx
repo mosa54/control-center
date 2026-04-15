@@ -1,13 +1,13 @@
 'use client';
 
 import { useState } from 'react';
-import { RoleChecklist as RoleChecklistType } from '@/lib/store';
+import { RoleChecklist as RoleChecklistType, TaskCheckInfo } from '@/lib/store';
 import { useApp } from '@/lib/store';
 
 interface RoleChecklistProps {
     eventId: string;
     roles: RoleChecklistType[];
-    checkedTasks: Record<string, boolean>;
+    checkedTasks: Record<string, TaskCheckInfo>;
     onToggleTask: (taskId: string) => void;
 }
 
@@ -44,7 +44,7 @@ export default function RoleChecklist({ eventId, roles, checkedTasks, onToggleTa
             <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
                 {sortedRoles.map((role) => {
                     const isExpanded = expandedRoles[role.roleName];
-                    const completedCount = role.tasks.filter((_, idx) => checkedTasks[getTaskStateId(role.roleName, idx)]).length;
+                    const completedCount = role.tasks.filter((_, idx) => checkedTasks[getTaskStateId(role.roleName, idx)]?.checked).length;
                     const totalCount = role.tasks.length;
                     const isAllCompleted = completedCount === totalCount && totalCount > 0;
 
@@ -80,7 +80,8 @@ export default function RoleChecklist({ eventId, roles, checkedTasks, onToggleTa
                                 <div style={{ padding: '0 12px 12px 12px', borderTop: '1px solid #EEEEEE', paddingTop: '8px', background: '#FFFFFF' }}>
                                     {role.tasks.map((task, idx) => {
                                         const taskId = getTaskStateId(role.roleName, idx);
-                                        const isChecked = !!checkedTasks[taskId];
+                                        const checkInfo = checkedTasks[taskId];
+                                        const isChecked = !!checkInfo?.checked;
                                         
                                         return (
                                             <div 
@@ -101,14 +102,26 @@ export default function RoleChecklist({ eventId, roles, checkedTasks, onToggleTa
                                                     readOnly
                                                     style={{ marginTop: '3px', transform: 'scale(1.2)' }}
                                                 />
-                                                <span style={{ 
-                                                    fontSize: '14px', 
-                                                    color: isChecked ? '#9E9E9E' : '#212121',
-                                                    textDecoration: isChecked ? 'line-through' : 'none',
-                                                    lineHeight: 1.4
-                                                }}>
-                                                    {task.label}
-                                                </span>
+                                                <div style={{ flex: 1 }}>
+                                                    <span style={{ 
+                                                        fontSize: '14px', 
+                                                        color: isChecked ? '#9E9E9E' : '#212121',
+                                                        textDecoration: isChecked ? 'line-through' : 'none',
+                                                        lineHeight: 1.4
+                                                    }}>
+                                                        {task.label}
+                                                    </span>
+                                                    {isChecked && checkInfo?.checked_by && (
+                                                        <span style={{ 
+                                                            fontSize: '11px', 
+                                                            color: '#9E9E9E', 
+                                                            marginLeft: '6px',
+                                                            fontWeight: 500
+                                                        }}>
+                                                            ✓ {checkInfo.checked_by}
+                                                        </span>
+                                                    )}
+                                                </div>
                                             </div>
                                         );
                                     })}
