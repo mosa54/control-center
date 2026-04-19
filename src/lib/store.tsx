@@ -89,6 +89,7 @@ interface AppActions {
     getDeliveredEvents: () => ScenarioEvent[];
     getPendingEvents: () => ScenarioEvent[];
     fetchTaskChecks: (eventId: string) => Promise<void>;
+    fetchTaskChecksForEvents: (eventIds: string[]) => Promise<void>;
     toggleTaskCheck: (eventId: string, taskKey: string) => Promise<void>;
 }
 
@@ -523,6 +524,45 @@ export function AppProvider({ children }: { children: ReactNode }) {
         }
     }, []);
 
+    const fetchTaskChecksForEvents = useCallback(async (eventIds: string[]) => {
+        const uniqueEventIds = [...new Set(eventIds.filter(Boolean))];
+
+        if (uniqueEventIds.length === 0) {
+            return;
+        }
+
+        const { data } = await supabase
+            .from('task_checks')
+            .select('*')
+            .in('event_id', uniqueEventIds);
+
+        if (!data) {
+            return;
+        }
+
+        const groupedChecks = uniqueEventIds.reduce<Record<string, Record<string, TaskCheckInfo>>>((acc, eventId) => {
+            acc[eventId] = {};
+            return acc;
+        }, {});
+
+        data.forEach((row: any) => {
+            if (!groupedChecks[row.event_id]) {
+                groupedChecks[row.event_id] = {};
+            }
+
+            groupedChecks[row.event_id][row.task_key] = {
+                checked: row.checked,
+                checked_by: row.checked_by,
+                checked_at: row.checked_at,
+            };
+        });
+
+        setTaskChecks(prev => ({
+            ...prev,
+            ...groupedChecks,
+        }));
+    }, []);
+
     const toggleTaskCheck = useCallback(async (eventId: string, taskKey: string) => {
         const currentCheck = taskChecks[eventId]?.[taskKey];
         const newChecked = !currentCheck?.checked;
@@ -618,6 +658,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
         realtimeStatus,
         taskChecks,
         fetchTaskChecks,
+        fetchTaskChecksForEvents,
         toggleTaskCheck,
     };
 

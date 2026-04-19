@@ -20,10 +20,11 @@ const CATEGORIES: Record<string, { icon: string; color: string; label: string }>
 const getCat = (v: string) => CATEGORIES[v] || CATEGORIES.phase_10;
 
 export default function ScenarioTimeline() {
-    const { getDeliveredEvents } = useApp();
+    const { getDeliveredEvents, fetchTaskChecksForEvents, realtimeStatus } = useApp();
     const delivered = getDeliveredEvents();
     const [newId, setNewId] = useState<string | null>(null);
     const prevCount = useRef(delivered.length);
+    const deliveredIds = delivered.map(ev => ev.id);
 
     useEffect(() => {
         if (delivered.length > prevCount.current) {
@@ -39,6 +40,37 @@ export default function ScenarioTimeline() {
         prevCount.current = delivered.length;
     // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [delivered.length]);
+
+    useEffect(() => {
+        if (deliveredIds.length === 0) {
+            return;
+        }
+
+        void fetchTaskChecksForEvents(deliveredIds);
+    }, [deliveredIds.join(','), fetchTaskChecksForEvents]);
+
+    useEffect(() => {
+        if (deliveredIds.length === 0) {
+            return;
+        }
+
+        const syncChecks = () => {
+            if (typeof document !== 'undefined' && document.visibilityState !== 'visible') {
+                return;
+            }
+
+            void fetchTaskChecksForEvents(deliveredIds);
+        };
+
+        const intervalId = window.setInterval(
+            syncChecks,
+            realtimeStatus === 'connected' ? 7000 : 2500
+        );
+
+        return () => {
+            window.clearInterval(intervalId);
+        };
+    }, [deliveredIds.join(','), fetchTaskChecksForEvents, realtimeStatus]);
 
     if (delivered.length === 0) {
         return (
