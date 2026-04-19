@@ -114,6 +114,8 @@ export function AppProvider({ children }: { children: ReactNode }) {
     const [taskChecks, setTaskChecks] = useState<Record<string, Record<string, TaskCheckInfo>>>({});
     const channelRef = useRef<any>(null);
     const retryRef = useRef<{ count: number; timer: NodeJS.Timeout | null }>({ count: 0, timer: null });
+    const realtimeStatusRef = useRef<'connecting' | 'connected' | 'error' | 'disconnected'>('connecting');
+    const channelSequenceRef = useRef(0);
 
     // 1. 데이터 로드 및 실시간 구독 초기화 로직
     const fetchData = useCallback(async () => {
@@ -172,22 +174,49 @@ export function AppProvider({ children }: { children: ReactNode }) {
         }
     }, []);
 
-    const initRealtime = useCallback(() => {
-        if (channelRef.current) {
-            supabase.removeChannel(channelRef.current);
-            channelRef.current = null;
+    useEffect(() => {
+        realtimeStatusRef.current = realtimeStatus;
+    }, [realtimeStatus]);
+
+    const clearRealtimeRetry = useCallback(() => {
+        if (retryRef.current.timer) {
+            clearTimeout(retryRef.current.timer);
+            retryRef.current.timer = null;
+        }
+    }, []);
+
+    const cleanupRealtime = useCallback(async () => {
+        clearRealtimeRetry();
+        const existingChannel = channelRef.current;
+        channelRef.current = null;
+
+        if (!existingChannel) {
+            return;
         }
 
+        try {
+            await supabase.removeChannel(existingChannel);
+        } catch (error) {
+            console.error('Failed to remove realtime channel:', error);
+        }
+    }, [clearRealtimeRetry]);
+
+    const initRealtime = useCallback(async function startRealtime(reason = 'manual') {
+        await cleanupRealtime();
+
         console.log('실시간 채널 초기화 중...');
+        console.log('Initializing realtime channel:', reason);
         setRealtimeStatus('connecting');
 
-        const channel = supabase.channel('realtime-updates')
+        channelSequenceRef.current += 1;
+        const channelName = `realtime-updates-${channelSequenceRef.current}`;
+        const channel = supabase.channel(channelName)
             .on(
                 'postgres_changes',
                 { event: '*', schema: 'public', table: 'system_settings' },
                 () => {
                     console.log('시스템 설정 데이터 변경 감지');
-                    fetchData();
+                    void fetchData();
                 }
             )
             .on(
@@ -195,7 +224,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
                 { event: '*', schema: 'public', table: 'checkins' },
                 () => {
                     console.log('체크인 데이터 변경 감지');
-                    fetchData();
+                    void fetchData();
                 }
             )
             .on(
@@ -217,7 +246,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
                 { event: '*', schema: 'public', table: 'reports' },
                 () => {
                     console.log('보고서 데이터 변경 감지');
-                    fetchData();
+                    void fetchData();
                 }
             )
             .on(
@@ -246,46 +275,63 @@ export function AppProvider({ children }: { children: ReactNode }) {
                     }
                 }
             )
-            .subscribe((status) => {
+            .subscribe((status, err) => {
                 console.log('Supabase Realtime 연결 상태:', status);
+                if (channelRef.current !== channel) {
+                    return;
+                }
+
+                console.log('Supabase Realtime status:', status, err?.message || '');
                 if (status === 'SUBSCRIBED') {
                     setRealtimeStatus('connected');
-                    retryRef.current.count = 0; // 재연결 카운터 리셋
+                    retryRef.current.count = 0;
+                    clearRealtimeRetry();
                     console.log('✅ 서버와 실시간으로 연결되었습니다.');
-                } else if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT') {
-                    setRealtimeStatus('error');
-                    console.error('실시간 연결 실패 (Replication 설정을 확인하세요)');
+                    return;
+                }
 
-                    // 자동 재연결 (지수 백오프: 3초 → 6초 → 12초, 최대 5회)
+                if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT' || status === 'CLOSED') {
                     const MAX_RETRIES = 5;
-                    if (retryRef.current.count < MAX_RETRIES) {
-                        const delay = Math.min(3000 * Math.pow(2, retryRef.current.count), 30000);
-                        retryRef.current.count += 1;
-                        console.log(`🔄 ${delay / 1000}초 후 재연결 시도 (${retryRef.current.count}/${MAX_RETRIES})...`);
-                        if (retryRef.current.timer) clearTimeout(retryRef.current.timer);
-                        retryRef.current.timer = setTimeout(() => {
-                            initRealtime();
-                        }, delay);
-                    } else {
-                        console.error('❌ 최대 재연결 횟수 초과. 페이지 새로고침을 권장합니다.');
+                    const nextCount = retryRef.current.count + 1;
+                    const details = err?.message || status;
+
+                    if (nextCount > MAX_RETRIES) {
+                        setRealtimeStatus('error');
+                        console.error(`실시간 연결 실패: ${details}`);
+                        return;
                     }
-                } else if (status === 'CLOSED') {
-                    setRealtimeStatus('disconnected');
+
+                    retryRef.current.count = nextCount;
+                    setRealtimeStatus(status === 'CLOSED' ? 'disconnected' : 'connecting');
+
+                    const delay = Math.min(3000 * Math.pow(2, nextCount - 1), 30000);
+                    console.error(`🔄 실시간 연결 이슈 (${status}). ${delay / 1000}초 후 재시도합니다.`, details);
+                    clearRealtimeRetry();
+                    retryRef.current.timer = setTimeout(() => {
+                        if (document.visibilityState !== 'visible') {
+                            return;
+                        }
+
+                        void startRealtime(`retry:${status.toLowerCase()}`);
+                    }, delay);
                 }
             });
 
         channelRef.current = channel;
-    }, [fetchData]);
+    }, [cleanupRealtime, clearRealtimeRetry, fetchData]);
 
     useEffect(() => {
-        fetchData();
-        initRealtime();
+        void fetchData();
+        void initRealtime('mount');
 
         const handleVisibilityChange = () => {
             if (document.visibilityState === 'visible') {
                 console.log('앱 복귀 감지: 데이터 동기화 및 실시간 재연결 시도...');
-                fetchData();
-                initRealtime();
+                void fetchData();
+
+                if (!channelRef.current || realtimeStatusRef.current !== 'connected') {
+                    void initRealtime('tab-visible');
+                }
             }
         };
 
@@ -293,14 +339,9 @@ export function AppProvider({ children }: { children: ReactNode }) {
 
         return () => {
             document.removeEventListener('visibilitychange', handleVisibilityChange);
-            if (channelRef.current) {
-                supabase.removeChannel(channelRef.current);
-            }
-            if (retryRef.current.timer) {
-                clearTimeout(retryRef.current.timer);
-            }
+            void cleanupRealtime();
         };
-    }, [fetchData, initRealtime]);
+    }, [cleanupRealtime, fetchData, initRealtime]);
 
 
     // 2. 내 정보 복원 (로컬 스토리지 myId + loaded checkedInEmployees)
