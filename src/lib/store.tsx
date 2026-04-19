@@ -113,6 +113,8 @@ export function AppProvider({ children }: { children: ReactNode }) {
     const [realtimeStatus, setRealtimeStatus] = useState<'connecting' | 'connected' | 'error' | 'disconnected'>('connecting');
     const [taskChecks, setTaskChecks] = useState<Record<string, Record<string, TaskCheckInfo>>>({});
     const channelRef = useRef<any>(null);
+    const realtimeStatusRef = useRef<'connecting' | 'connected' | 'error' | 'disconnected'>('connecting');
+    const reconnectTimerRef = useRef<NodeJS.Timeout | null>(null);
 
     // 1. 데이터 로드 및 실시간 구독 초기화 로직
     const fetchData = useCallback(async () => {
@@ -171,7 +173,19 @@ export function AppProvider({ children }: { children: ReactNode }) {
         }
     }, []);
 
+    useEffect(() => {
+        realtimeStatusRef.current = realtimeStatus;
+    }, [realtimeStatus]);
+
+    const clearReconnectTimer = useCallback(() => {
+        if (reconnectTimerRef.current) {
+            clearTimeout(reconnectTimerRef.current);
+            reconnectTimerRef.current = null;
+        }
+    }, []);
+
     const cleanupRealtime = useCallback(async () => {
+        clearReconnectTimer();
         const existingChannel = channelRef.current;
         channelRef.current = null;
 
@@ -184,7 +198,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
         } catch (error) {
             console.error('Failed to remove realtime channel:', error);
         }
-    }, []);
+    }, [clearReconnectTimer]);
 
     const initRealtime = useCallback(async function startRealtime(reason = 'manual') {
         if (channelRef.current) {
@@ -269,6 +283,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
                 console.log('Supabase Realtime status:', status, err?.message || '');
                 if (status === 'SUBSCRIBED') {
                     setRealtimeStatus('connected');
+                    clearReconnectTimer();
                     console.log('✅ 서버와 실시간으로 연결되었습니다.');
                     return;
                 }
@@ -276,11 +291,30 @@ export function AppProvider({ children }: { children: ReactNode }) {
                 if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT') {
                     const details = err?.message || status;
                     setRealtimeStatus('connecting');
-                    console.error(`🔄 실시간 연결 이슈 (${status}). Supabase 자동 재연결을 기다립니다.`, details);
+                    console.warn(`🔄 실시간 연결 이슈 (${status}). Supabase 자동 재연결을 기다립니다.`, details);
+
+                    if (!reconnectTimerRef.current) {
+                        reconnectTimerRef.current = setTimeout(async () => {
+                            reconnectTimerRef.current = null;
+
+                            if (realtimeStatusRef.current === 'connected') {
+                                return;
+                            }
+
+                            if (document.visibilityState !== 'visible') {
+                                return;
+                            }
+
+                            console.warn('⏳ 실시간 연결이 회복되지 않아 채널을 다시 시작합니다.');
+                            await cleanupRealtime();
+                            void startRealtime('timeout-recover');
+                        }, 12000);
+                    }
                     return;
                 }
 
                 if (status === 'CLOSED') {
+                    clearReconnectTimer();
                     channelRef.current = null;
                     setRealtimeStatus('disconnected');
 
@@ -304,6 +338,15 @@ export function AppProvider({ children }: { children: ReactNode }) {
 
                 if (!channelRef.current) {
                     void initRealtime('tab-visible');
+                    return;
+                }
+
+                if (realtimeStatusRef.current !== 'connected') {
+                    void (async () => {
+                        console.warn('↻ 복귀 후 실시간 연결 상태가 비정상이어서 채널을 새로 붙입니다.');
+                        await cleanupRealtime();
+                        void initRealtime('tab-visible-recover');
+                    })();
                 }
             }
         };
