@@ -152,16 +152,17 @@ export async function generateCasualtyReportHwpx(data: any): Promise<void> {
         <table style="width: 100%; border-collapse: collapse; border: 1px solid #000; margin-bottom: 15px;">
             <thead>
                 <tr>
-                    <th style="${thStyle} width:40px;">연번</th>
+                    <th style="${thStyle} width:35px;">연번</th>
                     <th style="${thStyle}">성명</th>
-                    <th style="${thStyle} width:40px;">성별</th>
-                    <th style="${thStyle} width:40px;">연령</th>
-                    <th style="${thStyle}">주증상(손상원인)</th>
+                    <th style="${thStyle} width:35px;">성별</th>
+                    <th style="${thStyle} width:35px;">연령</th>
+                    <th style="${thStyle}">주증상<br/>(원인)</th>
                     <th style="${thStyle}">이송병원</th>
-                    <th style="${thStyle} width:70px;">중증도<br/>분류</th>
+                    <th style="${thStyle} width:60px;">중증도<br/>분류</th>
                     <th style="${thStyle}">발견지점</th>
-                    <th style="${thStyle} width:60px;">이송수단</th>
-                    <th style="${thStyle} width:60px;">출발시간</th>
+                    <th style="${thStyle} width:55px;">이송<br/>수단</th>
+                    <th style="${thStyle} width:55px;">출발시간</th>
+                    <th style="${thStyle} width:55px;">인계자</th>
                     <th style="${thStyle}">비고</th>
                 </tr>
             </thead>
@@ -183,6 +184,7 @@ export async function generateCasualtyReportHwpx(data: any): Promise<void> {
                     <td style="${tdStyle}">${row.발견지점 || ''}</td>
                     <td style="${tdStyle} text-align:center;">${row.이송수단 || ''}</td>
                     <td style="${tdStyle} text-align:center;">${row.출발시간 || ''}</td>
+                    <td style="${tdStyle} text-align:center;">${row.인계자 || ''}</td>
                     <td style="${tdStyle}">${row.비고 || ''}</td>
                 </tr>
             `;

@@ -17,6 +17,7 @@ interface CasualtyRow {
     발견지점: string;
     이송수단: string;
     출발시간: string;
+    인계자: string;
     비고: string;
 }
 
@@ -42,7 +43,7 @@ const createEmptyRow = (): CasualtyRow => ({
     중증도: '',
     발견지점: '',
     이송수단: '',
-    출발시간: '', 비고: ''
+    출발시간: '', 인계자: '', 비고: ''
 });
 
 const INITIAL_ROWS = Array.from({ length: 20 }, () => createEmptyRow());
@@ -133,14 +134,15 @@ function CasualtyPreview({ data, lastSavedAt }: { data: CasualtyReportData, last
                         <tr>
                             <th style={{ width: '5%' }}>연<br />번</th>
                             <th style={{ width: '8%' }}>성명</th>
-                            <th style={{ width: '5%' }}>성<br />별</th>
-                            <th style={{ width: '5%' }}>연<br />령</th>
-                            <th style={{ width: '14%' }}>주증상<br />(손상원인)</th>
-                            <th style={{ width: '12%' }}>이송<br />병원</th>
-                            <th style={{ width: '11%' }}>중증도<br />분류</th>
-                            <th style={{ width: '13%' }}>발견<br />지점</th>
-                            <th style={{ width: '10%' }}>이송수단</th>
-                            <th style={{ width: '9%' }}>출발<br />시간</th>
+                            <th style={{ width: '4%' }}>성<br />별</th>
+                            <th style={{ width: '4%' }}>연<br />령</th>
+                            <th style={{ width: '13%' }}>주증상<br />(원인)</th>
+                            <th style={{ width: '11%' }}>이송<br />병원</th>
+                            <th style={{ width: '10%' }}>중증도<br />분류</th>
+                            <th style={{ width: '11%' }}>발견<br />지점</th>
+                            <th style={{ width: '9%' }}>이송<br />수단</th>
+                            <th style={{ width: '8%' }}>출발<br />시간</th>
+                            <th style={{ width: '9%' }}>인계자</th>
                             <th style={{ width: '8%' }}>비고</th>
                         </tr>
                     </thead>
@@ -157,6 +159,7 @@ function CasualtyPreview({ data, lastSavedAt }: { data: CasualtyReportData, last
                                 <td>{row.발견지점}</td>
                                 <td>{row.이송수단}</td>
                                 <td>{row.출발시간}</td>
+                                <td>{row.인계자}</td>
                                 <td>{row.비고}</td>
                             </tr>
                         ))}
@@ -377,37 +380,38 @@ function CasualtyReportContent() {
                             <table className="report-table">
                                 <thead>
                                     <tr>
-                                        <th style={{ minWidth: '60px' }}>번호</th>
-                                        <th style={{ minWidth: '80px' }}>성명</th>
-                                        <th style={{ minWidth: '60px' }}>성별</th>
-                                        <th style={{ minWidth: '60px' }}>연<br />령</th>
-                                        <th style={{ minWidth: '120px' }}>주증상(손상원인)</th>
-                                        <th style={{ minWidth: '90px' }}>이송병원</th>
-                                        <th style={{ minWidth: '65px' }}>중증도<br />분류</th>
-                                        <th style={{ minWidth: '90px' }}>발견지점</th>
-                                        <th style={{ minWidth: '80px' }}>이송수단</th>
-                                        <th style={{ minWidth: '60px' }}>출발시간</th>
-                                        <th style={{ minWidth: '80px' }}>비고</th>
-                                        <th style={{ minWidth: '40px' }}>삭제</th>
+                                        <th style={{ minWidth: '40px', padding: '2px' }}>번호</th>
+                                        <th style={{ minWidth: '70px', padding: '2px' }}>성명</th>
+                                        <th style={{ minWidth: '50px', padding: '2px' }}>성별</th>
+                                        <th style={{ minWidth: '40px', padding: '2px' }}>연령</th>
+                                        <th style={{ minWidth: '100px', padding: '2px' }}>주증상<br />(원인)</th>
+                                        <th style={{ minWidth: '80px', padding: '2px' }}>이송병원</th>
+                                        <th style={{ minWidth: '65px', padding: '2px' }}>중증도</th>
+                                        <th style={{ minWidth: '80px', padding: '2px' }}>발견지점</th>
+                                        <th style={{ minWidth: '70px', padding: '2px' }}>이송<br />수단</th>
+                                        <th style={{ minWidth: '50px', padding: '2px' }}>출발시간</th>
+                                        <th style={{ minWidth: '60px', padding: '2px' }}>인계자</th>
+                                        <th style={{ minWidth: '60px', padding: '2px' }}>비고</th>
+                                        <th style={{ minWidth: '35px', padding: '2px' }}>삭제</th>
                                     </tr>
                                 </thead>
                                 <tbody>
                                     {data.rows.map((row, i) => (
                                         <tr key={i}>
                                             <td>{i + 1}</td>
-                                            <td><input value={row.성명} onChange={e => updateRow(i, '성명', e.target.value)} /></td>
+                                            <td><input value={row.성명 || ''} onChange={e => updateRow(i, '성명', e.target.value)} /></td>
                                             <td>
-                                                <select value={row.성별} onChange={e => updateRow(i, '성별', e.target.value)}>
+                                                <select value={row.성별 || ''} onChange={e => updateRow(i, '성별', e.target.value)}>
                                                     <option value=""></option>
                                                     <option value="남">남</option>
                                                     <option value="여">여</option>
                                                 </select>
                                             </td>
-                                            <td><input type="number" value={row.연령} onChange={e => updateRow(i, '연령', e.target.value)} style={{ width: '40px' }} /></td>
-                                            <td><input value={row.주증상} onChange={e => updateRow(i, '주증상', e.target.value)} /></td>
-                                            <td><input value={row.이송병원} onChange={e => updateRow(i, '이송병원', e.target.value)} /></td>
+                                            <td><input type="number" value={row.연령 || ''} onChange={e => updateRow(i, '연령', e.target.value)} style={{ width: '40px' }} /></td>
+                                            <td><input value={row.주증상 || ''} onChange={e => updateRow(i, '주증상', e.target.value)} /></td>
+                                            <td><input value={row.이송병원 || ''} onChange={e => updateRow(i, '이송병원', e.target.value)} /></td>
                                             <td>
-                                                <select value={row.중증도} onChange={e => updateRow(i, '중증도', e.target.value)}>
+                                                <select value={row.중증도 || ''} onChange={e => updateRow(i, '중증도', e.target.value)}>
                                                     <option value=""></option>
                                                     <option value="긴급">긴급</option>
                                                     <option value="응급">응급</option>
@@ -415,9 +419,9 @@ function CasualtyReportContent() {
                                                     <option value="사망">사망</option>
                                                 </select>
                                             </td>
-                                            <td><input value={row.발견지점} onChange={e => updateRow(i, '발견지점', e.target.value)} /></td>
+                                            <td><input value={row.발견지점 || ''} onChange={e => updateRow(i, '발견지점', e.target.value)} /></td>
                                             <td>
-                                                <select value={row.이송수단} onChange={e => updateRow(i, '이송수단', e.target.value)}>
+                                                <select value={row.이송수단 || ''} onChange={e => updateRow(i, '이송수단', e.target.value)}>
                                                     <option value=""></option>
                                                     <option value="119">119</option>
                                                     <option value="병원">병원</option>
@@ -425,8 +429,9 @@ function CasualtyReportContent() {
                                                     <option value="기타">기타</option>
                                                 </select>
                                             </td>
-                                            <td><input value={row.출발시간} onChange={e => updateRow(i, '출발시간', formatTimeInput(e.target.value))} placeholder="00:00" style={{ width: '45px' }} /></td>
-                                            <td><input value={row.비고} onChange={e => updateRow(i, '비고', e.target.value)} style={{ width: '45px' }} /></td>
+                                            <td><input value={row.출발시간 || ''} onChange={e => updateRow(i, '출발시간', formatTimeInput(e.target.value))} placeholder="00:00" style={{ width: '45px' }} /></td>
+                                            <td><input value={row.인계자 || ''} onChange={e => updateRow(i, '인계자', e.target.value)} style={{ width: '50px' }} /></td>
+                                            <td><input value={row.비고 || ''} onChange={e => updateRow(i, '비고', e.target.value)} style={{ width: '50px' }} /></td>
                                             <td>
                                                 <button
                                                     onClick={() => { if (confirm('이 행을 삭제하시겠습니까?')) removeRow(i); }}
@@ -465,15 +470,15 @@ function CasualtyReportContent() {
                         <h3>✍️ 작성자</h3>
                         <div className="report-form-row">
                             <label>소속</label>
-                            <input value={data.작성자_소속} onChange={e => setData(prev => ({ ...prev, 작성자_소속: e.target.value }))} />
+                            <input value={data.작성자_소속 || ''} onChange={e => setData(prev => ({ ...prev, 작성자_소속: e.target.value }))} />
                         </div>
                         <div className="report-form-row">
                             <label>직급</label>
-                            <input value={data.작성자_직급} onChange={e => setData(prev => ({ ...prev, 작성자_직급: e.target.value }))} />
+                            <input value={data.작성자_직급 || ''} onChange={e => setData(prev => ({ ...prev, 작성자_직급: e.target.value }))} />
                         </div>
                         <div className="report-form-row">
                             <label>성명</label>
-                            <input value={data.작성자_성명} onChange={e => setData(prev => ({ ...prev, 작성자_성명: e.target.value }))} />
+                            <input value={data.작성자_성명 || ''} onChange={e => setData(prev => ({ ...prev, 작성자_성명: e.target.value }))} />
                         </div>
                     </div>
                 </div>
