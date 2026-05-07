@@ -279,14 +279,15 @@ function CasualtyPreviewInline({ data, lastSavedAt }: { data: any, lastSavedAt?:
                         <tr>
                             <th style={{ width: '5%' }}>연<br />번</th>
                             <th style={{ width: '8%' }}>성명</th>
-                            <th style={{ width: '5%' }}>성<br />별</th>
-                            <th style={{ width: '5%' }}>연<br />령</th>
-                            <th style={{ width: '14%' }}>주증상<br />(손상원인)</th>
-                            <th style={{ width: '12%' }}>이송<br />병원</th>
-                            <th style={{ width: '11%' }}>중증도<br />분류</th>
-                            <th style={{ width: '13%' }}>발견<br />지점</th>
-                            <th style={{ width: '10%' }}>이송수단</th>
-                            <th style={{ width: '9%' }}>출발<br />시간</th>
+                            <th style={{ width: '4%' }}>성<br />별</th>
+                            <th style={{ width: '4%' }}>연<br />령</th>
+                            <th style={{ width: '13%' }}>주증상<br />(원인)</th>
+                            <th style={{ width: '11%' }}>이송<br />병원</th>
+                            <th style={{ width: '10%' }}>중증도<br />분류</th>
+                            <th style={{ width: '11%' }}>발견<br />지점</th>
+                            <th style={{ width: '9%' }}>이송<br />수단</th>
+                            <th style={{ width: '8%' }}>출발<br />시간</th>
+                            <th style={{ width: '9%' }}>인계자</th>
                             <th style={{ width: '8%' }}>비고</th>
                         </tr>
                     </thead>
@@ -303,6 +304,7 @@ function CasualtyPreviewInline({ data, lastSavedAt }: { data: any, lastSavedAt?:
                                 <td>{row.발견지점}</td>
                                 <td>{row.이송수단}</td>
                                 <td>{row.출발시간}</td>
+                                <td>{row.인계자}</td>
                                 <td>{row.비고}</td>
                             </tr>
                         ))}
