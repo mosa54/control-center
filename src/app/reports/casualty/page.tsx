@@ -420,15 +420,7 @@ function CasualtyReportContent() {
                                                 </select>
                                             </td>
                                             <td><input value={row.발견지점 || ''} onChange={e => updateRow(i, '발견지점', e.target.value)} /></td>
-                                            <td>
-                                                <select value={row.이송수단 || ''} onChange={e => updateRow(i, '이송수단', e.target.value)}>
-                                                    <option value=""></option>
-                                                    <option value="119">119</option>
-                                                    <option value="병원">병원</option>
-                                                    <option value="이송업자">이송업자</option>
-                                                    <option value="기타">기타</option>
-                                                </select>
-                                            </td>
+                                            <td><input value={row.이송수단 || ''} onChange={e => updateRow(i, '이송수단', e.target.value)} /></td>
                                             <td><input value={row.출발시간 || ''} onChange={e => updateRow(i, '출발시간', formatTimeInput(e.target.value))} placeholder="00:00" style={{ width: '45px' }} /></td>
                                             <td><input value={row.인계자 || ''} onChange={e => updateRow(i, '인계자', e.target.value)} style={{ width: '50px' }} /></td>
                                             <td><input value={row.비고 || ''} onChange={e => updateRow(i, '비고', e.target.value)} style={{ width: '50px' }} /></td>
