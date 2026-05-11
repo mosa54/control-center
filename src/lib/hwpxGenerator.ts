@@ -132,8 +132,8 @@ export async function generateCasualtyReportHwpx(data: any): Promise<void> {
     const emergencyCount = (data.rows || []).filter((r: any) => r.중증도 === '긴급').length;
     const urgentCount = (data.rows || []).filter((r: any) => r.중증도 === '응급').length;
     const nonUrgentCount = (data.rows || []).filter((r: any) => r.중증도 === '비응급').length;
-    const deadCount = (data.rows || []).filter((r: any) => r.중증도 === '사망').length;
-    const totalCount = emergencyCount + urgentCount + nonUrgentCount + deadCount;
+    const delayedCount = (data.rows || []).filter((r: any) => r.중증도 === '지연').length;
+    const totalCount = emergencyCount + urgentCount + nonUrgentCount + delayedCount;
 
     // 인라인 스타일 선언
     const titleStyle = "text-align: center; font-family: 'Malgun Gothic', '맑은 고딕', serif; font-size: 15pt; font-weight: bold; margin-bottom: 20px;";
@@ -145,9 +145,9 @@ export async function generateCasualtyReportHwpx(data: any): Promise<void> {
     let body = `
         <h1 style="${titleStyle}">사상자 이송현황</h1>
         
-        <div style="${pStyle} font-weight:bold; margin-bottom:10px;">
-            [중증도 집계] 합계: ${totalCount}명 | 긴급: ${emergencyCount}명 | 응급: ${urgentCount}명 | 비응급: ${nonUrgentCount}명 | 사망: ${deadCount}명
-        </div>
+        <p style="${pStyle}">
+            [중증도 집계] 합계: ${totalCount}명 | 긴급: ${emergencyCount}명 | 응급: ${urgentCount}명 | 비응급: ${nonUrgentCount}명 | 지연: ${delayedCount}명
+        </p>
 
         <table style="width: 100%; border-collapse: collapse; border: 1px solid #000; margin-bottom: 15px;">
             <thead>

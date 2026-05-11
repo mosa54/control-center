@@ -236,9 +236,9 @@ function CasualtyPreviewInline({ data, lastSavedAt }: { data: any, lastSavedAt?:
         긴급: data.rows?.filter((r: any) => r.중증도 === '긴급').length || 0,
         응급: data.rows?.filter((r: any) => r.중증도 === '응급').length || 0,
         비응급: data.rows?.filter((r: any) => r.중증도 === '비응급').length || 0,
-        사망: data.rows?.filter((r: any) => r.중증도 === '사망').length || 0,
+        지연: data.rows?.filter((r: any) => r.중증도 === '지연').length || 0,
     };
-    const totalCount = counts.긴급 + counts.응급 + counts.비응급 + counts.사망;
+    const totalCount = counts.긴급 + counts.응급 + counts.비응급 + counts.지연;
 
     return (
         <div className="fullscreen-report">
@@ -252,7 +252,7 @@ function CasualtyPreviewInline({ data, lastSavedAt }: { data: any, lastSavedAt?:
                             <th style={{ background: '#FFCDD2' }}>긴급</th>
                             <th style={{ background: '#FFF9C4' }}>응급</th>
                             <th style={{ background: '#C8E6C9' }}>비응급</th>
-                            <th style={{ background: '#E0E0E0' }}>사망</th>
+                            <th style={{ background: '#E0E0E0' }}>지연</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -261,7 +261,7 @@ function CasualtyPreviewInline({ data, lastSavedAt }: { data: any, lastSavedAt?:
                             <td style={{ color: '#D32F2F', fontWeight: 700 }}>{counts.긴급}</td>
                             <td style={{ color: '#FBC02D', fontWeight: 700 }}>{counts.응급}</td>
                             <td style={{ color: '#388E3C', fontWeight: 700 }}>{counts.비응급}</td>
-                            <td style={{ fontWeight: 700 }}>{counts.사망}</td>
+                            <td style={{ fontWeight: 700 }}>{counts.지연}</td>
                         </tr>
                     </tbody>
                 </table>

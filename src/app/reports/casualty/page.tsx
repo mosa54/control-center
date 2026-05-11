@@ -91,9 +91,9 @@ function CasualtyPreview({ data, lastSavedAt }: { data: CasualtyReportData, last
         긴급: data.rows.filter(r => r.중증도 === '긴급').length,
         응급: data.rows.filter(r => r.중증도 === '응급').length,
         비응급: data.rows.filter(r => r.중증도 === '비응급').length,
-        사망: data.rows.filter(r => r.중증도 === '사망').length,
+        지연: data.rows.filter(r => r.중증도 === '지연').length,
     };
-    const totalCount = counts.긴급 + counts.응급 + counts.비응급 + counts.사망;
+    const totalCount = counts.긴급 + counts.응급 + counts.비응급 + counts.지연;
 
     return (
         <div className="fullscreen-report">
@@ -107,7 +107,7 @@ function CasualtyPreview({ data, lastSavedAt }: { data: CasualtyReportData, last
                             <th style={{ background: '#FFCDD2' }}>긴급</th>
                             <th style={{ background: '#FFF9C4' }}>응급</th>
                             <th style={{ background: '#C8E6C9' }}>비응급</th>
-                            <th style={{ background: '#E0E0E0' }}>사망</th>
+                            <th style={{ background: '#E0E0E0' }}>지연</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -116,7 +116,7 @@ function CasualtyPreview({ data, lastSavedAt }: { data: CasualtyReportData, last
                             <td style={{ color: '#D32F2F', fontWeight: 700 }}>{counts.긴급}</td>
                             <td style={{ color: '#FBC02D', fontWeight: 700 }}>{counts.응급}</td>
                             <td style={{ color: '#388E3C', fontWeight: 700 }}>{counts.비응급}</td>
-                            <td style={{ fontWeight: 700 }}>{counts.사망}</td>
+                            <td style={{ fontWeight: 700 }}>{counts.지연}</td>
                         </tr>
                     </tbody>
                 </table>
@@ -337,9 +337,9 @@ function CasualtyReportContent() {
         긴급: data.rows.filter(r => r.중증도 === '긴급').length,
         응급: data.rows.filter(r => r.중증도 === '응급').length,
         비응급: data.rows.filter(r => r.중증도 === '비응급').length,
-        사망: data.rows.filter(r => r.중증도 === '사망').length,
+        지연: data.rows.filter(r => r.중증도 === '지연').length,
     };
-    const totalCount = counts.긴급 + counts.응급 + counts.비응급 + counts.사망;
+    const totalCount = counts.긴급 + counts.응급 + counts.비응급 + counts.지연;
 
     // 인증된 상태: 편집 폼
     return (
@@ -416,7 +416,7 @@ function CasualtyReportContent() {
                                                     <option value="긴급">긴급</option>
                                                     <option value="응급">응급</option>
                                                     <option value="비응급">비응급</option>
-                                                    <option value="사망">사망</option>
+                                                    <option value="지연">지연</option>
                                                 </select>
                                             </td>
                                             <td><input value={row.발견지점 || ''} onChange={e => updateRow(i, '발견지점', e.target.value)} /></td>
