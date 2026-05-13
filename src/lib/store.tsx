@@ -504,6 +504,15 @@ export function AppProvider({ children }: { children: ReactNode }) {
 
     const changeDept = useCallback(async (newDept: string, missionCode?: string) => {
         if (!currentEmployee) return;
+        
+        // 낙관적 업데이트 (Optimistic Update)
+        // DB 응답을 기다리지 않고 즉시 UI(요약바 등)를 업데이트하여 반응성 향상
+        setCheckedInEmployees(prev => prev.map(emp => 
+            emp.id === currentEmployee.id 
+                ? { ...emp, 통제단편성부: newDept, customMissionCode: missionCode } 
+                : emp
+        ));
+
         const updateData: Record<string, any> = { dept: newDept };
         // mission_code: 선택한 임무코드가 있으면 저장, 없으면 null로 초기화
         updateData.mission_code = missionCode || null;
