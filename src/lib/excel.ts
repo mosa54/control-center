@@ -156,3 +156,17 @@ export const CONTROL_DEPT_COLORS: Record<string, string> = {
 export function getControlDeptColor(dept: string): string {
     return CONTROL_DEPT_COLORS[dept] || '#757575';
 }
+
+// 통제단편성부 이름 → 임무코드 접두사 매핑
+const DEPT_MISSION_PREFIX: Record<string, string> = {
+    '대응계획부': '대응계획-',
+    '현장지휘부': '현장지휘-',
+    '자원지원부': '자원지원-',
+};
+
+// 특정 부서에 해당하는 임무 목록 반환
+export function getMissionsByDept(missions: Mission[], dept: string): Mission[] {
+    const prefix = DEPT_MISSION_PREFIX[dept];
+    if (!prefix) return [];
+    return missions.filter(m => m.임무코드.startsWith(prefix));
+}

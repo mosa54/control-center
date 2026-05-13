@@ -12,6 +12,7 @@ export type SessionMode = 'training' | 'emergency';
 export interface CheckedInEmployee extends Employee {
     checkedInAt: Date;
     selectedDutyStatus?: '당번' | '비번';
+    customMissionCode?: string; // 부서 변경 시 직접 선택한 임무코드
 }
 
 // 주체별 임무 체크리스트 타입
@@ -76,7 +77,7 @@ interface AppActions {
     getTotalCount: () => number;
     getCheckedInByControlDept: (dept: string) => CheckedInEmployee[];
     setCurrentEmployee: (employee: CheckedInEmployee | null) => void;
-    changeDept: (newDept: string) => Promise<void>;
+    changeDept: (newDept: string, missionCode?: string) => Promise<void>;
     getMyMission: () => Mission | undefined;
     resetAllCheckIns: () => Promise<void>;
     cancelMyCheckIn: () => Promise<void>;
@@ -154,6 +155,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
                         selectedDutyStatus: c.duty_status as any,
                         직위: c.position || original.직위,
                         통제단편성부: c.dept || original.통제단편성부,
+                        customMissionCode: c.mission_code || undefined,
                     };
                 }).filter(Boolean) as CheckedInEmployee[];
                 setCheckedInEmployees(mapped);
@@ -500,9 +502,12 @@ export function AppProvider({ children }: { children: ReactNode }) {
             .sort((a, b) => a.sort_order - b.sort_order);
     }, [scenarioEvents]);
 
-    const changeDept = useCallback(async (newDept: string) => {
+    const changeDept = useCallback(async (newDept: string, missionCode?: string) => {
         if (!currentEmployee) return;
-        await supabase.from('checkins').update({ dept: newDept }).eq('employee_id', currentEmployee.id);
+        const updateData: Record<string, any> = { dept: newDept };
+        // mission_code: 선택한 임무코드가 있으면 저장, 없으면 null로 초기화
+        updateData.mission_code = missionCode || null;
+        await supabase.from('checkins').update(updateData).eq('employee_id', currentEmployee.id);
     }, [currentEmployee]);
 
     // === 체크리스트 체크 상태 액션 ===
@@ -618,6 +623,10 @@ export function AppProvider({ children }: { children: ReactNode }) {
 
     const getMyMission = useCallback((): Mission | undefined => {
         if (!currentEmployee || !excelData) return undefined;
+        // 부서 변경 시 직접 선택한 임무코드가 있으면 우선 사용
+        if (currentEmployee.customMissionCode) {
+            return getMissionByCode(excelData.missions, currentEmployee.customMissionCode);
+        }
         const missionCode = currentEmployee.selectedDutyStatus === '비번'
             ? currentEmployee.임무코드_비번
             : currentEmployee.임무코드_당번;

@@ -3,18 +3,45 @@
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useApp } from '@/lib/store';
-import { getOrderedControlDepts, getControlDeptColor } from '@/lib/excel';
+import { getOrderedControlDepts, getControlDeptColor, getMissionsByDept } from '@/lib/excel';
 
 export default function MyInfoCard() {
     const router = useRouter();
     const { currentEmployee, excelData, changeDept, cancelMyCheckIn } = useApp();
     const [showDeptChange, setShowDeptChange] = useState(false);
     const [showCancelConfirm, setShowCancelConfirm] = useState(false);
+    const [selectedDept, setSelectedDept] = useState('');
+    const [selectedMission, setSelectedMission] = useState('');
 
     if (!currentEmployee) return null;
 
     const controlDepts = excelData ? getOrderedControlDepts(excelData.employees) : [];
     const deptColor = getControlDeptColor(currentEmployee.통제단편성부);
+
+    // 선택된 부서의 세부임무 목록
+    const deptMissions = excelData && selectedDept
+        ? getMissionsByDept(excelData.missions, selectedDept)
+        : [];
+
+    // 세부임무 선택이 필요한 부서인지 확인
+    const needsMissionSelect = ['대응계획부', '현장지휘부', '자원지원부'].includes(selectedDept);
+
+    const handleDeptChangeStart = () => {
+        setSelectedDept(currentEmployee.통제단편성부);
+        setSelectedMission('');
+        setShowDeptChange(true);
+    };
+
+    const handleDeptSelect = (dept: string) => {
+        setSelectedDept(dept);
+        setSelectedMission(''); // 부서 변경 시 세부임무 초기화
+    };
+
+    const handleConfirmChange = () => {
+        if (needsMissionSelect && !selectedMission) return; // 세부임무 선택 필요
+        changeDept(selectedDept, needsMissionSelect ? selectedMission : undefined);
+        setShowDeptChange(false);
+    };
 
     const handleCancelCheckIn = () => {
         cancelMyCheckIn();
@@ -74,7 +101,7 @@ export default function MyInfoCard() {
                         <button
                             className="btn btn-secondary"
                             style={{ flex: 1 }}
-                            onClick={() => setShowDeptChange(true)}
+                            onClick={handleDeptChangeStart}
                         >
                             부서 변경
                         </button>
@@ -88,25 +115,68 @@ export default function MyInfoCard() {
                     </>
                 ) : (
                     <div style={{ width: '100%' }}>
+                        {/* 부서 선택 */}
                         <select
                             className="form-select"
-                            value={currentEmployee.통제단편성부}
-                            onChange={(e) => {
-                                changeDept(e.target.value);
-                                setShowDeptChange(false);
-                            }}
+                            value={selectedDept}
+                            onChange={(e) => handleDeptSelect(e.target.value)}
                         >
                             {controlDepts.map(dept => (
                                 <option key={dept} value={dept}>{dept}</option>
                             ))}
                         </select>
-                        <button
-                            className="btn btn-secondary btn-block"
-                            style={{ marginTop: '8px' }}
-                            onClick={() => setShowDeptChange(false)}
-                        >
-                            취소
-                        </button>
+
+                        {/* 세부임무 선택 (대응계획부, 현장지휘부, 자원지원부) */}
+                        {needsMissionSelect && deptMissions.length > 0 && (
+                            <div style={{ marginTop: '8px' }}>
+                                <div style={{
+                                    fontSize: '13px',
+                                    color: '#757575',
+                                    marginBottom: '4px',
+                                    fontWeight: 500
+                                }}>
+                                    세부임무 선택
+                                </div>
+                                <select
+                                    className="form-select"
+                                    value={selectedMission}
+                                    onChange={(e) => setSelectedMission(e.target.value)}
+                                    style={{
+                                        borderColor: !selectedMission ? '#FF9800' : undefined,
+                                    }}
+                                >
+                                    <option value="">-- 세부임무를 선택하세요 --</option>
+                                    {deptMissions.map(mission => (
+                                        <option key={mission.임무코드} value={mission.임무코드}>
+                                            {mission.임무명}
+                                        </option>
+                                    ))}
+                                </select>
+                            </div>
+                        )}
+
+                        <div style={{ display: 'flex', gap: '8px', marginTop: '8px' }}>
+                            <button
+                                className="btn btn-secondary"
+                                style={{ flex: 1 }}
+                                onClick={() => setShowDeptChange(false)}
+                            >
+                                취소
+                            </button>
+                            <button
+                                className="btn"
+                                style={{
+                                    flex: 1,
+                                    background: (needsMissionSelect && !selectedMission)
+                                        ? '#BDBDBD' : '#1976D2',
+                                    color: 'white',
+                                }}
+                                disabled={needsMissionSelect && !selectedMission}
+                                onClick={handleConfirmChange}
+                            >
+                                변경 확인
+                            </button>
+                        </div>
                     </div>
                 )}
             </div>
