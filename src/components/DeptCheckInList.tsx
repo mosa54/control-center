@@ -15,8 +15,14 @@ export default function DeptCheckInList({ deptName, onClose }: DeptCheckInListPr
 
     if (!excelData) return null;
 
-    // 해당 통제단 부서의 *전체* 직원 목록 (엑셀 기준)
-    const deptEmployees = excelData.employees.filter(e => e.통제단편성부 === deptName);
+    // 해당 통제단 부서의 *전체* 직원 목록 (엑셀 기준 + 체크인 상태 반영)
+    // 체크인한 직원의 경우 부서가 변경되었을 수 있으므로 checkedInEmployees의 데이터를 우선 적용합니다.
+    const effectiveEmployees = excelData.employees.map(emp => {
+        const checkedInEmp = checkedInEmployees.find(c => c.id === emp.id);
+        return checkedInEmp ? checkedInEmp : emp;
+    });
+    
+    const deptEmployees = effectiveEmployees.filter(e => e.통제단편성부 === deptName);
 
     // 응소 여부 확인 함수
     const getCheckInStatus = (empId: string) => {
@@ -28,6 +34,11 @@ export default function DeptCheckInList({ deptName, onClose }: DeptCheckInListPr
     const getEmployeeMission = (empId: string) => {
         const emp = deptEmployees.find(e => e.id === empId);
         if (!emp) return null;
+
+        // 부서 변경 등으로 지정된 커스텀 임무코드가 있다면 최우선 적용
+        if ('customMissionCode' in emp && emp.customMissionCode) {
+            return getMissionByCode(excelData.missions, emp.customMissionCode as string);
+        }
 
         const checkInStatus = getCheckInStatus(empId);
         // 응소자는 체크인 시 선택한 근무형태에 맞는 임무코드 사용
