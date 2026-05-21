@@ -22,7 +22,19 @@ export default function DeptCheckInList({ deptName, onClose }: DeptCheckInListPr
         return checkedInEmp ? checkedInEmp : emp;
     });
     
-    const deptEmployees = effectiveEmployees.filter(e => e.통제단편성부 === deptName);
+    const deptEmployees = effectiveEmployees
+        .filter(e => e.통제단편성부 === deptName)
+        .sort((a, b) => {
+            const aIsLeader = (a.통제단편성부 === '대응계획부' && a.성명 === '박종도') || 
+                              (a.통제단편성부 === '자원지원부' && a.성명 === '강승주') ||
+                              (a.통제단편성부 === '본서 상황관리' && a.성명 === '강승주');
+            const bIsLeader = (b.통제단편성부 === '대응계획부' && b.성명 === '박종도') || 
+                              (b.통제단편성부 === '자원지원부' && b.성명 === '강승주') ||
+                              (b.통제단편성부 === '본서 상황관리' && b.성명 === '강승주');
+            if (aIsLeader && !bIsLeader) return -1;
+            if (!aIsLeader && bIsLeader) return 1;
+            return 0;
+        });
 
     // 응소 여부 확인 함수
     const getCheckInStatus = (empId: string) => {
@@ -225,29 +237,45 @@ export default function DeptCheckInList({ deptName, onClose }: DeptCheckInListPr
                     {deptEmployees.length > 0 ? (
                         <div style={{ display: 'flex', flexDirection: 'column', gap: isGroupedDept ? '16px' : '8px' }}>
                             {isGroupedDept ? (
-                                Object.entries(groupedEmployees).map(([missionName, group], gIdx) => (
-                                    <div key={gIdx} style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                                        {/* 세부 임무 뱃지 / 현황 */}
-                                        <div style={{ 
-                                            display: 'flex', 
-                                            alignItems: 'center', 
-                                            justifyContent: 'space-between',
-                                            padding: '4px 8px',
-                                            borderBottom: '2px solid #eee',
-                                            marginBottom: '4px'
-                                        }}>
-                                            <div style={{ fontWeight: 'bold', fontSize: '14px', color: '#333' }}>
-                                                🔹 {missionName}
-                                            </div>
-                                            <div style={{ fontSize: '13px', color: '#666', fontWeight: 500 }}>
-                                                {group.checkedInCount}/{group.employees.length}명
-                                            </div>
-                                        </div>
+                                Object.entries(groupedEmployees)
+                                    .sort(([aName], [bName]) => {
+                                        // '언론대응'이 있는 경우 최상단으로 정렬
+                                        const aIsPress = aName === '언론대응';
+                                        const bIsPress = bName === '언론대응';
+                                        if (aIsPress && !bIsPress) return -1;
+                                        if (!aIsPress && bIsPress) return 1;
 
-                                        {/* 해당 임무 소속 직원들 */}
-                                        {group.employees.map(renderEmployeeCard)}
-                                    </div>
-                                ))
+                                        // '부 관리' 또는 '총괄'이 포함된 경우 다음 순위로 정렬
+                                        const aIsManager = aName.includes('부 관리') || aName.includes('총괄');
+                                        const bIsManager = bName.includes('부 관리') || bName.includes('총괄');
+                                        if (aIsManager && !bIsManager) return -1;
+                                        if (!aIsManager && bIsManager) return 1;
+                                        
+                                        return 0;
+                                    })
+                                    .map(([missionName, group], gIdx) => (
+                                        <div key={gIdx} style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                                            {/* 세부 임무 뱃지 / 현황 */}
+                                            <div style={{ 
+                                                display: 'flex', 
+                                                alignItems: 'center', 
+                                                justifyContent: 'space-between',
+                                                padding: '4px 8px',
+                                                borderBottom: '2px solid #eee',
+                                                marginBottom: '4px'
+                                            }}>
+                                                <div style={{ fontWeight: 'bold', fontSize: '14px', color: '#333' }}>
+                                                    🔹 {missionName}
+                                                </div>
+                                                <div style={{ fontSize: '13px', color: '#666', fontWeight: 500 }}>
+                                                    {group.checkedInCount}/{group.employees.length}명
+                                                </div>
+                                            </div>
+
+                                            {/* 해당 임무 소속 직원들 */}
+                                            {group.employees.map(renderEmployeeCard)}
+                                        </div>
+                                    ))
                             ) : (
                                 deptEmployees.map(renderEmployeeCard)
                             )}
