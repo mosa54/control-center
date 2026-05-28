@@ -235,6 +235,8 @@ export function AccidentPreview({ data }: { data: AccidentReportData | null }) {
                         <img
                             src={file.fileData}
                             alt={`보고서 ${i + 1}`}
+                            loading="eager"
+                            decoding="async"
                             style={{
                                 display: 'block',
                                 width: '100%',

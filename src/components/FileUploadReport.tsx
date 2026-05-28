@@ -232,6 +232,8 @@ export function FilePreview({ data }: { data: ReportData | null }) {
                         <img
                             src={file.fileData}
                             alt={`파일 ${i + 1}`}
+                            loading="eager"
+                            decoding="async"
                             style={{
                                 display: 'block',
                                 width: '100%',

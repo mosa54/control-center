@@ -1,6 +1,8 @@
 'use client';
 
 let pdfViewerPromise: Promise<void> | null = null;
+const PDF_WORKER_SRC = '/pdf.worker.min.mjs';
+const PDF_WORKER_LINK_ID = 'control-center-pdf-worker-preload';
 
 export interface ReportPreviewFileItem {
     fileName: string;
@@ -32,9 +34,18 @@ export function preloadPdfViewer(): Promise<void> {
         return Promise.resolve();
     }
 
+    const existingLink = document.getElementById(PDF_WORKER_LINK_ID);
+    if (!existingLink) {
+        const link = document.createElement('link');
+        link.id = PDF_WORKER_LINK_ID;
+        link.rel = 'modulepreload';
+        link.href = PDF_WORKER_SRC;
+        document.head.appendChild(link);
+    }
+
     if (!pdfViewerPromise) {
         pdfViewerPromise = import('react-pdf').then(({ pdfjs }) => {
-            pdfjs.GlobalWorkerOptions.workerSrc = `https://unpkg.com/pdfjs-dist@${pdfjs.version}/build/pdf.worker.min.mjs`;
+            pdfjs.GlobalWorkerOptions.workerSrc = PDF_WORKER_SRC;
         });
     }
 
