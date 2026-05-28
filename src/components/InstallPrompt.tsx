@@ -151,7 +151,7 @@ export default function InstallPrompt() {
                     lineHeight: '1.5'
                 }}>
                     브라우저 하단의 <strong>공유 버튼</strong> <span style={{ fontSize: '16px' }}>⎋</span> 을 누르고<br />
-                    <strong>'홈 화면에 추가'</strong>를 선택해 주세요.
+                    <strong>&apos;홈 화면에 추가&apos;</strong>를 선택해 주세요.
                 </div>
             ) : (
                 <button

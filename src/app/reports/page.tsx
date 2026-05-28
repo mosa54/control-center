@@ -1,40 +1,162 @@
 'use client';
 
-import { useState } from 'react';
+import { useCallback, useRef, useState } from 'react';
 import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
 import { Suspense } from 'react';
 import { supabase } from '@/lib/supabase';
 import FullscreenOverlay from '@/components/FullscreenOverlay';
 import { FilePreview } from '@/components/FileUploadReport';
+import { normalizeReportFileData, preloadPdfViewer, reportHasPdf, type NormalizedReportFileData } from '@/lib/pdfPreview';
+import type { CasualtyReportData } from './casualty/page';
+
+type PreviewType = 'accident' | 'casualty' | 'building-register' | 'building-plan' | 'misc-docs' | 'response-plan' | 'field-command' | 'resource-support';
+type PreviewStatus = 'idle' | 'loading' | 'ready' | 'empty' | 'error';
+
+interface PreviewCacheEntry {
+    data: PreviewData;
+    lastSavedAt: string;
+}
+
+type PreviewData = NormalizedReportFileData | CasualtyReportData;
 
 function ReportsContent() {
     const searchParams = useSearchParams();
     const isObserver = searchParams.get('role') === 'observer';
     const roleParam = isObserver ? '?role=observer' : '';
 
-    const [previewType, setPreviewType] = useState<'accident' | 'casualty' | 'building-register' | 'building-plan' | 'misc-docs' | 'response-plan' | 'field-command' | 'resource-support' | null>(null);
-    const [previewData, setPreviewData] = useState<any>(null);
+    const [previewType, setPreviewType] = useState<PreviewType | null>(null);
+    const [previewData, setPreviewData] = useState<PreviewData | null>(null);
     const [lastSavedAt, setLastSavedAt] = useState<string>('');
+    const [previewStatus, setPreviewStatus] = useState<PreviewStatus>('idle');
+    const previewCacheRef = useRef<Partial<Record<PreviewType, PreviewCacheEntry>>>({});
+    const previewRequestRef = useRef<Partial<Record<PreviewType, Promise<PreviewCacheEntry | null>>>>({});
+    const openRequestIdRef = useRef(0);
 
-    const handlePreview = async (type: 'accident' | 'casualty' | 'building-register' | 'building-plan' | 'misc-docs' | 'response-plan' | 'field-command' | 'resource-support') => {
-        const { data: row } = await supabase
-            .from('reports')
-            .select('data, updated_at')
-            .eq('id', type)
-            .single();
-
-        if (row?.data) {
-            setPreviewData(row.data);
-            if (row.updated_at) {
-                const d = new Date(row.updated_at);
-                setLastSavedAt(`${d.getFullYear()}. ${d.getMonth() + 1}. ${d.getDate()}. ${d.getHours().toString().padStart(2, '0')}:${d.getMinutes().toString().padStart(2, '0')}`);
-            }
-        } else {
-            setPreviewData(null);
+    const formatUpdatedAt = useCallback((value?: string | null) => {
+        if (!value) {
+            return '';
         }
+
+        const d = new Date(value);
+        return `${d.getFullYear()}. ${d.getMonth() + 1}. ${d.getDate()}. ${d.getHours().toString().padStart(2, '0')}:${d.getMinutes().toString().padStart(2, '0')}`;
+    }, []);
+
+    const fetchPreviewData = useCallback(async (type: PreviewType): Promise<PreviewCacheEntry | null> => {
+        const cached = previewCacheRef.current[type];
+        if (cached) {
+            return cached;
+        }
+
+        const pending = previewRequestRef.current[type];
+        if (pending) {
+            return pending;
+        }
+
+        const request: Promise<PreviewCacheEntry | null> = (async () => {
+            try {
+                const { data: row, error } = await supabase
+                    .from('reports')
+                    .select('data, updated_at')
+                    .eq('id', type)
+                    .single();
+
+                if (error) {
+                    throw error;
+                }
+
+                if (!row?.data) {
+                    return null;
+                }
+
+                const normalizedData = type === 'casualty'
+                    ? row.data
+                    : normalizeReportFileData(row.data);
+
+                if (!normalizedData) {
+                    return null;
+                }
+
+                const entry = {
+                    data: normalizedData,
+                    lastSavedAt: formatUpdatedAt(row.updated_at),
+                };
+
+                previewCacheRef.current[type] = entry;
+
+                if (reportHasPdf(normalizedData)) {
+                    void preloadPdfViewer();
+                }
+
+                return entry;
+            } finally {
+                delete previewRequestRef.current[type];
+            }
+        })();
+
+        previewRequestRef.current[type] = request;
+        return request;
+    }, [formatUpdatedAt]);
+
+    const warmPreview = useCallback((type: PreviewType) => {
+        void fetchPreviewData(type).catch(() => null);
+    }, [fetchPreviewData]);
+
+    const handlePreview = useCallback(async (type: PreviewType) => {
+        const requestId = ++openRequestIdRef.current;
         setPreviewType(type);
-    };
+
+        const cached = previewCacheRef.current[type];
+        if (cached) {
+            setPreviewData(cached.data);
+            setLastSavedAt(cached.lastSavedAt);
+            setPreviewStatus('ready');
+
+            if (reportHasPdf(cached.data)) {
+                void preloadPdfViewer();
+            }
+            return;
+        }
+
+        setPreviewData(null);
+        setLastSavedAt('');
+        setPreviewStatus('loading');
+
+        try {
+            const entry = await fetchPreviewData(type);
+            if (openRequestIdRef.current !== requestId) {
+                return;
+            }
+
+            if (!entry) {
+                setPreviewData(null);
+                setLastSavedAt('');
+                setPreviewStatus('empty');
+                return;
+            }
+
+            setPreviewData(entry.data);
+            setLastSavedAt(entry.lastSavedAt);
+            setPreviewStatus('ready');
+        } catch (error) {
+            if (openRequestIdRef.current !== requestId) {
+                return;
+            }
+
+            console.error('Failed to load report preview:', error);
+            setPreviewData(null);
+            setLastSavedAt('');
+            setPreviewStatus('error');
+        }
+    }, [fetchPreviewData]);
+
+    const closePreview = useCallback(() => {
+        openRequestIdRef.current += 1;
+        setPreviewType(null);
+        setPreviewData(null);
+        setLastSavedAt('');
+        setPreviewStatus('idle');
+    }, []);
 
     return (
         <div className="page">
@@ -61,6 +183,8 @@ function ReportsContent() {
                         <button
                             className="report-preview-btn"
                             onClick={() => handlePreview('accident')}
+                            onPointerDown={() => warmPreview('accident')}
+                            onMouseEnter={() => warmPreview('accident')}
                             title="보고서 보기"
                         >
                             👁️
@@ -79,6 +203,8 @@ function ReportsContent() {
                         <button
                             className="report-preview-btn"
                             onClick={() => handlePreview('casualty')}
+                            onPointerDown={() => warmPreview('casualty')}
+                            onMouseEnter={() => warmPreview('casualty')}
                             title="보고서 보기"
                         >
                             👁️
@@ -97,6 +223,8 @@ function ReportsContent() {
                         <button
                             className="report-preview-btn"
                             onClick={() => handlePreview('building-register')}
+                            onPointerDown={() => warmPreview('building-register')}
+                            onMouseEnter={() => warmPreview('building-register')}
                             title="파일 보기"
                         >
                             👁️
@@ -115,6 +243,8 @@ function ReportsContent() {
                         <button
                             className="report-preview-btn"
                             onClick={() => handlePreview('building-plan')}
+                            onPointerDown={() => warmPreview('building-plan')}
+                            onMouseEnter={() => warmPreview('building-plan')}
                             title="파일 보기"
                         >
                             👁️
@@ -133,6 +263,8 @@ function ReportsContent() {
                         <button
                             className="report-preview-btn"
                             onClick={() => handlePreview('misc-docs')}
+                            onPointerDown={() => warmPreview('misc-docs')}
+                            onMouseEnter={() => warmPreview('misc-docs')}
                             title="파일 보기"
                         >
                             👁️
@@ -151,6 +283,8 @@ function ReportsContent() {
                         <button
                             className="report-preview-btn"
                             onClick={() => handlePreview('response-plan')}
+                            onPointerDown={() => warmPreview('response-plan')}
+                            onMouseEnter={() => warmPreview('response-plan')}
                             title="파일 보기"
                         >
                             👁️
@@ -169,6 +303,8 @@ function ReportsContent() {
                         <button
                             className="report-preview-btn"
                             onClick={() => handlePreview('field-command')}
+                            onPointerDown={() => warmPreview('field-command')}
+                            onMouseEnter={() => warmPreview('field-command')}
                             title="파일 보기"
                         >
                             👁️
@@ -187,6 +323,8 @@ function ReportsContent() {
                         <button
                             className="report-preview-btn"
                             onClick={() => handlePreview('resource-support')}
+                            onPointerDown={() => warmPreview('resource-support')}
+                            onMouseEnter={() => warmPreview('resource-support')}
                             title="파일 보기"
                         >
                             👁️
@@ -197,8 +335,18 @@ function ReportsContent() {
 
             {/* 전체화면 미리보기 */}
             {previewType && (
-                <FullscreenOverlay onClose={() => { setPreviewType(null); setPreviewData(null); }}>
-                    {!previewData ? (
+                <FullscreenOverlay onClose={closePreview}>
+                    {previewStatus === 'loading' ? (
+                        <div style={{ textAlign: 'center', padding: '48px 16px' }}>
+                            <p style={{ fontSize: '48px', marginBottom: '16px' }}>⏳</p>
+                            <p style={{ fontWeight: 700, fontSize: '18px', marginBottom: '8px' }}>
+                                보고서를 불러오는 중입니다.
+                            </p>
+                            <p style={{ color: '#757575', fontSize: '14px' }}>
+                                잠시만 기다려 주세요.
+                            </p>
+                        </div>
+                    ) : previewStatus === 'empty' ? (
                         <div style={{ textAlign: 'center', padding: '48px 16px' }}>
                             <p style={{ fontSize: '48px', marginBottom: '16px' }}>📋</p>
                             <p style={{ fontWeight: 700, fontSize: '18px', marginBottom: '8px' }}>
@@ -208,12 +356,22 @@ function ReportsContent() {
                                 보고서를 먼저 작성하고 저장하세요
                             </p>
                         </div>
+                    ) : previewStatus === 'error' ? (
+                        <div style={{ textAlign: 'center', padding: '48px 16px' }}>
+                            <p style={{ fontSize: '48px', marginBottom: '16px' }}>⚠️</p>
+                            <p style={{ fontWeight: 700, fontSize: '18px', marginBottom: '8px' }}>
+                                보고서를 불러오지 못했습니다.
+                            </p>
+                            <p style={{ color: '#757575', fontSize: '14px' }}>
+                                다시 시도해 주세요.
+                            </p>
+                        </div>
                     ) : previewType === 'accident' ? (
-                        <AccidentPreviewInline data={previewData} />
+                        <AccidentPreviewInline data={previewData as NormalizedReportFileData | null} />
                     ) : previewType === 'casualty' ? (
-                        <CasualtyPreviewInline data={previewData} lastSavedAt={lastSavedAt} />
+                        <CasualtyPreviewInline data={previewData as CasualtyReportData | null} lastSavedAt={lastSavedAt} />
                     ) : (
-                        <FilePreview data={previewData} />
+                        <FilePreview data={previewData as NormalizedReportFileData | null} />
                     )}
                 </FullscreenOverlay>
             )}
@@ -224,19 +382,24 @@ function ReportsContent() {
 import { AccidentPreview } from './accident/page';
 
 /* 사고상황보고서 인라인 미리보기 (파일 업로드 버전) */
-function AccidentPreviewInline({ data }: { data: any }) {
+function AccidentPreviewInline({ data }: { data: NormalizedReportFileData | null }) {
     // data is now { fileName, fileType, fileData, updatedAt }
     // We can reuse the same preview component from accident page
     return <AccidentPreview data={data} />;
 }
 
 /* 사상자 이송현황 인라인 미리보기 (간략 버전) */
-function CasualtyPreviewInline({ data, lastSavedAt }: { data: any, lastSavedAt?: string }) {
+function CasualtyPreviewInline({ data, lastSavedAt }: { data: CasualtyReportData | null, lastSavedAt?: string }) {
+    if (!data) {
+        return null;
+    }
+
+    const rows = data.rows ?? [];
     const counts = {
-        긴급: data.rows?.filter((r: any) => r.중증도 === '긴급').length || 0,
-        응급: data.rows?.filter((r: any) => r.중증도 === '응급').length || 0,
-        비응급: data.rows?.filter((r: any) => r.중증도 === '비응급').length || 0,
-        지연: data.rows?.filter((r: any) => r.중증도 === '지연').length || 0,
+        긴급: rows.filter((r) => r.중증도 === '긴급').length,
+        응급: rows.filter((r) => r.중증도 === '응급').length,
+        비응급: rows.filter((r) => r.중증도 === '비응급').length,
+        지연: rows.filter((r) => r.중증도 === '지연').length,
     };
     const totalCount = counts.긴급 + counts.응급 + counts.비응급 + counts.지연;
 
@@ -292,7 +455,7 @@ function CasualtyPreviewInline({ data, lastSavedAt }: { data: any, lastSavedAt?:
                         </tr>
                     </thead>
                     <tbody>
-                        {data.rows?.map((row: any, i: number) => (
+                        {rows.map((row, i) => (
                             <tr key={i}>
                                 <td>{i + 1}</td>
                                 <td>{row.성명}</td>

@@ -7,39 +7,17 @@ import { useSearchParams } from 'next/navigation';
 import { Suspense } from 'react';
 import FullscreenOverlay from '@/components/FullscreenOverlay';
 import dynamic from 'next/dynamic';
+import { normalizeReportFileData, preloadPdfViewer, reportHasPdf, type NormalizedReportFileData, type ReportPreviewFileItem } from '@/lib/pdfPreview';
 import 'react-pdf/dist/Page/AnnotationLayer.css';
 import 'react-pdf/dist/Page/TextLayer.css';
 
 const DocumentComp = dynamic(() => import('react-pdf').then(mod => mod.Document), { ssr: false });
 const PageComp = dynamic(() => import('react-pdf').then(mod => mod.Page), { ssr: false });
 
-interface FileItem {
-    fileName: string;
-    fileType: string;
-    fileData: string;
-}
+type ReportData = NormalizedReportFileData;
 
-interface ReportData {
-    files: FileItem[];
-    updatedAt: string;
-}
-
-function migrateData(raw: any): ReportData | null {
-    if (!raw) return null;
-    if (raw.files && Array.isArray(raw.files)) {
-        return raw as ReportData;
-    }
-    if (raw.fileName && raw.fileData) {
-        return {
-            files: [{
-                fileName: raw.fileName,
-                fileType: raw.fileType,
-                fileData: raw.fileData,
-            }],
-            updatedAt: raw.updatedAt || new Date().toISOString(),
-        };
-    }
-    return null;
+function migrateData(raw: unknown): ReportData | null {
+    return normalizeReportFileData(raw);
 }
 
 function PinModal({ onSuccess, onCancel }: { onSuccess: () => void; onCancel: () => void }) {
@@ -131,15 +109,22 @@ export function FilePreview({ data }: { data: ReportData | null }) {
     const [numPages, setNumPages] = useState<number>();
     const [containerWidth, setContainerWidth] = useState<number>(800);
     const [workerReady, setWorkerReady] = useState(false);
+    const firstFile = data?.files?.[0];
+    const isPdf = firstFile?.fileType === 'application/pdf';
+    const pdfFileData = isPdf ? firstFile?.fileData : undefined;
+    const effectiveWorkerReady = !isPdf || workerReady;
+    const allImages = data?.files?.every(f => f.fileType.startsWith('image/')) ?? false;
 
     useEffect(() => {
         let isMounted = true;
-        import('react-pdf').then(({ pdfjs }) => {
-            if (isMounted) {
-                pdfjs.GlobalWorkerOptions.workerSrc = `//unpkg.com/pdfjs-dist@${pdfjs.version}/build/pdf.worker.min.mjs`;
-                setWorkerReady(true);
-            }
-        });
+
+        if (isPdf) {
+            void preloadPdfViewer().then(() => {
+                if (isMounted) {
+                    setWorkerReady(true);
+                }
+            });
+        }
 
         const handleResize = () => setContainerWidth(Math.min(window.innerWidth - 16, 800));
         handleResize();
@@ -148,7 +133,7 @@ export function FilePreview({ data }: { data: ReportData | null }) {
             isMounted = false;
             window.removeEventListener('resize', handleResize);
         }
-    }, []);
+    }, [isPdf, pdfFileData]);
 
     function onDocumentLoadSuccess({ numPages }: { numPages: number }): void {
         setNumPages(numPages);
@@ -164,10 +149,6 @@ export function FilePreview({ data }: { data: ReportData | null }) {
             </div>
         );
     }
-
-    const firstFile = data.files[0];
-    const isPdf = firstFile.fileType === 'application/pdf';
-    const allImages = data.files.every(f => f.fileType.startsWith('image/'));
 
     if (isPdf) {
         return (
@@ -192,11 +173,11 @@ export function FilePreview({ data }: { data: ReportData | null }) {
                 </div>
 
                 <div style={{ flex: 1, overflow: 'auto', background: '#e8e8e8', padding: '0' }}>
-                    {!workerReady && (
+                    {!effectiveWorkerReady && (
                         <div style={{ padding: '48px', textAlign: 'center', color: '#757575' }}>PDF 뷰어 초기화 중...</div>
                     )}
 
-                    {workerReady && (
+                    {effectiveWorkerReady && (
                         <DocumentComp
                             file={firstFile.fileData}
                             onLoadSuccess={onDocumentLoadSuccess}
@@ -298,6 +279,7 @@ function FileUploadReportContent({ reportId, title, label, icon }: FileUploadRep
     const [isDbLoaded, setIsDbLoaded] = useState(false);
 
     const fileInputRef = useRef<HTMLInputElement>(null);
+    const hasPdf = reportHasPdf(data);
 
     useEffect(() => {
         const loadData = async () => {
@@ -320,9 +302,10 @@ function FileUploadReportContent({ reportId, title, label, icon }: FileUploadRep
                 schema: 'public',
                 table: 'reports',
                 filter: `id=eq.${reportId}`,
-            }, (payload: any) => {
-                if (payload.new?.data) {
-                    setData(migrateData(payload.new.data));
+            }, (payload) => {
+                const row = payload.new as { data?: unknown } | null;
+                if (row?.data) {
+                    setData(migrateData(row.data));
                 } else {
                     setData(null);
                 }
@@ -331,6 +314,12 @@ function FileUploadReportContent({ reportId, title, label, icon }: FileUploadRep
 
         return () => { supabase.removeChannel(channel); };
     }, [reportId]);
+
+    useEffect(() => {
+        if (hasPdf) {
+            void preloadPdfViewer();
+        }
+    }, [hasPdf]);
 
     const [isDragging, setIsDragging] = useState(false);
 
@@ -420,7 +409,7 @@ function FileUploadReportContent({ reportId, title, label, icon }: FileUploadRep
                 fileName: file.name,
                 fileType: finalType,
                 fileData: base64String,
-            } as FileItem;
+            } as ReportPreviewFileItem;
         })).then((newItems) => {
             setData(prev => {
                 const isPdfUpload = newItems.some(item => item.fileType === 'application/pdf');
@@ -480,6 +469,18 @@ function FileUploadReportContent({ reportId, title, label, icon }: FileUploadRep
         setShowPinModal(true);
     };
 
+    const handleOpenFullscreen = useCallback(() => {
+        if (!data?.files?.length) {
+            return;
+        }
+
+        if (hasPdf) {
+            void preloadPdfViewer();
+        }
+
+        setShowFullscreen(true);
+    }, [data, hasPdf]);
+
     const hasFiles = data && data.files && data.files.length > 0;
     const fileCount = data?.files?.length || 0;
     const fileNames = data?.files?.map(f => f.fileName).join(', ') || '';
@@ -507,7 +508,7 @@ function FileUploadReportContent({ reportId, title, label, icon }: FileUploadRep
                         <button
                             className="btn btn-secondary btn-block"
                             style={{ marginTop: '8px' }}
-                            onClick={() => setShowFullscreen(true)}
+                            onClick={handleOpenFullscreen}
                             disabled={!hasFiles}
                         >
                             👁️ 파일 보기
@@ -552,7 +553,7 @@ function FileUploadReportContent({ reportId, title, label, icon }: FileUploadRep
                 </button>
                 <button
                     className="btn btn-primary"
-                    onClick={() => setShowFullscreen(true)}
+                    onClick={handleOpenFullscreen}
                     disabled={!hasFiles}
                 >
                     👁️ 파일 보기

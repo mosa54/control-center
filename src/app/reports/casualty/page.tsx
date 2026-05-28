@@ -7,7 +7,7 @@ import { useSearchParams } from 'next/navigation';
 import { Suspense } from 'react';
 import FullscreenOverlay from '@/components/FullscreenOverlay';
 
-interface CasualtyRow {
+export interface CasualtyRow {
     성명: string;
     성별: '남' | '여' | '';
     연령: string;
@@ -220,11 +220,12 @@ function CasualtyReportContent() {
                 schema: 'public',
                 table: 'reports',
                 filter: 'id=eq.casualty',
-            }, (payload: any) => {
-                if (payload.new?.data) {
-                    setData(payload.new.data as CasualtyReportData);
-                    if (payload.new.updated_at) {
-                        const d = new Date(payload.new.updated_at);
+            }, (payload) => {
+                const row = payload.new as { data?: unknown; updated_at?: string } | null;
+                if (row?.data) {
+                    setData(row.data as CasualtyReportData);
+                    if (row.updated_at) {
+                        const d = new Date(row.updated_at);
                         setLastSavedAt(`${d.getFullYear()}. ${d.getMonth() + 1}. ${d.getDate()}. ${d.getHours().toString().padStart(2, '0')}:${d.getMinutes().toString().padStart(2, '0')}`);
                     }
                 }
@@ -234,10 +235,10 @@ function CasualtyReportContent() {
         return () => { supabase.removeChannel(channel); };
     }, []);
 
-    const updateRow = (index: number, field: keyof CasualtyRow, value: any) => {
+    const updateRow = (index: number, field: keyof CasualtyRow, value: string) => {
         setData(prev => {
             const newRows = [...prev.rows];
-            newRows[index] = { ...newRows[index], [field]: value };
+            newRows[index] = { ...newRows[index], [field]: value } as CasualtyRow;
             return { ...prev, rows: newRows };
         });
     };

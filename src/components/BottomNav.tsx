@@ -8,7 +8,7 @@ import { useApp } from '@/lib/store';
 function BottomNavInner() {
     const pathname = usePathname();
     const searchParams = useSearchParams();
-    const { currentEmployee } = useApp();
+    const { currentEmployee, getDeliveredEvents } = useApp();
 
     // 체크인 과정에서는 항상 숨김
     if (pathname.startsWith('/checkin')) {
@@ -24,7 +24,6 @@ function BottomNavInner() {
     // 참관 모드(Observer)로 진입한 사용자는 탭바를 눌러도 권한이 유지되도록 파라미터 보존
     const roleParam = isObserver ? '?role=observer' : '';
 
-    const { getDeliveredEvents } = useApp();
     const eventCount = getDeliveredEvents().length;
 
     const navItems = [

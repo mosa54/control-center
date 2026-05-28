@@ -216,9 +216,9 @@ export default function MediaResponsePage() {
                             <div style={{ fontWeight: 800, color: '#E65100', marginBottom: '8px', fontSize: '14px' }}>📢 답변 포인트 (단정 절대 금지)</div>
                             <div style={{ fontSize: '13px', lineHeight: '1.6', color: '#5D4037' }}>
                                 <div style={{ marginBottom: '4px' }}>• 사실 설명 → 단정 회피 → 조사로 전환 → 동일 답변 유지</div>
-                                <div>• "현재 확인된 사실을 기준으로 말씀드리면..."</div>
-                                <div>• "현 단계에서 단정적으로 말씀드리기는 어렵습니다."</div>
-                                <div>• "구체적 사항은 관계기관 조사 후 말씀드리겠습니다."</div>
+                                <div>• &quot;현재 확인된 사실을 기준으로 말씀드리면...&quot;</div>
+                                <div>• &quot;현 단계에서 단정적으로 말씀드리기는 어렵습니다.&quot;</div>
+                                <div>• &quot;구체적 사항은 관계기관 조사 후 말씀드리겠습니다.&quot;</div>
                             </div>
                         </div>
                     )}

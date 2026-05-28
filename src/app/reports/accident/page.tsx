@@ -6,48 +6,13 @@ import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
 import { Suspense } from 'react';
 import FullscreenOverlay from '@/components/FullscreenOverlay';
+import { normalizeReportFileData, preloadPdfViewer, reportHasPdf, type NormalizedReportFileData, type ReportPreviewFileItem } from '@/lib/pdfPreview';
 
-interface FileItem {
-    fileName: string;
-    fileType: string;
-    fileData: string; // Base64 encoded string
-}
-
-// 새로운 다중 파일 형식
-interface AccidentReportDataMulti {
-    files: FileItem[];
-    updatedAt: string;
-}
-
-// 기존 단일 파일 형식 (하위 호환용)
-interface AccidentReportDataLegacy {
-    fileName: string;
-    fileType: string;
-    fileData: string;
-    updatedAt: string;
-}
-
-type AccidentReportData = AccidentReportDataMulti;
+type AccidentReportData = NormalizedReportFileData;
 
 // 기존 단일 파일 데이터를 새 형식으로 변환
-function migrateData(raw: any): AccidentReportData | null {
-    if (!raw) return null;
-    // 이미 새 형식인 경우
-    if (raw.files && Array.isArray(raw.files)) {
-        return raw as AccidentReportData;
-    }
-    // 기존 단일 파일 형식인 경우
-    if (raw.fileName && raw.fileData) {
-        return {
-            files: [{
-                fileName: raw.fileName,
-                fileType: raw.fileType,
-                fileData: raw.fileData,
-            }],
-            updatedAt: raw.updatedAt || new Date().toISOString(),
-        };
-    }
-    return null;
+function migrateData(raw: unknown): AccidentReportData | null {
+    return normalizeReportFileData(raw);
 }
 
 function PinModal({ onSuccess, onCancel }: { onSuccess: () => void; onCancel: () => void }) {
@@ -145,15 +110,22 @@ export function AccidentPreview({ data }: { data: AccidentReportData | null }) {
     const [numPages, setNumPages] = useState<number>();
     const [containerWidth, setContainerWidth] = useState<number>(800);
     const [workerReady, setWorkerReady] = useState(false);
+    const firstFile = data?.files?.[0];
+    const isPdf = firstFile?.fileType === 'application/pdf';
+    const pdfFileData = isPdf ? firstFile?.fileData : undefined;
+    const effectiveWorkerReady = !isPdf || workerReady;
+    const allImages = data?.files?.every(f => f.fileType.startsWith('image/')) ?? false;
 
     useEffect(() => {
         let isMounted = true;
-        import('react-pdf').then(({ pdfjs }) => {
-            if (isMounted) {
-                pdfjs.GlobalWorkerOptions.workerSrc = `//unpkg.com/pdfjs-dist@${pdfjs.version}/build/pdf.worker.min.mjs`;
-                setWorkerReady(true);
-            }
-        });
+
+        if (isPdf) {
+            void preloadPdfViewer().then(() => {
+                if (isMounted) {
+                    setWorkerReady(true);
+                }
+            });
+        }
 
         const handleResize = () => setContainerWidth(Math.min(window.innerWidth - 16, 800));
         handleResize();
@@ -162,7 +134,7 @@ export function AccidentPreview({ data }: { data: AccidentReportData | null }) {
             isMounted = false;
             window.removeEventListener('resize', handleResize);
         }
-    }, []);
+    }, [isPdf, pdfFileData]);
 
     function onDocumentLoadSuccess({ numPages }: { numPages: number }): void {
         setNumPages(numPages);
@@ -180,10 +152,6 @@ export function AccidentPreview({ data }: { data: AccidentReportData | null }) {
     }
 
     // PDF인 경우 (첫 번째 파일 기준)
-    const firstFile = data.files[0];
-    const isPdf = firstFile.fileType === 'application/pdf';
-    const allImages = data.files.every(f => f.fileType.startsWith('image/'));
-
     if (isPdf) {
         return (
             <div className="fullscreen-report" style={{ padding: 0, height: '100%', display: 'flex', flexDirection: 'column' }}>
@@ -207,11 +175,11 @@ export function AccidentPreview({ data }: { data: AccidentReportData | null }) {
                 </div>
 
                 <div style={{ flex: 1, overflow: 'auto', background: '#e8e8e8', padding: '0' }}>
-                    {!workerReady && (
+                    {!effectiveWorkerReady && (
                         <div style={{ padding: '48px', textAlign: 'center', color: '#757575' }}>PDF 뷰어 초기화 중...</div>
                     )}
 
-                    {workerReady && (
+                    {effectiveWorkerReady && (
                         <DocumentComp
                             file={firstFile.fileData}
                             onLoadSuccess={onDocumentLoadSuccess}
@@ -307,6 +275,7 @@ function AccidentReportContent() {
     const [isDbLoaded, setIsDbLoaded] = useState(false);
 
     const fileInputRef = useRef<HTMLInputElement>(null);
+    const hasPdf = reportHasPdf(data);
 
     // DB에서 데이터 로드 + 실시간 구독
     useEffect(() => {
@@ -330,9 +299,10 @@ function AccidentReportContent() {
                 schema: 'public',
                 table: 'reports',
                 filter: 'id=eq.accident',
-            }, (payload: any) => {
-                if (payload.new?.data) {
-                    setData(migrateData(payload.new.data));
+            }, (payload) => {
+                const row = payload.new as { data?: unknown } | null;
+                if (row?.data) {
+                    setData(migrateData(row.data));
                 } else {
                     setData(null);
                 }
@@ -341,6 +311,12 @@ function AccidentReportContent() {
 
         return () => { supabase.removeChannel(channel); };
     }, []);
+
+    useEffect(() => {
+        if (hasPdf) {
+            void preloadPdfViewer();
+        }
+    }, [hasPdf]);
 
     const [isDragging, setIsDragging] = useState(false);
 
@@ -438,7 +414,7 @@ function AccidentReportContent() {
                 fileName: file.name,
                 fileType: finalType,
                 fileData: base64String,
-            } as FileItem;
+            } as ReportPreviewFileItem;
         })).then((newItems) => {
             setData(prev => {
                 // PDF면 교체, 이미지면 추가
@@ -500,6 +476,18 @@ function AccidentReportContent() {
         setShowPinModal(true);
     };
 
+    const handleOpenFullscreen = useCallback(() => {
+        if (!data?.files?.length) {
+            return;
+        }
+
+        if (hasPdf) {
+            void preloadPdfViewer();
+        }
+
+        setShowFullscreen(true);
+    }, [data, hasPdf]);
+
     const hasFiles = data && data.files && data.files.length > 0;
     const fileCount = data?.files?.length || 0;
     const fileNames = data?.files?.map(f => f.fileName).join(', ') || '';
@@ -526,7 +514,7 @@ function AccidentReportContent() {
                         <button
                             className="btn btn-secondary btn-block"
                             style={{ marginTop: '8px' }}
-                            onClick={() => setShowFullscreen(true)}
+                            onClick={handleOpenFullscreen}
                             disabled={!hasFiles}
                         >
                             👁️ 보고서 보기
@@ -572,7 +560,7 @@ function AccidentReportContent() {
                 </button>
                 <button
                     className="btn btn-primary"
-                    onClick={() => setShowFullscreen(true)}
+                    onClick={handleOpenFullscreen}
                     disabled={!hasFiles}
                 >
                     👁️ 보고서 보기
