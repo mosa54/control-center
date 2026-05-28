@@ -16,7 +16,7 @@ export default function RealtimeIndicator() {
     };
 
     return (
-        <div style={{
+        <div className="realtime-indicator" style={{
             position: 'fixed',
             top: '14px',
             right: '14px',
@@ -28,7 +28,7 @@ export default function RealtimeIndicator() {
             background: 'rgba(255,255,255,0.9)',
             borderRadius: '50%',
             boxShadow: '0 2px 8px rgba(0,0,0,0.1)',
-            zIndex: 10000,
+            zIndex: 100,
             border: `1px solid ${getStatusColor()}44`,
             backdropFilter: 'blur(4px)',
             pointerEvents: 'none'

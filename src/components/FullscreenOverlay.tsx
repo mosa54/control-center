@@ -35,6 +35,8 @@ export default function FullscreenOverlay({ onClose, children }: FullscreenOverl
             return;
         }
 
+        document.body.classList.add('fullscreen-overlay-open');
+
         const stateId = `fullscreen-${Date.now()}-${Math.random().toString(36).slice(2)}`;
         const currentState = window.history.state;
         const baseState = typeof currentState === 'object' && currentState !== null ? currentState : {};
@@ -54,6 +56,7 @@ export default function FullscreenOverlay({ onClose, children }: FullscreenOverl
         window.addEventListener('popstate', handlePopState);
         return () => {
             window.removeEventListener('popstate', handlePopState);
+            document.body.classList.remove('fullscreen-overlay-open');
         };
     }, []);
 

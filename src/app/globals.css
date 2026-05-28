@@ -783,6 +783,10 @@ body {
   pointer-events: none;
 }
 
+.fullscreen-overlay-open .realtime-indicator {
+  display: none !important;
+}
+
 .fullscreen-report {
   max-width: 210mm;
   margin: 0 auto;
