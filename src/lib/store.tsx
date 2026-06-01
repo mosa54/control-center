@@ -245,14 +245,6 @@ export function AppProvider({ children }: { children: ReactNode }) {
             )
             .on(
                 'postgres_changes',
-                { event: '*', schema: 'public', table: 'reports' },
-                () => {
-                    console.log('보고서 데이터 변경 감지');
-                    void fetchData();
-                }
-            )
-            .on(
-                'postgres_changes',
                 { event: '*', schema: 'public', table: 'task_checks' },
                 async (payload: any) => {
                     console.log('체크리스트 상태 변경 감지');

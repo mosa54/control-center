@@ -6,7 +6,7 @@ import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
 import { Suspense } from 'react';
 import FullscreenOverlay from '@/components/FullscreenOverlay';
-import { normalizeReportFileData, preloadPdfViewer, reportHasPdf, type NormalizedReportFileData, type ReportPreviewFileItem } from '@/lib/pdfPreview';
+import { normalizeReportFileData, prepareReportFileDataForSave, preloadPdfViewer, reportHasPdf, type NormalizedReportFileData, type ReportPreviewFileItem } from '@/lib/pdfPreview';
 
 type AccidentReportData = NormalizedReportFileData;
 
@@ -293,25 +293,6 @@ function AccidentReportContent() {
             setIsDbLoaded(true);
         };
         loadData();
-
-        const channel = supabase
-            .channel('report-accident')
-            .on('postgres_changes', {
-                event: '*',
-                schema: 'public',
-                table: 'reports',
-                filter: 'id=eq.accident',
-            }, (payload) => {
-                const row = payload.new as { data?: unknown } | null;
-                if (row?.data) {
-                    setData(migrateData(row.data));
-                } else {
-                    setData(null);
-                }
-            })
-            .subscribe();
-
-        return () => { supabase.removeChannel(channel); };
     }, []);
 
     useEffect(() => {
@@ -389,33 +370,30 @@ function AccidentReportContent() {
         // 모든 파일을 읽고 상태 업데이트
         Promise.all(filesToProcess.map(async (file) => {
             const isImage = file.type.startsWith('image/') || file.name.toLowerCase().match(/\.(jpg|jpeg|png|heic)$/i);
-            let base64String = '';
+            let fileData = '';
             let finalType = file.type || (file.name.toLowerCase().endsWith('.pdf') ? 'application/pdf' : 'unknown');
 
             if (isImage) {
                 try {
-                    base64String = await compressImage(file);
+                    fileData = await compressImage(file);
                     if (finalType === 'image/heic') finalType = 'image/jpeg';
                 } catch (e) {
                     console.error('Compression failed', e);
-                    base64String = await new Promise((res) => {
+                    fileData = await new Promise((res) => {
                         const reader = new FileReader();
                         reader.onloadend = () => res(reader.result as string);
                         reader.readAsDataURL(file);
                     });
                 }
             } else {
-                base64String = await new Promise((res) => {
-                    const reader = new FileReader();
-                    reader.onloadend = () => res(reader.result as string);
-                    reader.readAsDataURL(file);
-                });
+                fileData = URL.createObjectURL(file);
             }
 
             return {
                 fileName: file.name,
                 fileType: finalType,
-                fileData: base64String,
+                fileData,
+                sourceFile: isImage ? undefined : file,
             } as ReportPreviewFileItem;
         })).then((newItems) => {
             setData(prev => {
@@ -447,6 +425,10 @@ function AccidentReportContent() {
     const removeFile = (index: number) => {
         setData(prev => {
             if (!prev) return prev;
+            const removedFile = prev.files[index];
+            if (removedFile?.sourceFile && removedFile.fileData.startsWith('blob:')) {
+                URL.revokeObjectURL(removedFile.fileData);
+            }
             const newFiles = prev.files.filter((_, i) => i !== index);
             if (newFiles.length === 0) return null;
             return { ...prev, files: newFiles };
@@ -454,13 +436,14 @@ function AccidentReportContent() {
     };
 
     const handleSave = useCallback(async () => {
-        const saveData = data || { files: [], updatedAt: new Date().toISOString() };
         setSaveStatus('saving');
         try {
+            const saveData = await prepareReportFileDataForSave('accident', data);
             const { error } = await supabase
                 .from('reports')
                 .upsert({ id: 'accident', data: saveData, updated_at: new Date().toISOString() });
             if (error) throw error;
+            setData(saveData);
             setSaveStatus('saved');
             setTimeout(() => setSaveStatus('idle'), 2000);
         } catch (e) {

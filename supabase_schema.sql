@@ -83,3 +83,40 @@ create table if not exists task_checks (
 
 alter table task_checks enable row level security;
 create policy "Enable all for task_checks" on task_checks for all using (true) with check (true);
+
+-- 9. Report file storage bucket
+-- Run this in the Supabase SQL editor to store large PDF/image uploads as files
+-- instead of embedding Base64 strings in reports.data.
+insert into storage.buckets (id, name, public, file_size_limit, allowed_mime_types)
+values (
+  'report-files',
+  'report-files',
+  true,
+  10485760,
+  array['application/pdf', 'image/jpeg', 'image/png', 'image/heic']
+)
+on conflict (id) do update set
+  public = excluded.public,
+  file_size_limit = excluded.file_size_limit,
+  allowed_mime_types = excluded.allowed_mime_types;
+
+drop policy if exists "Enable report file read" on storage.objects;
+create policy "Enable report file read"
+on storage.objects for select
+using (bucket_id = 'report-files');
+
+drop policy if exists "Enable report file insert" on storage.objects;
+create policy "Enable report file insert"
+on storage.objects for insert
+with check (bucket_id = 'report-files');
+
+drop policy if exists "Enable report file update" on storage.objects;
+create policy "Enable report file update"
+on storage.objects for update
+using (bucket_id = 'report-files')
+with check (bucket_id = 'report-files');
+
+drop policy if exists "Enable report file delete" on storage.objects;
+create policy "Enable report file delete"
+on storage.objects for delete
+using (bucket_id = 'report-files');
