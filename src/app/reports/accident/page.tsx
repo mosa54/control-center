@@ -6,7 +6,8 @@ import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
 import { Suspense } from 'react';
 import FullscreenOverlay from '@/components/FullscreenOverlay';
-import { normalizeReportFileData, prepareReportFileDataForSave, preloadPdfViewer, reportHasPdf, type NormalizedReportFileData, type ReportPreviewFileItem } from '@/lib/pdfPreview';
+import { UploadProgressBar } from '@/components/FileUploadReport';
+import { normalizeReportFileData, prepareReportFileDataForSave, preloadPdfViewer, reportHasPdf, type NormalizedReportFileData, type ReportPreviewFileItem, type ReportUploadProgress } from '@/lib/pdfPreview';
 
 type AccidentReportData = NormalizedReportFileData;
 
@@ -275,6 +276,7 @@ function AccidentReportContent() {
     const [data, setData] = useState<AccidentReportData | null>(null);
     const [saveStatus, setSaveStatus] = useState<'idle' | 'saving' | 'saved' | 'error'>('idle');
     const [isDbLoaded, setIsDbLoaded] = useState(false);
+    const [uploadProgress, setUploadProgress] = useState<ReportUploadProgress | null>(null);
 
     const fileInputRef = useRef<HTMLInputElement>(null);
     const hasPdf = reportHasPdf(data);
@@ -437,19 +439,27 @@ function AccidentReportContent() {
 
     const handleSave = useCallback(async () => {
         setSaveStatus('saving');
+        setUploadProgress({ phase: 'uploading', percent: 0 });
         try {
-            const saveData = await prepareReportFileDataForSave('accident', data);
+            const saveData = await prepareReportFileDataForSave('accident', data, setUploadProgress);
             const { error } = await supabase
                 .from('reports')
                 .upsert({ id: 'accident', data: saveData, updated_at: new Date().toISOString() });
             if (error) throw error;
             setData(saveData);
+            setUploadProgress({ phase: 'complete', percent: 100 });
             setSaveStatus('saved');
-            setTimeout(() => setSaveStatus('idle'), 2000);
+            setTimeout(() => {
+                setSaveStatus('idle');
+                setUploadProgress(null);
+            }, 2000);
         } catch (e) {
             console.error('Error saving report:', e);
             setSaveStatus('error');
-            setTimeout(() => setSaveStatus('idle'), 3000);
+            setTimeout(() => {
+                setSaveStatus('idle');
+                setUploadProgress(null);
+            }, 3000);
         }
     }, [data]);
 
@@ -551,6 +561,8 @@ function AccidentReportContent() {
                     👁️ 보고서 보기
                 </button>
             </div>
+
+            <UploadProgressBar progress={uploadProgress} />
 
             <div className="page-content" style={{ padding: '16px 16px 96px 16px' }}>
                 <div className="card">

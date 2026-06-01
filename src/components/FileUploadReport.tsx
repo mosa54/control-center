@@ -7,7 +7,7 @@ import { useSearchParams } from 'next/navigation';
 import { Suspense } from 'react';
 import FullscreenOverlay from '@/components/FullscreenOverlay';
 import dynamic from 'next/dynamic';
-import { normalizeReportFileData, prepareReportFileDataForSave, preloadPdfViewer, reportHasPdf, type NormalizedReportFileData, type ReportPreviewFileItem } from '@/lib/pdfPreview';
+import { normalizeReportFileData, prepareReportFileDataForSave, preloadPdfViewer, reportHasPdf, type NormalizedReportFileData, type ReportPreviewFileItem, type ReportUploadProgress } from '@/lib/pdfPreview';
 import 'react-pdf/dist/Page/AnnotationLayer.css';
 import 'react-pdf/dist/Page/TextLayer.css';
 
@@ -18,6 +18,46 @@ type ReportData = NormalizedReportFileData;
 
 function migrateData(raw: unknown): ReportData | null {
     return normalizeReportFileData(raw);
+}
+
+export function UploadProgressBar({ progress }: { progress: ReportUploadProgress | null }) {
+    if (!progress) {
+        return null;
+    }
+
+    const percent = Math.max(0, Math.min(100, progress.percent));
+    const filePrefix = progress.fileIndex && progress.fileCount
+        ? `${progress.fileIndex}/${progress.fileCount} `
+        : '';
+    const label = progress.phase === 'saving'
+        ? '저장 정보 반영 중'
+        : progress.phase === 'complete'
+            ? '업로드 완료'
+            : `${filePrefix}${progress.fileName || '파일'} 업로드 중`;
+
+    return (
+        <div style={{
+            margin: '0 16px 12px',
+            padding: '12px',
+            border: '1px solid #BBDEFB',
+            borderRadius: '8px',
+            background: '#E3F2FD',
+        }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', gap: '12px', marginBottom: '8px', fontSize: '13px', color: '#0D47A1', fontWeight: 700 }}>
+                <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{label}</span>
+                <span style={{ flexShrink: 0 }}>{percent}%</span>
+            </div>
+            <div style={{ height: '8px', borderRadius: '999px', background: '#BBDEFB', overflow: 'hidden' }}>
+                <div style={{
+                    width: `${percent}%`,
+                    height: '100%',
+                    borderRadius: '999px',
+                    background: '#1565C0',
+                    transition: 'width 0.2s ease',
+                }} />
+            </div>
+        </div>
+    );
 }
 
 function PinModal({ onSuccess, onCancel }: { onSuccess: () => void; onCancel: () => void }) {
@@ -279,6 +319,7 @@ function FileUploadReportContent({ reportId, title, label, icon }: FileUploadRep
     const [data, setData] = useState<ReportData | null>(null);
     const [saveStatus, setSaveStatus] = useState<'idle' | 'saving' | 'saved' | 'error'>('idle');
     const [isDbLoaded, setIsDbLoaded] = useState(false);
+    const [uploadProgress, setUploadProgress] = useState<ReportUploadProgress | null>(null);
 
     const fileInputRef = useRef<HTMLInputElement>(null);
     const hasPdf = reportHasPdf(data);
@@ -431,19 +472,27 @@ function FileUploadReportContent({ reportId, title, label, icon }: FileUploadRep
 
     const handleSave = useCallback(async () => {
         setSaveStatus('saving');
+        setUploadProgress({ phase: 'uploading', percent: 0 });
         try {
-            const saveData = await prepareReportFileDataForSave(reportId, data);
+            const saveData = await prepareReportFileDataForSave(reportId, data, setUploadProgress);
             const { error } = await supabase
                 .from('reports')
                 .upsert({ id: reportId, data: saveData, updated_at: new Date().toISOString() });
             if (error) throw error;
             setData(saveData);
+            setUploadProgress({ phase: 'complete', percent: 100 });
             setSaveStatus('saved');
-            setTimeout(() => setSaveStatus('idle'), 2000);
+            setTimeout(() => {
+                setSaveStatus('idle');
+                setUploadProgress(null);
+            }, 2000);
         } catch (e) {
             console.error('Error saving report:', e);
             setSaveStatus('error');
-            setTimeout(() => setSaveStatus('idle'), 3000);
+            setTimeout(() => {
+                setSaveStatus('idle');
+                setUploadProgress(null);
+            }, 3000);
         }
     }, [data, reportId]);
 
@@ -544,6 +593,8 @@ function FileUploadReportContent({ reportId, title, label, icon }: FileUploadRep
                     👁️ 파일 보기
                 </button>
             </div>
+
+            <UploadProgressBar progress={uploadProgress} />
 
             <div className="page-content" style={{ padding: '16px' }}>
                 <div className="card">

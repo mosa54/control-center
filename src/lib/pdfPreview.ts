@@ -6,6 +6,10 @@ let pdfViewerPromise: Promise<void> | null = null;
 const PDF_WORKER_SRC = '/pdf.worker.min.mjs';
 const PDF_WORKER_LINK_ID = 'control-center-pdf-worker-preload';
 const REPORT_FILE_BUCKET = 'report-files';
+const REPORT_UPLOAD_PROGRESS_WEIGHT = 95;
+
+const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
 
 export interface ReportPreviewFileItem {
     fileName: string;
@@ -19,6 +23,16 @@ export interface NormalizedReportFileData {
     files: ReportPreviewFileItem[];
     updatedAt: string;
 }
+
+export interface ReportUploadProgress {
+    phase: 'uploading' | 'embedding' | 'saving' | 'complete';
+    percent: number;
+    fileName?: string;
+    fileIndex?: number;
+    fileCount?: number;
+}
+
+export type ReportUploadProgressCallback = (progress: ReportUploadProgress) => void;
 
 function isObject(value: unknown): value is Record<string, unknown> {
     return typeof value === 'object' && value !== null;
@@ -57,9 +71,14 @@ export function preloadPdfViewer(): Promise<void> {
     return pdfViewerPromise;
 }
 
-export function readFileAsDataUrl(file: File): Promise<string> {
+export function readFileAsDataUrl(file: File, onProgress?: (loaded: number, total: number) => void): Promise<string> {
     return new Promise((resolve, reject) => {
         const reader = new FileReader();
+        reader.onprogress = (event) => {
+            if (event.lengthComputable) {
+                onProgress?.(event.loaded, event.total);
+            }
+        };
         reader.onloadend = () => resolve(reader.result as string);
         reader.onerror = () => reject(reader.error);
         reader.readAsDataURL(file);
@@ -88,7 +107,51 @@ function revokeLocalObjectUrl(fileData: string) {
     }
 }
 
-async function uploadReportFile(reportId: string, file: ReportPreviewFileItem, index: number): Promise<ReportPreviewFileItem> {
+function uploadReportFileWithProgress(
+    storagePath: string,
+    file: File,
+    contentType: string,
+    onProgress?: (loaded: number, total: number) => void,
+): Promise<void> {
+    return new Promise((resolve, reject) => {
+        if (!supabaseUrl || !supabaseKey) {
+            reject(new Error('Supabase URL or anon key is missing.'));
+            return;
+        }
+
+        const encodedPath = storagePath.split('/').map(encodeURIComponent).join('/');
+        const xhr = new XMLHttpRequest();
+        xhr.open('POST', `${supabaseUrl}/storage/v1/object/${REPORT_FILE_BUCKET}/${encodedPath}`);
+        xhr.setRequestHeader('apikey', supabaseKey);
+        xhr.setRequestHeader('Authorization', `Bearer ${supabaseKey}`);
+        xhr.setRequestHeader('x-upsert', 'true');
+        xhr.setRequestHeader('Content-Type', contentType || file.type || 'application/octet-stream');
+
+        xhr.upload.onprogress = (event) => {
+            if (event.lengthComputable) {
+                onProgress?.(event.loaded, event.total);
+            }
+        };
+        xhr.onload = () => {
+            if (xhr.status >= 200 && xhr.status < 300) {
+                resolve();
+                return;
+            }
+
+            reject(new Error(xhr.responseText || `Storage upload failed with status ${xhr.status}.`));
+        };
+        xhr.onerror = () => reject(new Error('Storage upload network error.'));
+        xhr.onabort = () => reject(new Error('Storage upload was aborted.'));
+        xhr.send(file);
+    });
+}
+
+async function uploadReportFile(
+    reportId: string,
+    file: ReportPreviewFileItem,
+    index: number,
+    onTransferProgress?: (loaded: number, total: number) => void,
+): Promise<ReportPreviewFileItem> {
     if (!file.sourceFile) {
         return removeTransientFileFields(file);
     }
@@ -98,16 +161,7 @@ async function uploadReportFile(reportId: string, file: ReportPreviewFileItem, i
     const storagePath = `${reportId}/${timestamp}-${index}-${safeName}`;
 
     try {
-        const { error } = await supabase.storage
-            .from(REPORT_FILE_BUCKET)
-            .upload(storagePath, file.sourceFile, {
-                contentType: file.fileType,
-                upsert: true,
-            });
-
-        if (error) {
-            throw error;
-        }
+        await uploadReportFileWithProgress(storagePath, file.sourceFile, file.fileType, onTransferProgress);
 
         const { data } = supabase.storage.from(REPORT_FILE_BUCKET).getPublicUrl(storagePath);
         if (!data.publicUrl) {
@@ -124,7 +178,7 @@ async function uploadReportFile(reportId: string, file: ReportPreviewFileItem, i
         };
     } catch (error) {
         console.warn('Report storage upload failed. Falling back to embedded file data.', error);
-        const fileData = await readFileAsDataUrl(file.sourceFile);
+        const fileData = await readFileAsDataUrl(file.sourceFile, onTransferProgress);
         revokeLocalObjectUrl(file.fileData);
 
         return {
@@ -138,12 +192,52 @@ async function uploadReportFile(reportId: string, file: ReportPreviewFileItem, i
 export async function prepareReportFileDataForSave(
     reportId: string,
     data: NormalizedReportFileData | null,
+    onProgress?: ReportUploadProgressCallback,
 ): Promise<NormalizedReportFileData> {
     if (!data) {
+        onProgress?.({ phase: 'saving', percent: REPORT_UPLOAD_PROGRESS_WEIGHT });
         return { files: [], updatedAt: new Date().toISOString() };
     }
 
-    const files = await Promise.all(data.files.map((file, index) => uploadReportFile(reportId, file, index)));
+    const filesToTransfer = data.files.filter((file) => file.sourceFile);
+    const totalBytes = filesToTransfer.reduce((sum, file) => sum + (file.sourceFile?.size || 0), 0);
+    const fileCount = filesToTransfer.length;
+    let transferredBytes = 0;
+    let transferIndex = 0;
+
+    const files: ReportPreviewFileItem[] = [];
+    for (let index = 0; index < data.files.length; index += 1) {
+        const file = data.files[index];
+        if (!file.sourceFile) {
+            files.push(removeTransientFileFields(file));
+            continue;
+        }
+
+        transferIndex += 1;
+        const fileSize = file.sourceFile.size || 1;
+        const reportProgress = (loaded: number, total: number) => {
+            const usableTotal = total || fileSize;
+            const loadedBytes = Math.min(loaded, usableTotal);
+            const denominator = totalBytes || usableTotal;
+            const weightedPercent = Math.min(
+                REPORT_UPLOAD_PROGRESS_WEIGHT,
+                Math.max(1, Math.round(((transferredBytes + loadedBytes) / denominator) * REPORT_UPLOAD_PROGRESS_WEIGHT)),
+            );
+
+            onProgress?.({
+                phase: 'uploading',
+                percent: weightedPercent,
+                fileName: file.fileName,
+                fileIndex: transferIndex,
+                fileCount,
+            });
+        };
+
+        files.push(await uploadReportFile(reportId, file, index, reportProgress));
+        transferredBytes += fileSize;
+    }
+
+    onProgress?.({ phase: 'saving', percent: REPORT_UPLOAD_PROGRESS_WEIGHT, fileCount });
     return {
         files,
         updatedAt: new Date().toISOString(),
