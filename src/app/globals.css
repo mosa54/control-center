@@ -1332,6 +1332,8 @@ body.roster-preview-open .roster-page .page-content {
     padding: 10mm !important;
     color: black !important;
     background: white !important;
+    break-inside: avoid-page;
+    page-break-inside: avoid;
     break-after: page;
     page-break-after: always;
   }

@@ -216,11 +216,13 @@ export default function AssemblyRoster({ onClose }: { onClose: () => void }) {
 
     const thStyle: React.CSSProperties = { border: '1px solid #000', padding: '4px 2px', textAlign: 'center' };
     const tdStyle: React.CSSProperties = { border: '1px solid #000', padding: '4px 2px', textAlign: 'center', height: '24px' };
-    const rowsPerPrintPage = 23;
-    const printPages = Array.from(
-        { length: Math.ceil(rows.length / rowsPerPrintPage) },
-        (_, pageIndex) => rows.slice(pageIndex * rowsPerPrintPage, (pageIndex + 1) * rowsPerPrintPage)
-    );
+    const firstPrintPageRows = 22;
+    const followingPrintPageRows = 23;
+    const printPages = [rows.slice(0, firstPrintPageRows)];
+
+    for (let startIndex = firstPrintPageRows; startIndex < rows.length; startIndex += followingPrintPageRows) {
+        printPages.push(rows.slice(startIndex, startIndex + followingPrintPageRows));
+    }
 
     const renderRosterTable = (tableRows: RosterRow[]) => (
         <table className="roster-table" style={{ width: '100%', borderCollapse: 'collapse', tableLayout: 'fixed' }}>
