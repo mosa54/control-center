@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { supabase } from '@/lib/supabase';
 import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
@@ -47,6 +47,17 @@ const createEmptyRow = (): CasualtyRow => ({
 });
 
 const INITIAL_ROWS = Array.from({ length: 20 }, () => createEmptyRow());
+const CASUALTY_SYNC_INTERVAL_MS = 5000;
+
+interface StoredCasualtyReport {
+    data?: unknown;
+    updated_at?: string | null;
+}
+
+const formatSavedAt = (value: string | Date) => {
+    const d = value instanceof Date ? value : new Date(value);
+    return `${d.getFullYear()}. ${d.getMonth() + 1}. ${d.getDate()}. ${d.getHours().toString().padStart(2, '0')}:${d.getMinutes().toString().padStart(2, '0')}`;
+};
 
 function PinModal({ onSuccess, onCancel }: { onSuccess: () => void; onCancel: () => void }) {
     const [pin, setPin] = useState('');
@@ -191,27 +202,53 @@ function CasualtyReportContent() {
     });
     const [saveStatus, setSaveStatus] = useState<'idle' | 'saving' | 'saved' | 'error'>('idle');
     const [lastSavedAt, setLastSavedAt] = useState<string>('');
+    const lastAppliedUpdatedAtRef = useRef<string | null>(null);
+    const syncRevisionRef = useRef(0);
 
-    // DB에서 데이터 로드 + 실시간 구독
+    const applyStoredReport = useCallback((row: StoredCasualtyReport | null) => {
+        if (!row?.data) {
+            return;
+        }
+
+        const updatedAt = row.updated_at ?? null;
+        if (updatedAt && lastAppliedUpdatedAtRef.current === updatedAt) {
+            return;
+        }
+
+        setData(row.data as CasualtyReportData);
+        lastAppliedUpdatedAtRef.current = updatedAt;
+        if (updatedAt) {
+            setLastSavedAt(formatSavedAt(updatedAt));
+        }
+    }, []);
+
+    const loadData = useCallback(async () => {
+        const requestRevision = ++syncRevisionRef.current;
+        const { data: row, error } = await supabase
+            .from('reports')
+            .select('data, updated_at')
+            .eq('id', 'casualty')
+            .single();
+
+        if (requestRevision !== syncRevisionRef.current) {
+            return;
+        }
+
+        if (error && error.code !== 'PGRST116') {
+            console.error('Error loading casualty report:', error);
+            return;
+        }
+
+        applyStoredReport(row);
+    }, [applyStoredReport]);
+
+    // Realtime 이벤트를 우선 사용하고, 누락 시 폴링/화면 복귀 재조회로 자동 복구한다.
     useEffect(() => {
-        const loadData = async () => {
-            const { data: row, error } = await supabase
-                .from('reports')
-                .select('data, updated_at')
-                .eq('id', 'casualty')
-                .single();
-            if (error && error.code !== 'PGRST116') {
-                console.error("Error loading initial data:", error);
-            }
-            if (row?.data) {
-                setData(row.data as CasualtyReportData);
-                if (row.updated_at) {
-                    const d = new Date(row.updated_at);
-                    setLastSavedAt(`${d.getFullYear()}. ${d.getMonth() + 1}. ${d.getDate()}. ${d.getHours().toString().padStart(2, '0')}:${d.getMinutes().toString().padStart(2, '0')}`);
-                }
-            }
+        const refresh = () => {
+            void loadData();
         };
-        loadData();
+
+        refresh();
 
         const channel = supabase
             .channel('report-casualty')
@@ -221,19 +258,36 @@ function CasualtyReportContent() {
                 table: 'reports',
                 filter: 'id=eq.casualty',
             }, (payload) => {
-                const row = payload.new as { data?: unknown; updated_at?: string } | null;
-                if (row?.data) {
-                    setData(row.data as CasualtyReportData);
-                    if (row.updated_at) {
-                        const d = new Date(row.updated_at);
-                        setLastSavedAt(`${d.getFullYear()}. ${d.getMonth() + 1}. ${d.getDate()}. ${d.getHours().toString().padStart(2, '0')}:${d.getMinutes().toString().padStart(2, '0')}`);
-                    }
-                }
+                syncRevisionRef.current += 1;
+                applyStoredReport(payload.new as StoredCasualtyReport | null);
             })
-            .subscribe();
+            .subscribe((status) => {
+                if (status === 'SUBSCRIBED') {
+                    refresh();
+                } else if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT') {
+                    console.warn(`Casualty report realtime status: ${status}`);
+                }
+            });
 
-        return () => { supabase.removeChannel(channel); };
-    }, []);
+        const intervalId = window.setInterval(() => {
+            if (document.visibilityState === 'visible') {
+                refresh();
+            }
+        }, CASUALTY_SYNC_INTERVAL_MS);
+
+        const handleVisibilityChange = () => {
+            if (document.visibilityState === 'visible') {
+                refresh();
+            }
+        };
+        document.addEventListener('visibilitychange', handleVisibilityChange);
+
+        return () => {
+            window.clearInterval(intervalId);
+            document.removeEventListener('visibilitychange', handleVisibilityChange);
+            void supabase.removeChannel(channel);
+        };
+    }, [applyStoredReport, loadData]);
 
     const updateRow = (index: number, field: keyof CasualtyRow, value: string) => {
         setData(prev => {
@@ -254,16 +308,18 @@ function CasualtyReportContent() {
     const handleSave = useCallback(async () => {
         setSaveStatus('saving');
         try {
+            const updatedAt = new Date().toISOString();
             const { error } = await supabase
                 .from('reports')
-                .upsert({ id: 'casualty', data, updated_at: new Date().toISOString() });
+                .upsert({ id: 'casualty', data, updated_at: updatedAt });
             if (error) {
                 console.error("Supabase Save Error:", error);
                 alert(`저장 실패: ${error.message}`);
                 throw error;
             }
-            const d = new Date();
-            setLastSavedAt(`${d.getFullYear()}. ${d.getMonth() + 1}. ${d.getDate()}. ${d.getHours().toString().padStart(2, '0')}:${d.getMinutes().toString().padStart(2, '0')}`);
+            syncRevisionRef.current += 1;
+            lastAppliedUpdatedAtRef.current = updatedAt;
+            setLastSavedAt(formatSavedAt(updatedAt));
             setSaveStatus('saved');
             setTimeout(() => setSaveStatus('idle'), 2000);
         } catch {

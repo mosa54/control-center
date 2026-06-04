@@ -1,6 +1,6 @@
 'use client';
 
-import { useCallback, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
 import { Suspense } from 'react';
@@ -16,9 +16,16 @@ type PreviewStatus = 'idle' | 'loading' | 'ready' | 'empty' | 'error';
 interface PreviewCacheEntry {
     data: PreviewData;
     lastSavedAt: string;
+    updatedAt: string;
 }
 
 type PreviewData = NormalizedReportFileData | CasualtyReportData;
+const CASUALTY_PREVIEW_SYNC_INTERVAL_MS = 5000;
+
+interface RealtimeReportRow {
+    data?: unknown;
+    updated_at?: string | null;
+}
 
 function ReportsContent() {
     const searchParams = useSearchParams();
@@ -32,6 +39,8 @@ function ReportsContent() {
     const previewCacheRef = useRef<Partial<Record<PreviewType, PreviewCacheEntry>>>({});
     const previewRequestRef = useRef<Partial<Record<PreviewType, Promise<PreviewCacheEntry | null>>>>({});
     const openRequestIdRef = useRef(0);
+    const previewTypeRef = useRef<PreviewType | null>(null);
+    const casualtySyncRevisionRef = useRef(0);
 
     const formatUpdatedAt = useCallback((value?: string | null) => {
         if (!value) {
@@ -42,10 +51,12 @@ function ReportsContent() {
         return `${d.getFullYear()}. ${d.getMonth() + 1}. ${d.getDate()}. ${d.getHours().toString().padStart(2, '0')}:${d.getMinutes().toString().padStart(2, '0')}`;
     }, []);
 
-    const fetchPreviewData = useCallback(async (type: PreviewType): Promise<PreviewCacheEntry | null> => {
-        const cached = previewCacheRef.current[type];
-        if (cached) {
-            return cached;
+    const fetchPreviewData = useCallback(async (type: PreviewType, forceRefresh = false): Promise<PreviewCacheEntry | null> => {
+        if (!forceRefresh) {
+            const cached = previewCacheRef.current[type];
+            if (cached) {
+                return cached;
+            }
         }
 
         const pending = previewRequestRef.current[type];
@@ -53,6 +64,9 @@ function ReportsContent() {
             return pending;
         }
 
+        const casualtyRevisionAtStart = type === 'casualty'
+            ? casualtySyncRevisionRef.current
+            : null;
         const request: Promise<PreviewCacheEntry | null> = (async () => {
             try {
                 const { data: row, error } = await supabase
@@ -80,7 +94,12 @@ function ReportsContent() {
                 const entry = {
                     data: normalizedData,
                     lastSavedAt: formatUpdatedAt(row.updated_at),
+                    updatedAt: row.updated_at ?? '',
                 };
+
+                if (type === 'casualty' && casualtyRevisionAtStart !== casualtySyncRevisionRef.current) {
+                    return previewCacheRef.current.casualty ?? null;
+                }
 
                 previewCacheRef.current[type] = entry;
 
@@ -98,12 +117,124 @@ function ReportsContent() {
         return request;
     }, [formatUpdatedAt]);
 
+    const applyRealtimeCasualtyRow = useCallback((row: RealtimeReportRow | null) => {
+        const currentEntry = previewCacheRef.current.casualty;
+        const updatedAt = row?.updated_at ?? '';
+
+        if (updatedAt && currentEntry?.updatedAt === updatedAt) {
+            return;
+        }
+
+        casualtySyncRevisionRef.current += 1;
+
+        if (!row?.data) {
+            delete previewCacheRef.current.casualty;
+            if (previewTypeRef.current === 'casualty') {
+                setPreviewData(null);
+                setLastSavedAt('');
+                setPreviewStatus('empty');
+            }
+            return;
+        }
+
+        const entry: PreviewCacheEntry = {
+            data: row.data as CasualtyReportData,
+            lastSavedAt: formatUpdatedAt(row.updated_at),
+            updatedAt,
+        };
+        previewCacheRef.current.casualty = entry;
+
+        if (previewTypeRef.current === 'casualty') {
+            setPreviewData(entry.data);
+            setLastSavedAt(entry.lastSavedAt);
+            setPreviewStatus('ready');
+        }
+    }, [formatUpdatedAt]);
+
+    const refreshOpenCasualtyPreview = useCallback(async () => {
+        if (previewTypeRef.current !== 'casualty') {
+            return;
+        }
+
+        const previousUpdatedAt = previewCacheRef.current.casualty?.updatedAt;
+
+        try {
+            const entry = await fetchPreviewData('casualty', true);
+            if (previewTypeRef.current !== 'casualty') {
+                return;
+            }
+
+            if (!entry) {
+                setPreviewData(null);
+                setLastSavedAt('');
+                setPreviewStatus('empty');
+                return;
+            }
+
+            if (entry.updatedAt && entry.updatedAt === previousUpdatedAt) {
+                return;
+            }
+
+            setPreviewData(entry.data);
+            setLastSavedAt(entry.lastSavedAt);
+            setPreviewStatus('ready');
+        } catch (error) {
+            console.warn('Failed to refresh casualty report preview:', error);
+        }
+    }, [fetchPreviewData]);
+
+    useEffect(() => {
+        const refresh = () => {
+            if (previewTypeRef.current === 'casualty') {
+                void refreshOpenCasualtyPreview();
+            }
+        };
+
+        const channel = supabase
+            .channel('report-casualty-preview')
+            .on('postgres_changes', {
+                event: '*',
+                schema: 'public',
+                table: 'reports',
+                filter: 'id=eq.casualty',
+            }, (payload) => {
+                applyRealtimeCasualtyRow(payload.new as RealtimeReportRow | null);
+            })
+            .subscribe((status) => {
+                if (status === 'SUBSCRIBED') {
+                    refresh();
+                } else if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT') {
+                    console.warn(`Casualty preview realtime status: ${status}`);
+                }
+            });
+
+        const intervalId = window.setInterval(() => {
+            if (document.visibilityState === 'visible') {
+                refresh();
+            }
+        }, CASUALTY_PREVIEW_SYNC_INTERVAL_MS);
+
+        const handleVisibilityChange = () => {
+            if (document.visibilityState === 'visible') {
+                refresh();
+            }
+        };
+        document.addEventListener('visibilitychange', handleVisibilityChange);
+
+        return () => {
+            window.clearInterval(intervalId);
+            document.removeEventListener('visibilitychange', handleVisibilityChange);
+            void supabase.removeChannel(channel);
+        };
+    }, [applyRealtimeCasualtyRow, refreshOpenCasualtyPreview]);
+
     const warmPreview = useCallback((type: PreviewType) => {
         void fetchPreviewData(type).catch(() => null);
     }, [fetchPreviewData]);
 
     const handlePreview = useCallback(async (type: PreviewType) => {
         const requestId = ++openRequestIdRef.current;
+        previewTypeRef.current = type;
         setPreviewType(type);
 
         const cached = previewCacheRef.current[type];
@@ -114,6 +245,9 @@ function ReportsContent() {
 
             if (reportHasPdf(cached.data)) {
                 void preloadPdfViewer();
+            }
+            if (type === 'casualty') {
+                void refreshOpenCasualtyPreview();
             }
             return;
         }
@@ -148,10 +282,11 @@ function ReportsContent() {
             setLastSavedAt('');
             setPreviewStatus('error');
         }
-    }, [fetchPreviewData]);
+    }, [fetchPreviewData, refreshOpenCasualtyPreview]);
 
     const closePreview = useCallback(() => {
         openRequestIdRef.current += 1;
+        previewTypeRef.current = null;
         setPreviewType(null);
         setPreviewData(null);
         setLastSavedAt('');
