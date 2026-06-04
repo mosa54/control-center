@@ -17,6 +17,15 @@ interface StoredRosterReport {
     updated_at?: string | null;
 }
 
+interface RosterRow {
+    index: number;
+    hasData: boolean;
+    time: string;
+    originalDept: string;
+    rank: string;
+    name: string;
+}
+
 export default function AssemblyRoster({ onClose }: { onClose: () => void }) {
     const { checkedInEmployees } = useApp();
     const [dispatchInfo, setDispatchInfo] = useState('');
@@ -166,7 +175,7 @@ export default function AssemblyRoster({ onClose }: { onClose: () => void }) {
     // Sort check-ins by check-in time (ascending)
     const sortedCheckIns = [...checkedInEmployees].sort((a, b) => new Date(a.checkedInAt).getTime() - new Date(b.checkedInAt).getTime());
 
-    const rows = [];
+    const rows: RosterRow[] = [];
     const minRowsPerPage = 30; // Sufficient rows for a full page
     const totalRows = Math.max(minRowsPerPage, sortedCheckIns.length + 5);
 
@@ -207,6 +216,40 @@ export default function AssemblyRoster({ onClose }: { onClose: () => void }) {
 
     const thStyle: React.CSSProperties = { border: '1px solid #000', padding: '4px 2px', textAlign: 'center' };
     const tdStyle: React.CSSProperties = { border: '1px solid #000', padding: '4px 2px', textAlign: 'center', height: '24px' };
+    const rowsPerPrintPage = 23;
+    const printPages = Array.from(
+        { length: Math.ceil(rows.length / rowsPerPrintPage) },
+        (_, pageIndex) => rows.slice(pageIndex * rowsPerPrintPage, (pageIndex + 1) * rowsPerPrintPage)
+    );
+
+    const renderRosterTable = (tableRows: RosterRow[]) => (
+        <table className="roster-table" style={{ width: '100%', borderCollapse: 'collapse', tableLayout: 'fixed' }}>
+            <thead>
+                <tr>
+                    <th style={{ ...thStyle, width: '6%' }}>연번</th>
+                    <th style={{ ...thStyle, width: '24%' }}>발령시간/응소장소</th>
+                    <th style={{ ...thStyle, width: '11%' }}>응소시간</th>
+                    <th style={{ ...thStyle, width: '16%' }}>소 속</th>
+                    <th style={{ ...thStyle, width: '12%' }}>계 급</th>
+                    <th style={{ ...thStyle, width: '13%' }}>성 명</th>
+                    <th style={{ ...thStyle, width: '18%' }}>서명</th>
+                </tr>
+            </thead>
+            <tbody>
+                {tableRows.map((row) => (
+                    <tr key={row.index}>
+                        <td style={tdStyle}>{row.index}</td>
+                        <td style={{ ...tdStyle, fontWeight: 600 }}>{row.hasData ? dispatchInfo : ''}</td>
+                        <td style={tdStyle}>{row.time}</td>
+                        <td style={tdStyle}>{row.originalDept}</td>
+                        <td style={tdStyle}>{row.rank}</td>
+                        <td style={tdStyle}>{row.name}</td>
+                        <td style={tdStyle}></td>
+                    </tr>
+                ))}
+            </tbody>
+        </table>
+    );
 
     return (
         <div className="page roster-page" style={{ minHeight: '100vh', background: 'white' }}>
@@ -246,37 +289,25 @@ export default function AssemblyRoster({ onClose }: { onClose: () => void }) {
 
                 {/* 화면 꽉 차게 조절 (모바일에서도 줄바꿈 안 되게 폰트 크기 자동 조절) */}
                 <div className="roster-wrapper" style={{ width: '100%', padding: '16px 8px', overflow: 'hidden' }}>
-                    <div className="roster-print-area" style={{ color: 'black', background: 'white', width: '100%', maxWidth: '1000px', margin: '0 auto' }}>
+                    <div className="roster-print-area roster-screen-area" style={{ color: 'black', background: 'white', width: '100%', maxWidth: '1000px', margin: '0 auto' }}>
                         <h1 className="roster-title" style={{ textAlign: 'center', letterSpacing: '8px', margin: '16px 0 24px', fontWeight: 900, whiteSpace: 'nowrap' }}>
                             통 제 단 소 집 응 소 부
                         </h1>
 
-                        <table className="roster-table" style={{ width: '100%', borderCollapse: 'collapse', tableLayout: 'fixed' }}>
-                            <thead>
-                                <tr>
-                                    <th style={{ ...thStyle, width: '6%' }}>연번</th>
-                                    <th style={{ ...thStyle, width: '24%' }}>발령시간/응소장소</th>
-                                    <th style={{ ...thStyle, width: '11%' }}>응소시간</th>
-                                    <th style={{ ...thStyle, width: '16%' }}>소 속</th>
-                                    <th style={{ ...thStyle, width: '12%' }}>계 급</th>
-                                    <th style={{ ...thStyle, width: '13%' }}>성 명</th>
-                                    <th style={{ ...thStyle, width: '18%' }}>서명</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                {rows.map((row, idx) => (
-                                    <tr key={idx}>
-                                        <td style={tdStyle}>{row.index}</td>
-                                        <td style={{ ...tdStyle, fontWeight: 600 }}>{row.hasData ? dispatchInfo : ''}</td>
-                                        <td style={tdStyle}>{row.time}</td>
-                                        <td style={tdStyle}>{row.originalDept}</td>
-                                        <td style={tdStyle}>{row.rank}</td>
-                                        <td style={tdStyle}>{row.name}</td>
-                                        <td style={tdStyle}></td>
-                                    </tr>
-                                ))}
-                            </tbody>
-                        </table>
+                        {renderRosterTable(rows)}
+                    </div>
+
+                    <div className="roster-print-pages">
+                        {printPages.map((pageRows, pageIndex) => (
+                            <section className="roster-print-sheet" key={pageIndex}>
+                                {pageIndex === 0 && (
+                                    <h1 className="roster-title" style={{ textAlign: 'center', letterSpacing: '8px', margin: '16px 0 24px', fontWeight: 900, whiteSpace: 'nowrap' }}>
+                                        통 제 단 소 집 응 소 부
+                                    </h1>
+                                )}
+                                {renderRosterTable(pageRows)}
+                            </section>
+                        ))}
                     </div>
                 </div>
             </div>

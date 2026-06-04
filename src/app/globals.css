@@ -1238,6 +1238,10 @@ body.roster-preview-open .roster-page .page-content {
   white-space: nowrap;
 }
 
+.roster-print-pages {
+  display: none;
+}
+
 @media (max-width: 768px) {
   .roster-title {
     font-size: 16px !important;
@@ -1302,7 +1306,7 @@ body.roster-preview-open .roster-page .page-content {
   .roster-wrapper {
     box-sizing: border-box !important;
     overflow: visible !important;
-    padding: 10mm !important;
+    padding: 0 !important;
   }
 
   /* 테이블과 내용만 출력되도록 꽉 차게 변경 */
@@ -1311,6 +1315,30 @@ body.roster-preview-open .roster-page .page-content {
     max-width: none !important;
     width: 100% !important;
     margin: 0 !important;
+  }
+
+  .roster-screen-area {
+    display: none !important;
+  }
+
+  .roster-print-pages {
+    display: block !important;
+    width: 100% !important;
+  }
+
+  .roster-print-sheet {
+    box-sizing: border-box !important;
+    width: 100% !important;
+    padding: 10mm !important;
+    color: black !important;
+    background: white !important;
+    break-after: page;
+    page-break-after: always;
+  }
+
+  .roster-print-sheet:last-child {
+    break-after: auto;
+    page-break-after: auto;
   }
 
   .roster-title {
