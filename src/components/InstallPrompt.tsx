@@ -84,7 +84,7 @@ export default function InstallPrompt() {
     if (!isVisible || isStandalone) return null;
 
     return (
-        <div style={{
+        <div className="install-prompt" style={{
             position: 'fixed',
             bottom: 0,
             left: 0,

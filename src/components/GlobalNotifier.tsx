@@ -43,7 +43,8 @@ export default function GlobalNotifier() {
     if (!show) return null;
 
     return (
-        <div 
+        <div
+            className="global-notifier"
             style={{
                 position: 'fixed',
                 top: '20px',

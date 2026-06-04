@@ -787,6 +787,18 @@ body {
   display: none !important;
 }
 
+/* 응소부 미리보기에서는 문서 외 전역 UI를 표시하지 않는다. */
+body.roster-preview-open .bottom-nav-container,
+body.roster-preview-open .realtime-indicator,
+body.roster-preview-open .install-prompt,
+body.roster-preview-open .global-notifier {
+  display: none !important;
+}
+
+body.roster-preview-open .roster-page .page-content {
+  padding-bottom: 0 !important;
+}
+
 .fullscreen-report {
   max-width: 210mm;
   margin: 0 auto;
@@ -1248,29 +1260,49 @@ body {
 @media print {
 
   /* 불필요한 영역 숨김 */
-  .no-print {
+  .no-print,
+  .bottom-nav-container,
+  .realtime-indicator,
+  .install-prompt,
+  .global-notifier,
+  .toast {
     display: none !important;
   }
 
-  /* 페이지 기본 여백 최소화 */
+  /* 기본 인쇄물은 기존 여백을 유지한다. */
   @page {
     size: A4 portrait;
     margin: 10mm;
   }
 
+  /* 응소부는 브라우저 기본 머리말/꼬리말이 들어갈 공간을 없앤다. */
+  @page roster {
+    size: A4 portrait;
+    margin: 0;
+  }
+
   body,
   html {
     background: white !important;
+    margin: 0 !important;
+    padding: 0 !important;
   }
 
   /* 인쇄 시 레이아웃 초기화 */
   .roster-page {
+    page: roster;
     min-height: auto !important;
     display: block !important;
   }
 
   .roster-page .page-content {
     padding: 0 !important;
+  }
+
+  .roster-wrapper {
+    box-sizing: border-box !important;
+    overflow: visible !important;
+    padding: 10mm !important;
   }
 
   /* 테이블과 내용만 출력되도록 꽉 차게 변경 */

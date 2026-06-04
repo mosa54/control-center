@@ -1,20 +1,47 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useApp } from '@/lib/store';
 import Toast from '@/components/Toast';
 
 export default function AssemblyRoster({ onClose }: { onClose: () => void }) {
-    const { excelData, checkedInEmployees } = useApp();
-    const [dispatchInfo, setDispatchInfo] = useState('');
+    const { checkedInEmployees } = useApp();
+    const [dispatchInfo, setDispatchInfo] = useState(() => (
+        typeof window === 'undefined' ? '' : localStorage.getItem('assemblyDispatchInfo') || ''
+    ));
     const [toast, setToast] = useState<string | null>(null);
+    const originalDocumentTitleRef = useRef('');
 
-    // 저장된 발령정보 불러오기
     useEffect(() => {
-        const saved = localStorage.getItem('assemblyDispatchInfo');
-        if (saved) {
-            setDispatchInfo(saved);
-        }
+        const startPrintMode = () => {
+            if (document.body.classList.contains('roster-printing')) {
+                return;
+            }
+
+            originalDocumentTitleRef.current = document.title;
+            document.title = '\u200B';
+            document.body.classList.add('roster-printing');
+        };
+
+        const finishPrintMode = () => {
+            document.body.classList.remove('roster-printing');
+            if (originalDocumentTitleRef.current) {
+                document.title = originalDocumentTitleRef.current;
+            }
+        };
+
+        document.body.classList.add('roster-preview-open');
+        window.addEventListener('beforeprint', startPrintMode);
+        window.addEventListener('afterprint', finishPrintMode);
+
+        return () => {
+            window.removeEventListener('beforeprint', startPrintMode);
+            window.removeEventListener('afterprint', finishPrintMode);
+            document.body.classList.remove('roster-preview-open', 'roster-printing');
+            if (originalDocumentTitleRef.current) {
+                document.title = originalDocumentTitleRef.current;
+            }
+        };
     }, []);
 
     const handleSaveInfo = () => {
@@ -56,6 +83,11 @@ export default function AssemblyRoster({ onClose }: { onClose: () => void }) {
     }
 
     const handlePrint = () => {
+        if (!document.body.classList.contains('roster-printing')) {
+            originalDocumentTitleRef.current = document.title;
+            document.title = '\u200B';
+            document.body.classList.add('roster-printing');
+        }
         window.print();
     };
 
