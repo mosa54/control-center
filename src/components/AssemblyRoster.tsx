@@ -216,17 +216,13 @@ export default function AssemblyRoster({ onClose }: { onClose: () => void }) {
 
     const thStyle: React.CSSProperties = { border: '1px solid #000', padding: '4px 2px', textAlign: 'center' };
     const tdStyle: React.CSSProperties = { border: '1px solid #000', padding: '4px 2px', textAlign: 'center', height: '24px' };
-    const firstPrintPageRows = 22;
-    const followingPrintPageRows = 23;
-    const printPages = [rows.slice(0, firstPrintPageRows)];
-
-    for (let startIndex = firstPrintPageRows; startIndex < rows.length; startIndex += followingPrintPageRows) {
-        printPages.push(rows.slice(startIndex, startIndex + followingPrintPageRows));
-    }
 
     const renderRosterTable = (tableRows: RosterRow[]) => (
         <table className="roster-table" style={{ width: '100%', borderCollapse: 'collapse', tableLayout: 'fixed' }}>
             <thead>
+                <tr className="roster-print-page-spacer" aria-hidden="true">
+                    <th colSpan={7}></th>
+                </tr>
                 <tr>
                     <th style={{ ...thStyle, width: '6%' }}>연번</th>
                     <th style={{ ...thStyle, width: '24%' }}>발령시간/응소장소</th>
@@ -291,25 +287,12 @@ export default function AssemblyRoster({ onClose }: { onClose: () => void }) {
 
                 {/* 화면 꽉 차게 조절 (모바일에서도 줄바꿈 안 되게 폰트 크기 자동 조절) */}
                 <div className="roster-wrapper" style={{ width: '100%', padding: '16px 8px', overflow: 'hidden' }}>
-                    <div className="roster-print-area roster-screen-area" style={{ color: 'black', background: 'white', width: '100%', maxWidth: '1000px', margin: '0 auto' }}>
+                    <div className="roster-print-area" style={{ color: 'black', background: 'white', width: '100%', maxWidth: '1000px', margin: '0 auto' }}>
                         <h1 className="roster-title" style={{ textAlign: 'center', letterSpacing: '8px', margin: '16px 0 24px', fontWeight: 900, whiteSpace: 'nowrap' }}>
                             통 제 단 소 집 응 소 부
                         </h1>
 
                         {renderRosterTable(rows)}
-                    </div>
-
-                    <div className="roster-print-pages">
-                        {printPages.map((pageRows, pageIndex) => (
-                            <section className="roster-print-sheet" key={pageIndex}>
-                                {pageIndex === 0 && (
-                                    <h1 className="roster-title" style={{ textAlign: 'center', letterSpacing: '8px', margin: '16px 0 24px', fontWeight: 900, whiteSpace: 'nowrap' }}>
-                                        통 제 단 소 집 응 소 부
-                                    </h1>
-                                )}
-                                {renderRosterTable(pageRows)}
-                            </section>
-                        ))}
                     </div>
                 </div>
             </div>

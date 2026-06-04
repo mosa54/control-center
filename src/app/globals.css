@@ -1238,7 +1238,7 @@ body.roster-preview-open .roster-page .page-content {
   white-space: nowrap;
 }
 
-.roster-print-pages {
+.roster-print-page-spacer {
   display: none;
 }
 
@@ -1313,43 +1313,40 @@ body.roster-preview-open .roster-page .page-content {
   .roster-print-area {
     padding: 0 !important;
     max-width: none !important;
-    width: 100% !important;
-    margin: 0 !important;
+    width: calc(100% - 20mm) !important;
+    margin: 0 10mm !important;
   }
 
-  .roster-screen-area {
-    display: none !important;
+  .roster-print-page-spacer {
+    display: table-row !important;
+    height: 10mm !important;
   }
 
-  .roster-print-pages {
-    display: block !important;
-    width: 100% !important;
-  }
-
-  .roster-print-sheet {
-    box-sizing: border-box !important;
-    width: 100% !important;
-    padding: 10mm !important;
-    color: black !important;
+  .roster-print-page-spacer th {
+    height: 10mm !important;
+    padding: 0 !important;
+    border: 0 !important;
     background: white !important;
-    break-inside: avoid-page;
-    page-break-inside: avoid;
-    break-after: page;
-    page-break-after: always;
-  }
-
-  .roster-print-sheet:last-child {
-    break-after: auto;
-    page-break-after: auto;
   }
 
   .roster-title {
     font-size: 28px !important;
+    margin-top: 10mm !important;
+    margin-bottom: 0 !important;
   }
 
   .roster-table {
     font-size: 13px !important;
     table-layout: auto !important;
+  }
+
+  .roster-table thead {
+    display: table-header-group;
+  }
+
+  .roster-table tr {
+    break-inside: avoid-page;
+    page-break-inside: avoid;
   }
 
   .roster-table th,
