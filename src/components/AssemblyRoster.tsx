@@ -1,16 +1,65 @@
 'use client';
 
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { useApp } from '@/lib/store';
+import { supabase } from '@/lib/supabase';
 import Toast from '@/components/Toast';
+
+const ROSTER_REPORT_ID = 'assembly-roster';
+const ROSTER_SYNC_INTERVAL_MS = 5000;
+
+interface RosterReportData {
+    dispatchInfo?: string;
+}
+
+interface StoredRosterReport {
+    data?: unknown;
+    updated_at?: string | null;
+}
 
 export default function AssemblyRoster({ onClose }: { onClose: () => void }) {
     const { checkedInEmployees } = useApp();
-    const [dispatchInfo, setDispatchInfo] = useState(() => (
-        typeof window === 'undefined' ? '' : localStorage.getItem('assemblyDispatchInfo') || ''
-    ));
+    const [dispatchInfo, setDispatchInfo] = useState('');
+    const [saveStatus, setSaveStatus] = useState<'idle' | 'saving'>('idle');
     const [toast, setToast] = useState<string | null>(null);
     const originalDocumentTitleRef = useRef('');
+    const lastAppliedUpdatedAtRef = useRef<string | null>(null);
+    const syncRevisionRef = useRef(0);
+
+    const applyStoredReport = useCallback((row: StoredRosterReport | null) => {
+        if (!row?.data) {
+            return;
+        }
+
+        const updatedAt = row.updated_at ?? null;
+        if (updatedAt && lastAppliedUpdatedAtRef.current === updatedAt) {
+            return;
+        }
+
+        const reportData = row.data as RosterReportData;
+        setDispatchInfo(reportData.dispatchInfo || '');
+        lastAppliedUpdatedAtRef.current = updatedAt;
+    }, []);
+
+    const loadDispatchInfo = useCallback(async () => {
+        const requestRevision = ++syncRevisionRef.current;
+        const { data: row, error } = await supabase
+            .from('reports')
+            .select('data, updated_at')
+            .eq('id', ROSTER_REPORT_ID)
+            .single();
+
+        if (requestRevision !== syncRevisionRef.current) {
+            return;
+        }
+
+        if (error && error.code !== 'PGRST116') {
+            console.error('Error loading assembly roster dispatch info:', error);
+            return;
+        }
+
+        applyStoredReport(row);
+    }, [applyStoredReport]);
 
     useEffect(() => {
         const startPrintMode = () => {
@@ -44,10 +93,75 @@ export default function AssemblyRoster({ onClose }: { onClose: () => void }) {
         };
     }, []);
 
-    const handleSaveInfo = () => {
-        localStorage.setItem('assemblyDispatchInfo', dispatchInfo);
-        setToast('발령정보가 기기에 저장되었습니다.');
-    };
+    useEffect(() => {
+        const refresh = () => {
+            void loadDispatchInfo();
+        };
+
+        refresh();
+
+        const channel = supabase
+            .channel('report-assembly-roster')
+            .on('postgres_changes', {
+                event: '*',
+                schema: 'public',
+                table: 'reports',
+                filter: `id=eq.${ROSTER_REPORT_ID}`,
+            }, (payload) => {
+                syncRevisionRef.current += 1;
+                applyStoredReport(payload.new as StoredRosterReport | null);
+            })
+            .subscribe((status) => {
+                if (status === 'SUBSCRIBED') {
+                    refresh();
+                } else if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT') {
+                    console.warn(`Assembly roster realtime status: ${status}`);
+                }
+            });
+
+        const intervalId = window.setInterval(() => {
+            if (document.visibilityState === 'visible') {
+                refresh();
+            }
+        }, ROSTER_SYNC_INTERVAL_MS);
+
+        const handleVisibilityChange = () => {
+            if (document.visibilityState === 'visible') {
+                refresh();
+            }
+        };
+        document.addEventListener('visibilitychange', handleVisibilityChange);
+
+        return () => {
+            window.clearInterval(intervalId);
+            document.removeEventListener('visibilitychange', handleVisibilityChange);
+            void supabase.removeChannel(channel);
+        };
+    }, [applyStoredReport, loadDispatchInfo]);
+
+    const handleSaveInfo = useCallback(async () => {
+        setSaveStatus('saving');
+        const updatedAt = new Date().toISOString();
+        const { error } = await supabase
+            .from('reports')
+            .upsert({
+                id: ROSTER_REPORT_ID,
+                data: { dispatchInfo },
+                updated_at: updatedAt,
+            });
+
+        if (error) {
+            console.error('Error saving assembly roster dispatch info:', error);
+            setToast(`저장 실패: ${error.message}`);
+            setSaveStatus('idle');
+            return;
+        }
+
+        syncRevisionRef.current += 1;
+        lastAppliedUpdatedAtRef.current = updatedAt;
+        setToast('발령정보가 모든 응소부 화면에 공유되었습니다.');
+        setSaveStatus('idle');
+    }, [dispatchInfo]);
 
     // Sort check-ins by check-in time (ascending)
     const sortedCheckIns = [...checkedInEmployees].sort((a, b) => new Date(a.checkedInAt).getTime() - new Date(b.checkedInAt).getTime());
@@ -121,9 +235,10 @@ export default function AssemblyRoster({ onClose }: { onClose: () => void }) {
                             <button
                                 onClick={handleSaveInfo}
                                 className="btn btn-primary"
+                                disabled={saveStatus === 'saving'}
                                 style={{ height: '44px', padding: '0 16px', whiteSpace: 'nowrap' }}
                             >
-                                💾 저장
+                                {saveStatus === 'saving' ? '저장 중...' : '💾 저장'}
                             </button>
                         </div>
                     </div>
