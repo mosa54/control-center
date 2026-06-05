@@ -84,6 +84,10 @@ create table if not exists task_checks (
 alter table task_checks enable row level security;
 create policy "Enable all for task_checks" on task_checks for all using (true) with check (true);
 
+-- 10. Scenario source document storage
+-- Run this migration when using the admin scenario PDF upload feature.
+ALTER TABLE system_settings ADD COLUMN IF NOT EXISTS scenario_document jsonb;
+
 -- 9. Report file storage bucket
 -- Run this in the Supabase SQL editor to store large PDF/image uploads as files
 -- instead of embedding Base64 strings in reports.data.

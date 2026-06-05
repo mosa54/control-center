@@ -5,6 +5,8 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useApp, SessionMode } from '@/lib/store';
 import { parseExcelFile } from '@/lib/excel';
+import { saveScenarioDocument } from '@/lib/scenarioDocumentStorage';
+import { ScenarioDocument } from '@/lib/scenarioDocumentTypes';
 import Toast from '@/components/Toast';
 import AssemblyRoster from '@/components/AssemblyRoster';
 
@@ -23,6 +25,7 @@ export default function AdminPage() {
     const [tempSummary, setTempSummary] = useState(sessionSummary);
     const [toast, setToast] = useState<string | null>(null);
     const [isUploading, setIsUploading] = useState(false);
+    const [isScenarioUploading, setIsScenarioUploading] = useState(false);
     const [showResetConfirm, setShowResetConfirm] = useState(false);
     const [showRoster, setShowRoster] = useState(false);
 
@@ -66,6 +69,50 @@ export default function AdminPage() {
             e.target.value = '';
         }
     }, [setExcelData]);
+
+    const handleScenarioPdfUpload = useCallback(async (e: React.ChangeEvent<HTMLInputElement>) => {
+        const file = e.target.files?.[0];
+        if (!file) return;
+
+        if (file.type && file.type !== 'application/pdf') {
+            setToast('PDF 파일만 업로드할 수 있습니다.');
+            e.target.value = '';
+            return;
+        }
+
+        setIsScenarioUploading(true);
+        try {
+            const formData = new FormData();
+            formData.append('file', file);
+
+            const response = await fetch('/api/scenario-document/parse', {
+                method: 'POST',
+                body: formData,
+            });
+            const responseText = await response.text();
+            let result: { document?: ScenarioDocument; error?: string } | null = null;
+            try {
+                result = responseText ? JSON.parse(responseText) : null;
+            } catch {
+                throw new Error(responseText || `서버가 빈 응답을 반환했습니다. HTTP ${response.status}`);
+            }
+
+            if (!response.ok || !result?.document) {
+                throw new Error(result?.error || `PDF 텍스트 추출에 실패했습니다. HTTP ${response.status}`);
+            }
+
+            const document = result.document as ScenarioDocument;
+            await saveScenarioDocument(document);
+            setToast(`시나리오 업로드 완료: ${document.pages.length}쪽`);
+        } catch (error) {
+            console.error('Scenario PDF upload error:', error);
+            const message = error instanceof Error ? error.message : '시나리오 PDF 업로드에 실패했습니다.';
+            setToast(`${message} Supabase에 scenario_document 컬럼이 없으면 supabase_schema.sql의 마이그레이션을 먼저 실행하세요.`);
+        } finally {
+            setIsScenarioUploading(false);
+            e.target.value = '';
+        }
+    }, []);
 
     if (!isLoggedIn) {
         return (
@@ -162,6 +209,34 @@ export default function AdminPage() {
                         ※ 시트1: 직원별 임무 (순, 소속부서, 직급, 성명, 직위, 통제단편성부, 임무코드, 비고)
                         <br />
                         ※ 시트2: 임무코드 (임무코드, 임무명, 임무내용)
+                    </p>
+                </div>
+
+                {/* 시나리오 원문 업로드 */}
+                <div className="card">
+                    <div className="card-title">📄 시나리오 원문 관리</div>
+                    <div style={{ padding: '12px', background: '#E8F5E9', borderRadius: '8px', fontSize: '14px', marginBottom: '16px' }}>
+                        수정된 훈련 시나리오 PDF를 업로드하면 원문 보기 화면에 텍스트 문서로 반영됩니다.
+                    </div>
+                    <label
+                        className="btn btn-primary btn-block"
+                        style={{
+                            cursor: isScenarioUploading ? 'wait' : 'pointer',
+                            opacity: isScenarioUploading ? 0.7 : 1,
+                            background: '#2E7D32'
+                        }}
+                    >
+                        {isScenarioUploading ? '시나리오 반영 중...' : '시나리오 PDF 업로드'}
+                        <input
+                            type="file"
+                            accept="application/pdf,.pdf"
+                            onChange={handleScenarioPdfUpload}
+                            disabled={isScenarioUploading}
+                            style={{ display: 'none' }}
+                        />
+                    </label>
+                    <p style={{ marginTop: '12px', fontSize: '13px', color: '#757575' }}>
+                        ※ PDF의 6쪽부터 훈련 전 단계, 7쪽부터 1단계로 인식합니다.
                     </p>
                 </div>
 

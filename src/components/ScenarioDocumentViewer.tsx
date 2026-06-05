@@ -1,27 +1,7 @@
 'use client';
 
 import { useMemo, useState } from 'react';
-
-interface ScenarioSection {
-    id: string;
-    title: string;
-    range: number[];
-}
-
-interface ScenarioPage {
-    pageNumber: number;
-    sectionId: string;
-    sectionTitle: string;
-    title: string;
-    text: string;
-}
-
-interface ScenarioDocument {
-    title: string;
-    sourceFilename: string;
-    sections: ScenarioSection[];
-    pages: ScenarioPage[];
-}
+import { ScenarioDocument } from '@/lib/scenarioDocumentTypes';
 
 interface ScenarioDocumentViewerProps {
     document: ScenarioDocument;
@@ -53,7 +33,29 @@ const getSpeakerColor = (speaker: string) => {
     return speakerColors[hash];
 };
 
-const renderScenarioText = (text: string) => {
+const isSelectableSpeaker = (speaker: string, body: string) => {
+    if (!body.trim()) return false;
+    if (/^\d{1,2}:\d{2}$/.test(speaker)) return false;
+    if (['채널', '좌', '우'].includes(speaker)) return false;
+
+    return true;
+};
+
+const getSpeakersFromText = (text: string) => {
+    const speakers = new Set<string>();
+    text.split('\n').forEach((line) => {
+        const speakerMatch = line.trim().match(/^\[\s*([^\]]+?)\s*\]\s*(.*)$/);
+        if (!speakerMatch) return;
+
+        const speaker = speakerMatch[1].trim();
+        const body = speakerMatch[2].trim();
+        if (isSelectableSpeaker(speaker, body)) speakers.add(speaker);
+    });
+
+    return speakers;
+};
+
+const renderScenarioText = (text: string, selectedSpeaker: string) => {
     return text.split('\n').map((line, index) => {
         const trimmed = line.trim();
         const speakerMatch = trimmed.match(/^\[\s*([^\]]+?)\s*\]\s*(.*)$/);
@@ -61,17 +63,32 @@ const renderScenarioText = (text: string) => {
         if (speakerMatch) {
             const speaker = speakerMatch[1].trim();
             const body = speakerMatch[2].trim();
+            const selectableSpeaker = isSelectableSpeaker(speaker, body);
+
+            if (!selectableSpeaker) {
+                return (
+                    <div key={`line-${index}`} className="scenario-doc-line">
+                        {trimmed}
+                    </div>
+                );
+            }
+
             const color = getSpeakerColor(speaker);
+            const isHighlighted = selectedSpeaker === speaker;
 
             return (
-                <div key={`${speaker}-${index}`} className="scenario-doc-line scenario-doc-quote">
+                <div
+                    key={`${speaker}-${index}`}
+                    className={`scenario-doc-line scenario-doc-quote ${isHighlighted ? 'highlighted' : ''}`}
+                    style={isHighlighted ? { borderColor: color, backgroundColor: `${color}1F` } : undefined}
+                >
                     <span
                         className="scenario-doc-speaker"
-                        style={{ color, borderColor: color, backgroundColor: `${color}14` }}
+                        style={{ color, borderColor: color, backgroundColor: isHighlighted ? `${color}2E` : `${color}14` }}
                     >
                         {speaker}
                     </span>
-                    <span>{body}</span>
+                    <span className="scenario-doc-quote-body">{body}</span>
                 </div>
             );
         }
@@ -87,9 +104,14 @@ const renderScenarioText = (text: string) => {
     });
 };
 
+const getVisiblePageNumber = (page: ScenarioDocument['pages'][number]) => {
+    return page.displayPageNumber ?? page.pageNumber;
+};
+
 export default function ScenarioDocumentViewer({ document }: ScenarioDocumentViewerProps) {
     const [query, setQuery] = useState('');
     const [sectionId, setSectionId] = useState('all');
+    const [selectedSpeaker, setSelectedSpeaker] = useState('');
 
     const visibleSections = useMemo(
         () => document.sections.filter((section) => section.id !== 'overview'),
@@ -113,6 +135,15 @@ export default function ScenarioDocumentViewer({ document }: ScenarioDocumentVie
         });
     }, [query, sectionId, visiblePages]);
 
+    const speakers = useMemo(() => {
+        const speakerSet = new Set<string>();
+        visiblePages.forEach((page) => {
+            getSpeakersFromText(page.text).forEach((speaker) => speakerSet.add(speaker));
+        });
+
+        return Array.from(speakerSet).sort((a, b) => a.localeCompare(b, 'ko'));
+    }, [visiblePages]);
+
     const activeSection = visibleSections.find((section) => section.id === sectionId);
 
     return (
@@ -126,13 +157,20 @@ export default function ScenarioDocumentViewer({ document }: ScenarioDocumentVie
                         placeholder="예: RIT, 언론브리핑, 가스누출"
                     />
                 </label>
-                <button
-                    type="button"
-                    className="scenario-doc-print"
-                    onClick={() => window.print()}
-                >
-                    인쇄
-                </button>
+                <label className="scenario-doc-speaker-filter">
+                    <span>담당자</span>
+                    <select
+                        value={selectedSpeaker}
+                        onChange={(event) => setSelectedSpeaker(event.target.value)}
+                    >
+                        <option value="">전체</option>
+                        {speakers.map((speaker) => (
+                            <option key={speaker} value={speaker}>
+                                {speaker}
+                            </option>
+                        ))}
+                    </select>
+                </label>
             </div>
 
             <div className="scenario-doc-tabs no-print" aria-label="시나리오 단계">
@@ -175,10 +213,10 @@ export default function ScenarioDocumentViewer({ document }: ScenarioDocumentVie
                                     <span className="scenario-doc-section">{page.sectionTitle}</span>
                                     <h2>{page.title}</h2>
                                 </div>
-                                <span className="scenario-doc-page-number">p.{page.pageNumber}</span>
+                                <span className="scenario-doc-page-number">p.{getVisiblePageNumber(page)}</span>
                             </header>
                             <div className="scenario-doc-page-body">
-                                {renderScenarioText(page.text)}
+                                {renderScenarioText(page.text, selectedSpeaker)}
                             </div>
                         </article>
                     ))}

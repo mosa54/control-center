@@ -13,6 +13,16 @@ function getSection(pageNumber) {
   return sections.find((section) => pageNumber >= section.range[0] && pageNumber <= section.range[1]);
 }
 
+function extractDisplayPageNumber(text) {
+  const match = text.match(/^[-–—]\s*(\d{1,4})\s*[-–—]/);
+  return match ? Number(match[1]) : undefined;
+}
+
+function getDisplayPageNumber(pageNumber, section, text) {
+  if (section.id === 'pre') return 0;
+  return extractDisplayPageNumber(text) ?? pageNumber;
+}
+
 function formatText(text) {
   return text
     .replace(/\s+/g, ' ')
@@ -66,9 +76,11 @@ async function main() {
     const section = getSection(i);
     if (!section) continue;
 
+    const displayPageNumber = getDisplayPageNumber(i, section, rawText);
     const text = formatText(rawText);
     pages.push({
       pageNumber: i,
+      displayPageNumber,
       sectionId: section.id,
       sectionTitle: section.title,
       title: makeTitle(i, text, section.title),
