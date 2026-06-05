@@ -1242,6 +1242,243 @@ body.roster-preview-open .roster-page .page-content {
   display: none;
 }
 
+.scenario-doc-shell {
+  width: 100%;
+  max-width: 980px;
+  margin: 0 auto;
+  padding: 20px 16px 104px;
+}
+
+.scenario-doc-hero {
+  margin-bottom: 18px;
+}
+
+.scenario-doc-back {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin-bottom: 12px;
+  color: #1565C0;
+  text-decoration: none;
+  font-size: 13px;
+  font-weight: 800;
+}
+
+.scenario-doc-hero h1 {
+  margin: 0;
+  color: #1A237E;
+  font-size: 24px;
+  line-height: 1.3;
+  letter-spacing: 0;
+}
+
+.scenario-doc-hero p {
+  margin: 6px 0 0;
+  color: #616161;
+  font-size: 14px;
+}
+
+.scenario-doc-toolbar {
+  position: sticky;
+  top: 0;
+  z-index: 20;
+  display: flex;
+  gap: 8px;
+  align-items: stretch;
+  margin: 0 -16px 12px;
+  padding: 10px 16px;
+  background: rgba(250, 250, 250, 0.96);
+  border-bottom: 1px solid #E0E0E0;
+  backdrop-filter: blur(8px);
+}
+
+.scenario-doc-search {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+  border: 1px solid #D6DCE8;
+  background: white;
+  border-radius: 8px;
+  padding: 0 10px;
+}
+
+.scenario-doc-search span {
+  flex: 0 0 auto;
+  color: #455A64;
+  font-size: 13px;
+  font-weight: 800;
+}
+
+.scenario-doc-search input {
+  flex: 1;
+  min-width: 0;
+  height: 40px;
+  border: 0;
+  outline: 0;
+  color: #212121;
+  font-size: 14px;
+}
+
+.scenario-doc-print {
+  flex: 0 0 auto;
+  height: 42px;
+  border: 1px solid #90CAF9;
+  border-radius: 8px;
+  background: #E3F2FD;
+  color: #0D47A1;
+  padding: 0 14px;
+  font-size: 13px;
+  font-weight: 800;
+  cursor: pointer;
+}
+
+.scenario-doc-tabs {
+  display: flex;
+  gap: 8px;
+  overflow-x: auto;
+  padding: 0 0 12px;
+  scrollbar-width: thin;
+}
+
+.scenario-doc-tabs button {
+  flex: 0 0 auto;
+  border: 1px solid #E0E0E0;
+  border-radius: 8px;
+  background: white;
+  color: #424242;
+  padding: 9px 11px;
+  font-size: 13px;
+  font-weight: 800;
+  cursor: pointer;
+}
+
+.scenario-doc-tabs button.active {
+  border-color: #1A237E;
+  background: #1A237E;
+  color: white;
+}
+
+.scenario-doc-summary {
+  display: flex;
+  justify-content: space-between;
+  gap: 10px;
+  align-items: center;
+  margin: 0 0 12px;
+  color: #616161;
+  font-size: 13px;
+}
+
+.scenario-doc-summary strong {
+  color: #263238;
+}
+
+.scenario-doc-pages {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.scenario-doc-page {
+  border: 1px solid #E0E0E0;
+  border-radius: 8px;
+  background: white;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.04);
+  overflow: hidden;
+}
+
+.scenario-doc-page header {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  align-items: flex-start;
+  padding: 14px 16px;
+  border-bottom: 1px solid #EEEEEE;
+  background: #FAFAFA;
+}
+
+.scenario-doc-section {
+  display: inline-block;
+  margin-bottom: 5px;
+  color: #1565C0;
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.scenario-doc-page h2 {
+  margin: 0;
+  color: #212121;
+  font-size: 17px;
+  line-height: 1.45;
+  letter-spacing: 0;
+}
+
+.scenario-doc-page-number {
+  flex: 0 0 auto;
+  color: #757575;
+  background: white;
+  border: 1px solid #E0E0E0;
+  border-radius: 6px;
+  padding: 4px 7px;
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.scenario-doc-page-body {
+  margin: 0;
+  padding: 16px;
+  color: #263238;
+  font-size: 15px;
+  line-height: 1.65;
+  word-break: keep-all;
+  overflow-wrap: anywhere;
+}
+
+.scenario-doc-line {
+  margin: 0 0 10px;
+}
+
+.scenario-doc-line:last-child {
+  margin-bottom: 0;
+}
+
+.scenario-doc-quote {
+  display: flex;
+  align-items: flex-start;
+  gap: 9px;
+  padding: 2px 0 4px;
+}
+
+.scenario-doc-speaker {
+  flex: 0 0 auto;
+  min-width: 82px;
+  max-width: 128px;
+  border-left: 4px solid currentColor;
+  border-radius: 6px;
+  padding: 3px 7px 4px;
+  font-size: 13px;
+  line-height: 1.25;
+  font-weight: 900;
+  text-align: center;
+  word-break: keep-all;
+}
+
+.scenario-doc-note {
+  margin-top: 12px;
+  color: #5D4037;
+  font-weight: 700;
+}
+
+.scenario-doc-empty {
+  padding: 48px 20px;
+  text-align: center;
+  color: #757575;
+  border: 1px dashed #BDBDBD;
+  border-radius: 8px;
+  background: white;
+}
+
 @media (max-width: 768px) {
   .roster-title {
     font-size: 16px !important;
@@ -1257,6 +1494,48 @@ body.roster-preview-open .roster-page .page-content {
   .roster-table th {
     padding: 2px 1px !important;
     white-space: nowrap;
+  }
+
+  .scenario-doc-hero h1 {
+    font-size: 21px;
+  }
+
+  .scenario-doc-toolbar {
+    align-items: stretch;
+  }
+
+  .scenario-doc-print {
+    padding: 0 11px;
+  }
+
+  .scenario-doc-summary {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .scenario-doc-page header {
+    padding: 12px 13px;
+  }
+
+  .scenario-doc-page h2 {
+    font-size: 16px;
+  }
+
+  .scenario-doc-page-body {
+    padding: 14px 13px;
+    font-size: 14px;
+    line-height: 1.7;
+  }
+
+  .scenario-doc-quote {
+    gap: 7px;
+  }
+
+  .scenario-doc-speaker {
+    min-width: 70px;
+    max-width: 96px;
+    padding: 3px 5px;
+    font-size: 12px;
   }
 }
 
@@ -1290,6 +1569,50 @@ body.roster-preview-open .roster-page .page-content {
     background: white !important;
     margin: 0 !important;
     padding: 0 !important;
+  }
+
+  .scenario-doc-shell {
+    max-width: none !important;
+    padding: 0 !important;
+  }
+
+  .scenario-doc-hero {
+    margin-bottom: 8mm !important;
+  }
+
+  .scenario-doc-hero h1 {
+    color: black !important;
+    font-size: 18pt !important;
+  }
+
+  .scenario-doc-hero p {
+    color: #333 !important;
+  }
+
+  .scenario-doc-page {
+    break-inside: avoid;
+    box-shadow: none !important;
+    border: 1px solid #999 !important;
+    margin-bottom: 6mm !important;
+  }
+
+  .scenario-doc-page header {
+    background: #f5f5f5 !important;
+  }
+
+  .scenario-doc-page-body {
+    font-size: 10.5pt !important;
+    line-height: 1.55 !important;
+  }
+
+  .scenario-doc-line {
+    margin-bottom: 4mm !important;
+  }
+
+  .scenario-doc-speaker {
+    color: black !important;
+    border-color: black !important;
+    background: white !important;
   }
 
   /* 인쇄 시 레이아웃 초기화 */
