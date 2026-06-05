@@ -148,6 +148,7 @@ const getVisiblePageNumber = (page: ScenarioDocument['pages'][number]) => {
 export default function ScenarioDocumentViewer({ document }: ScenarioDocumentViewerProps) {
     const [query, setQuery] = useState('');
     const [activeSearchIndex, setActiveSearchIndex] = useState(0);
+    const [hasSearchNavigated, setHasSearchNavigated] = useState(false);
     const [activeSectionId, setActiveSectionId] = useState('all');
     const [selectedSpeakers, setSelectedSpeakers] = useState<string[]>([]);
     const speakerPickerRef = useRef<HTMLDetailsElement>(null);
@@ -212,11 +213,31 @@ export default function ScenarioDocumentViewer({ document }: ScenarioDocumentVie
     const handleSearchChange = (value: string) => {
         setQuery(value);
         setActiveSearchIndex(0);
+        setHasSearchNavigated(false);
+    };
+
+    const scrollToSearchMatch = (matchIndex: number) => {
+        if (!hasSearchMatches) return;
+        setActiveSearchIndex(matchIndex);
+        setHasSearchNavigated(true);
+
+        requestAnimationFrame(() => {
+            globalThis.document
+                .querySelector(`[data-scenario-search-match="${matchIndex}"]`)
+                ?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        });
     };
 
     const goToNextSearchResult = () => {
         if (!hasSearchMatches) return;
-        setActiveSearchIndex((current) => (current + 1) % searchMatchCount);
+        const nextIndex = hasSearchNavigated ? (visibleSearchIndex + 1) % searchMatchCount : visibleSearchIndex;
+        scrollToSearchMatch(nextIndex);
+    };
+
+    const handleSearchKeyDown = (event: React.KeyboardEvent<HTMLInputElement>) => {
+        if (event.key !== 'Enter') return;
+        event.preventDefault();
+        scrollToSearchMatch(visibleSearchIndex);
     };
 
     useEffect(() => {
@@ -238,18 +259,9 @@ export default function ScenarioDocumentViewer({ document }: ScenarioDocumentVie
         const needle = normalize(query);
         if (!needle) {
             setActiveSearchIndex(0);
+            setHasSearchNavigated(false);
         }
     }, [query]);
-
-    useEffect(() => {
-        if (!hasSearchQuery || !hasSearchMatches) return;
-
-        requestAnimationFrame(() => {
-            globalThis.document
-                .querySelector(`[data-scenario-search-match="${visibleSearchIndex}"]`)
-                ?.scrollIntoView({ behavior: 'smooth', block: 'center' });
-        });
-    }, [hasSearchMatches, hasSearchQuery, visibleSearchIndex]);
 
     const scrollToScenarioTarget = (targetSectionId: string) => {
         setActiveSectionId(targetSectionId);
@@ -277,6 +289,7 @@ export default function ScenarioDocumentViewer({ document }: ScenarioDocumentVie
                     <input
                         value={query}
                         onChange={(event) => handleSearchChange(event.target.value)}
+                        onKeyDown={handleSearchKeyDown}
                         placeholder="예: RIT, 언론브리핑, 가스누출"
                     />
                     {hasSearchQuery && (
