@@ -52,6 +52,14 @@ export interface ScenarioEvent {
     roles?: RoleChecklist[];  // 주체별 체크리스트 (없으면 기존 앞면 전용 카드)
 }
 
+// 훈련 시나리오 PDF 정보
+export interface TrainingScenarioPdfInfo {
+    fileUrl: string;
+    fileName: string;
+    fileSize: number;
+    uploadedAt: string;
+}
+
 // 앱 상태 인터페이스
 interface AppState {
     sessionMode: SessionMode;
@@ -63,6 +71,7 @@ interface AppState {
     scenarioEvents: ScenarioEvent[];
     realtimeStatus: 'connecting' | 'connected' | 'error' | 'disconnected';
     taskChecks: Record<string, Record<string, TaskCheckInfo>>; // taskChecks[eventId][taskKey]
+    trainingScenarioPdf: TrainingScenarioPdfInfo | null;
 }
 
 // 컨텍스트 액션
@@ -114,6 +123,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
     const [scenarioEvents, setScenarioEvents] = useState<ScenarioEvent[]>([]);
     const [realtimeStatus, setRealtimeStatus] = useState<'connecting' | 'connected' | 'error' | 'disconnected'>('connecting');
     const [taskChecks, setTaskChecks] = useState<Record<string, Record<string, TaskCheckInfo>>>({});
+    const [trainingScenarioPdf, setTrainingScenarioPdf] = useState<TrainingScenarioPdfInfo | null>(null);
     const channelRef = useRef<any>(null);
     const realtimeStatusRef = useRef<'connecting' | 'connected' | 'error' | 'disconnected'>('connecting');
     const reconnectTimerRef = useRef<NodeJS.Timeout | null>(null);
@@ -131,6 +141,9 @@ export function AppProvider({ children }: { children: ReactNode }) {
             if (settings) {
                 setSessionModeState(settings.mode as SessionMode);
                 setSessionSummaryState(settings.summary || '');
+                if (settings.training_scenario_pdf) {
+                    setTrainingScenarioPdf(settings.training_scenario_pdf as TrainingScenarioPdfInfo);
+                }
                 if (settings.excel_data) {
                     try {
                         const parsedExcel = settings.excel_data as any;
@@ -670,6 +683,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
         fetchTaskChecks,
         fetchTaskChecksForEvents,
         toggleTaskCheck,
+        trainingScenarioPdf,
     };
 
     return (
