@@ -529,6 +529,16 @@ function CasualtyPreviewInline({ data, lastSavedAt }: { data: CasualtyReportData
         return null;
     }
 
+    const getSeverityBg = (severity: string) => {
+        switch (severity) {
+            case '긴급': return { backgroundColor: '#FFCDD2' };
+            case '응급': return { backgroundColor: '#FFF9C4' };
+            case '비응급': return { backgroundColor: '#C8E6C9' };
+            case '지연': return { backgroundColor: '#E0E0E0' };
+            default: return {};
+        }
+    };
+
     const rows = data.rows ?? [];
     const counts = {
         긴급: rows.filter((r) => r.중증도 === '긴급').length,
@@ -546,7 +556,7 @@ function CasualtyPreviewInline({ data, lastSavedAt }: { data: CasualtyReportData
                 <table className="report-table" style={{ width: '55%', margin: 0 }}>
                     <thead>
                         <tr>
-                            <th style={{ background: '#E0E0E0' }}>합계</th>
+                            <th style={{ background: '#BBDEFB' }}>합계</th>
                             <th style={{ background: '#FFCDD2' }}>긴급</th>
                             <th style={{ background: '#FFF9C4' }}>응급</th>
                             <th style={{ background: '#C8E6C9' }}>비응급</th>
@@ -598,7 +608,7 @@ function CasualtyPreviewInline({ data, lastSavedAt }: { data: CasualtyReportData
                                 <td style={{ whiteSpace: 'nowrap' }}>{row.연령}</td>
                                 <td>{row.주증상}</td>
                                 <td>{row.이송병원}</td>
-                                <td>{row.중증도}</td>
+                                <td style={getSeverityBg(row.중증도)}>{row.중증도}</td>
                                 <td>{row.발견지점}</td>
                                 <td>{row.이송수단}</td>
                                 <td>{row.출발시간}</td>
