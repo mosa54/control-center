@@ -46,6 +46,16 @@ const createEmptyRow = (): CasualtyRow => ({
     출발시간: '', 인계자: '', 비고: ''
 });
 
+const getSeverityStyle = (severity: string) => {
+    switch (severity) {
+        case '긴급': return { backgroundColor: '#FFCDD2' };
+        case '응급': return { backgroundColor: '#FFF9C4' };
+        case '비응급': return { backgroundColor: '#C8E6C9' };
+        case '지연': return { backgroundColor: '#E0E0E0' };
+        default: return {};
+    }
+};
+
 const INITIAL_ROWS = Array.from({ length: 20 }, () => createEmptyRow());
 const CASUALTY_SYNC_INTERVAL_MS = 5000;
 
@@ -114,7 +124,7 @@ function CasualtyPreview({ data, lastSavedAt }: { data: CasualtyReportData, last
                 <table className="report-table" style={{ width: '55%', margin: 0 }}>
                     <thead>
                         <tr>
-                            <th style={{ background: '#E0E0E0' }}>합계</th>
+                            <th style={{ background: '#BBDEFB' }}>합계</th>
                             <th style={{ background: '#FFCDD2' }}>긴급</th>
                             <th style={{ background: '#FFF9C4' }}>응급</th>
                             <th style={{ background: '#C8E6C9' }}>비응급</th>
@@ -166,7 +176,7 @@ function CasualtyPreview({ data, lastSavedAt }: { data: CasualtyReportData, last
                                 <td style={{ whiteSpace: 'nowrap' }}>{row.연령}</td>
                                 <td>{row.주증상}</td>
                                 <td>{row.이송병원}</td>
-                                <td>{row.중증도}</td>
+                                <td style={getSeverityStyle(row.중증도)}>{row.중증도}</td>
                                 <td>{row.발견지점}</td>
                                 <td>{row.이송수단}</td>
                                 <td>{row.출발시간}</td>
@@ -467,8 +477,8 @@ function CasualtyReportContent() {
                                             <td><input type="number" value={row.연령 || ''} onChange={e => updateRow(i, '연령', e.target.value)} style={{ width: '40px' }} /></td>
                                             <td><input value={row.주증상 || ''} onChange={e => updateRow(i, '주증상', e.target.value)} /></td>
                                             <td><input value={row.이송병원 || ''} onChange={e => updateRow(i, '이송병원', e.target.value)} /></td>
-                                            <td>
-                                                <select value={row.중증도 || ''} onChange={e => updateRow(i, '중증도', e.target.value)}>
+                                            <td style={getSeverityStyle(row.중증도)}>
+                                                <select value={row.중증도 || ''} onChange={e => updateRow(i, '중증도', e.target.value)} style={{ width: '100%', background: 'transparent', border: 'none', outline: 'none' }}>
                                                     <option value=""></option>
                                                     <option value="긴급">긴급</option>
                                                     <option value="응급">응급</option>
