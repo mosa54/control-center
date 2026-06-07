@@ -1700,7 +1700,11 @@ body.roster-preview-open .roster-page .page-content {
 }
 
 .scenario-doc-quote-body {
+  flex: 1 1 auto;
+  min-width: 0;
   font-size: calc(1em + 1pt);
+  line-height: 1.75;
+  white-space: pre-line;
 }
 
 .scenario-doc-speaker {
@@ -1721,6 +1725,7 @@ body.roster-preview-open .roster-page .page-content {
   margin-top: 12px;
   color: #5D4037;
   font-weight: 700;
+  white-space: pre-line;
 }
 
 .scenario-doc-empty {

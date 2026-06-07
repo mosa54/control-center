@@ -41,8 +41,7 @@ const getSpeakerColor = (speaker: string) => {
     return speakerColors[hash];
 };
 
-const isSelectableSpeaker = (speaker: string, body: string) => {
-    if (!body.trim()) return false;
+const isSpeakerName = (speaker: string) => {
     if (/^\d{1,2}:\d{2}$/.test(speaker)) return false;
     if (['채널', '좌', '우'].includes(speaker)) return false;
 
@@ -56,8 +55,9 @@ const getSpeakersFromText = (text: string) => {
         if (!speakerMatch) return;
 
         const speaker = speakerMatch[1].trim();
-        const body = speakerMatch[2].trim();
-        if (isSelectableSpeaker(speaker, body)) speakers.add(speaker);
+        if (isSpeakerName(speaker)) {
+            speakers.add(speaker);
+        }
     });
 
     return speakers;
@@ -93,24 +93,55 @@ const renderHighlightedText = (text: string, query: string, searchCursor?: Searc
     });
 };
 
-const renderScenarioText = (text: string, selectedSpeakers: string[], query: string, searchCursor: SearchCursor) => {
-    return text.split('\n').map((line, index) => {
-        const trimmed = line.trim();
-        const speakerMatch = trimmed.match(/^\[\s*([^\]]+?)\s*\]\s*(.*)$/);
+interface ScenarioTextBlock {
+    type: 'quote' | 'note' | 'text';
+    speaker?: string;
+    body: string;
+}
 
+const getScenarioTextBlocks = (text: string): ScenarioTextBlock[] => {
+    const blocks: ScenarioTextBlock[] = [];
+
+    for (const sourceLine of text.split('\n')) {
+        const line = sourceLine.trim();
+        if (!line) continue;
+
+        const speakerMatch = line.match(/^\[\s*([^\]]+?)\s*\]\s*(.*)$/);
         if (speakerMatch) {
             const speaker = speakerMatch[1].trim();
             const body = speakerMatch[2].trim();
-            const selectableSpeaker = isSelectableSpeaker(speaker, body);
 
-            if (!selectableSpeaker) {
-                return (
-                    <div key={`line-${index}`} className="scenario-doc-line">
-                        {renderHighlightedText(trimmed, query, searchCursor)}
-                    </div>
-                );
+            if (isSpeakerName(speaker)) {
+                blocks.push({ type: 'quote', speaker, body });
+            } else {
+                blocks.push({ type: 'text', body: line });
             }
+            continue;
+        }
 
+        if (line.startsWith('★')) {
+            blocks.push({ type: 'note', body: line });
+            continue;
+        }
+
+        const previous = blocks[blocks.length - 1];
+        const startsListItem = /^[-–—]\s+/.test(line);
+        if (previous?.type === 'quote') {
+            previous.body = `${previous.body}${startsListItem ? '\n' : ' '}${line}`.trim();
+        } else if (previous?.type === 'note') {
+            previous.body = `${previous.body}${startsListItem ? '\n' : ' '}${line}`.trim();
+        } else {
+            blocks.push({ type: 'text', body: line });
+        }
+    }
+
+    return blocks;
+};
+
+const renderScenarioText = (text: string, selectedSpeakers: string[], query: string, searchCursor: SearchCursor) => {
+    return getScenarioTextBlocks(text).map((block, index) => {
+        if (block.type === 'quote' && block.speaker) {
+            const speaker = block.speaker;
             const color = getSpeakerColor(speaker);
             const isHighlighted = selectedSpeakers.includes(speaker);
 
@@ -126,7 +157,9 @@ const renderScenarioText = (text: string, selectedSpeakers: string[], query: str
                     >
                         {renderHighlightedText(speaker, query, searchCursor)}
                     </span>
-                    <span className="scenario-doc-quote-body">{renderHighlightedText(body, query, searchCursor)}</span>
+                    <span className="scenario-doc-quote-body">
+                        {renderHighlightedText(block.body, query, searchCursor)}
+                    </span>
                 </div>
             );
         }
@@ -134,9 +167,9 @@ const renderScenarioText = (text: string, selectedSpeakers: string[], query: str
         return (
             <div
                 key={`line-${index}`}
-                className={`scenario-doc-line ${trimmed.startsWith('★') ? 'scenario-doc-note' : ''}`}
+                className={`scenario-doc-line ${block.type === 'note' ? 'scenario-doc-note' : ''}`}
             >
-                {renderHighlightedText(trimmed, query, searchCursor)}
+                {renderHighlightedText(block.body, query, searchCursor)}
             </div>
         );
     });
