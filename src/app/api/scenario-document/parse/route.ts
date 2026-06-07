@@ -2,7 +2,15 @@ import { NextRequest, NextResponse } from 'next/server';
 import { existsSync } from 'node:fs';
 import { join } from 'node:path';
 import { pathToFileURL } from 'node:url';
-import { ScenarioDocument, ScenarioSection } from '@/lib/scenarioDocumentTypes';
+import {
+    ScenarioContentRow,
+    ScenarioDocument,
+    ScenarioSection,
+} from '@/lib/scenarioDocumentTypes';
+import {
+    compactScenarioOtherText,
+    normalizeScenarioRows,
+} from '@/lib/scenarioDocumentRows';
 
 export const runtime = 'nodejs';
 
@@ -66,9 +74,101 @@ const formatText = (text: string) => {
         .trim();
 };
 
-const makeTitle = (pageNumber: number, text: string, sectionTitle: string) => {
+const formatCellText = (text: string) => {
+    return text
+        .replace(/\r/g, '')
+        .split('\n')
+        .map((line) => line.replace(/\s+/g, ' ').trim())
+        .filter(Boolean)
+        .join('\n')
+        .replace(/^-\s*\d+\s*-\s*/, '')
+        .replace(/^\s*/gm, '- ')
+        .replace(/\s*\/\s*(?=\[)/g, '\n')
+        .replace(/\n{3,}/g, '\n\n')
+        .trim();
+};
+
+const formatOtherCellText = (text: string) => {
+    return compactScenarioOtherText(formatCellText(text));
+};
+
+const looksLikeOperationalNote = (text: string) => {
+    if (/^\s*\[[^\]]+]\s*/m.test(text)) return false;
+
+    const noteSignals = text.match(
+        /★|(!)|차량|도착|출발|부서|설치|철수|고임목|현수막|BGM|재생|대기|주차|배치|부착|점화|작동|채널/g,
+    )?.length ?? 0;
+
+    return noteSignals >= 2;
+};
+
+interface ExtractedTable {
+    rows: ScenarioContentRow[];
+    hasOtherColumn: boolean;
+}
+
+const extractTableRows = (tables: string[][][]): ExtractedTable | null => {
+    const table = tables.find((candidate) => {
+        const header = candidate[0]?.map((cell) => cell.replace(/\s+/g, ' ').trim()) ?? [];
+        return header.some((cell) => cell.includes('주요상황'))
+            && header.some((cell) => cell.includes('행동') && cell.includes('시나리오'));
+    });
+
+    if (!table?.length) return null;
+
+    const header = table[0].map((cell) => cell.replace(/\s+/g, ' ').trim());
+    const situationIndex = header.findIndex((cell) => cell.includes('주요상황'));
+    const actionIndex = header.findIndex((cell) => cell.includes('행동') && cell.includes('시나리오'));
+    const otherIndex = header.findIndex((cell) => cell.includes('기타'));
+    const rows: ScenarioContentRow[] = [];
+
+    for (const sourceRow of table.slice(1)) {
+        const cells = sourceRow.map(formatCellText);
+        if (cells.every((cell) => !cell)) continue;
+
+        const compressedOtherRow = otherIndex >= 0
+            && cells.length === 2
+            && looksLikeOperationalNote(cells[1]);
+        const row: ScenarioContentRow = {
+            situation: situationIndex >= 0 ? cells[situationIndex] ?? '' : '',
+            action: compressedOtherRow
+                ? ''
+                : actionIndex >= 0 ? cells[actionIndex] ?? '' : '',
+            other: compressedOtherRow
+                ? formatOtherCellText(sourceRow[1] ?? '')
+                : otherIndex >= 0 ? formatOtherCellText(sourceRow[otherIndex] ?? '') : '',
+        };
+
+        if (row.situation || row.action || row.other) {
+            rows.push(row);
+        }
+    }
+
+    return rows.length > 0
+        ? { rows, hasOtherColumn: otherIndex >= 0 }
+        : null;
+};
+
+const getRowsText = (rows: ScenarioContentRow[]) => {
+    return rows
+        .flatMap((row) => [row.situation, row.action, row.other])
+        .filter(Boolean)
+        .join('\n');
+};
+
+const makeTitle = (
+    pageNumber: number,
+    text: string,
+    sectionTitle: string,
+    rows?: ScenarioContentRow[],
+) => {
     if (pageNumber === 6) return '훈련 전 안내 멘트';
     if (pageNumber === 34) return '마무리 여백';
+
+    const firstSituation = rows?.find((row) => row.situation)?.situation;
+    if (firstSituation) {
+        return firstSituation.replace(/\n+/g, ' ').trim();
+    }
 
     const withoutPage = text.replace(/^-\s*\d+\s*-\s*/, '').trim();
     const firstBracket = withoutPage.indexOf('[');
@@ -102,27 +202,46 @@ export async function POST(request: NextRequest) {
         const pages: ScenarioDocument['pages'] = [];
 
         try {
-            for (let pageNumber = 1; pageNumber <= info.total; pageNumber += 1) {
-                const section = getSection(pageNumber);
-                if (!section) continue;
+            const pageNumbers = Array.from(
+                { length: info.total },
+                (_, index) => index + 1,
+            ).filter((pageNumber) => getSection(pageNumber));
+            const textResult = await parser.getText({
+                partial: pageNumbers,
+                pageJoiner: '',
+                itemJoiner: ' ',
+            });
+            const tablePages = new Map<number, string[][][]>();
 
-                const textResult = await parser.getText({
-                    partial: [pageNumber],
-                    pageJoiner: '',
-                    itemJoiner: ' ',
-                });
+            try {
+                const tableResult = await parser.getTable({ partial: pageNumbers });
+                tableResult.pages.forEach((page) => tablePages.set(page.num, page.tables));
+            } catch (tableError) {
+                console.warn('Scenario PDF table extraction failed; using plain text fallback:', tableError);
+            }
+
+            for (const pageNumber of pageNumbers) {
+                const section = getSection(pageNumber)!;
                 const rawText = textResult.getPageText(pageNumber).replace(/\s+/g, ' ').trim();
                 if (!rawText) continue;
 
                 const displayPageNumber = getDisplayPageNumber(pageNumber, section, rawText);
-                const text = formatText(rawText);
+                const extractedTable = extractTableRows(tablePages.get(pageNumber) ?? []);
+                const rows = extractedTable
+                    ? normalizeScenarioRows(extractedTable.rows, section.title)
+                    : undefined;
+                const text = rows
+                    ? getRowsText(rows)
+                    : formatText(rawText);
                 pages.push({
                     pageNumber,
                     displayPageNumber,
                     sectionId: section.id,
                     sectionTitle: section.title,
-                    title: makeTitle(pageNumber, text, section.title),
+                    title: makeTitle(pageNumber, text, section.title, rows),
                     text,
+                    rows,
+                    hasOtherColumn: extractedTable?.hasOtherColumn,
                 });
             }
         } finally {

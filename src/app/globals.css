@@ -1606,6 +1606,78 @@ body.roster-preview-open .roster-page .page-content {
   overflow-wrap: anywhere;
 }
 
+.scenario-doc-table-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 10px;
+  margin-bottom: 14px;
+  padding-bottom: 14px;
+  border-bottom: 1px dashed #CFD8DC;
+}
+
+.scenario-doc-table-row.has-other {
+  grid-template-columns: minmax(0, 2fr) minmax(150px, 0.9fr);
+}
+
+.scenario-doc-row-title {
+  grid-column: 1 / -1;
+  margin: 0;
+  padding: 9px 11px;
+  border-left: 4px solid #1565C0;
+  border-radius: 4px;
+  color: #0D47A1;
+  background: #F3F8FD;
+  font-size: 15px;
+  line-height: 1.45;
+}
+
+.scenario-doc-table-row:last-child {
+  margin-bottom: 0;
+  padding-bottom: 0;
+  border-bottom: 0;
+}
+
+.scenario-doc-cell {
+  min-width: 0;
+  border: 1px solid #DCE3E7;
+  border-radius: 8px;
+  background: #FFFFFF;
+  overflow: hidden;
+}
+
+.scenario-doc-cell > strong {
+  display: block;
+  padding: 7px 10px;
+  border-bottom: 1px solid #DCE3E7;
+  font-size: 12px;
+  line-height: 1.4;
+}
+
+.scenario-doc-cell > div {
+  padding: 10px;
+}
+
+.scenario-doc-action > strong {
+  color: #1B5E20;
+  background: #E8F5E9;
+  border-color: #C8E6C9;
+}
+
+.scenario-doc-other {
+  background: #FFFDF5;
+  border-color: #FFE082;
+}
+
+.scenario-doc-other > strong {
+  color: #6D4C00;
+  background: #FFF8E1;
+  border-color: #FFE082;
+}
+
+.scenario-doc-cell .scenario-doc-line {
+  margin-bottom: 8px;
+}
+
 .scenario-doc-line {
   margin: 0 0 10px;
 }
@@ -1742,6 +1814,12 @@ body.roster-preview-open .roster-page .page-content {
     padding: 14px 13px;
     font-size: 14px;
     line-height: 1.7;
+  }
+
+  .scenario-doc-table-row,
+  .scenario-doc-table-row.has-other {
+    grid-template-columns: 1fr;
+    gap: 8px;
   }
 
   .scenario-doc-quote {

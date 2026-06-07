@@ -4,6 +4,12 @@ export interface ScenarioSection {
     range: number[];
 }
 
+export interface ScenarioContentRow {
+    situation: string;
+    action: string;
+    other: string;
+}
+
 export interface ScenarioPage {
     pageNumber: number;
     displayPageNumber?: number;
@@ -11,6 +17,8 @@ export interface ScenarioPage {
     sectionTitle: string;
     title: string;
     text: string;
+    rows?: ScenarioContentRow[];
+    hasOtherColumn?: boolean;
 }
 
 export interface ScenarioDocument {

@@ -1,7 +1,8 @@
 'use client';
 
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { ScenarioDocument } from '@/lib/scenarioDocumentTypes';
+import { ScenarioContentRow, ScenarioDocument } from '@/lib/scenarioDocumentTypes';
+import { normalizeScenarioRows } from '@/lib/scenarioDocumentRows';
 
 interface ScenarioDocumentViewerProps {
     document: ScenarioDocument;
@@ -141,6 +142,49 @@ const renderScenarioText = (text: string, selectedSpeakers: string[], query: str
     });
 };
 
+const renderScenarioRows = (
+    rows: ScenarioContentRow[],
+    pageTitle: string,
+    selectedSpeakers: string[],
+    query: string,
+    searchCursor: SearchCursor,
+) => {
+    return rows.map((row, index) => {
+        const hasAction = Boolean(row.action.trim());
+        const hasOther = Boolean(row.other.trim());
+        if (!hasAction && !hasOther) return null;
+
+        return (
+            <div
+                key={`scenario-row-${index}`}
+                className={`scenario-doc-table-row ${hasAction && hasOther ? 'has-other' : ''}`}
+            >
+                {index > 0 && row.situation.replace(/\s+/g, ' ').trim() !== pageTitle.replace(/\s+/g, ' ').trim() && (
+                    <h3 className="scenario-doc-row-title">
+                        {renderHighlightedText(row.situation.replace(/\s+/g, ' ').trim(), query, searchCursor)}
+                    </h3>
+                )}
+                {hasAction && (
+                    <section className="scenario-doc-cell scenario-doc-action">
+                        <strong>행동 및 시나리오</strong>
+                        <div>
+                            {renderScenarioText(row.action, selectedSpeakers, query, searchCursor)}
+                        </div>
+                    </section>
+                )}
+                {hasOther && (
+                <section className="scenario-doc-cell scenario-doc-other">
+                    <strong>기타</strong>
+                    <div>
+                        {renderScenarioText(row.other, selectedSpeakers, query, searchCursor)}
+                    </div>
+                </section>
+                )}
+            </div>
+        );
+    });
+};
+
 const getVisiblePageNumber = (page: ScenarioDocument['pages'][number]) => {
     return page.displayPageNumber ?? page.pageNumber;
 };
@@ -159,7 +203,14 @@ export default function ScenarioDocumentViewer({ document }: ScenarioDocumentVie
     );
 
     const visiblePages = useMemo(
-        () => document.pages.filter((page) => page.sectionId !== 'overview'),
+        () => document.pages
+            .filter((page) => page.sectionId !== 'overview')
+            .map((page) => ({
+                ...page,
+                rows: page.rows
+                    ? normalizeScenarioRows(page.rows, page.title)
+                    : page.rows,
+            })),
         [document.pages]
     );
 
@@ -391,7 +442,15 @@ export default function ScenarioDocumentViewer({ document }: ScenarioDocumentVie
                                 <span className="scenario-doc-page-number">p.{getVisiblePageNumber(page)}</span>
                             </header>
                             <div className="scenario-doc-page-body">
-                                {renderScenarioText(page.text, selectedSpeakers, query, searchCursor)}
+                                {page.rows?.length
+                                    ? renderScenarioRows(
+                                        page.rows,
+                                        page.title,
+                                        selectedSpeakers,
+                                        query,
+                                        searchCursor,
+                                    )
+                                    : renderScenarioText(page.text, selectedSpeakers, query, searchCursor)}
                             </div>
                         </article>
                     ))}
