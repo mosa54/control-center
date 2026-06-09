@@ -11,14 +11,19 @@ interface ScenarioDocumentPageClientProps {
 
 export default function ScenarioDocumentPageClient({ defaultDocument }: ScenarioDocumentPageClientProps) {
     const [document, setDocument] = useState<ScenarioDocument>(defaultDocument);
+    const [isDocumentReady, setIsDocumentReady] = useState(false);
 
     useEffect(() => {
         let alive = true;
 
-        loadScenarioDocument().then((storedDocument) => {
-            if (!alive || !storedDocument) return;
-            setDocument(storedDocument);
-        });
+        loadScenarioDocument()
+            .then((storedDocument) => {
+                if (!alive || !storedDocument) return;
+                setDocument(storedDocument);
+            })
+            .finally(() => {
+                if (alive) setIsDocumentReady(true);
+            });
 
         return () => {
             alive = false;
@@ -31,7 +36,10 @@ export default function ScenarioDocumentPageClient({ defaultDocument }: Scenario
                 <h1>{document.title}</h1>
             </div>
 
-            <ScenarioDocumentViewer document={document} />
+            <ScenarioDocumentViewer
+                document={document}
+                restoreScrollPosition={isDocumentReady}
+            />
         </div>
     );
 }

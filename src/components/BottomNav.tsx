@@ -1,14 +1,83 @@
 'use client';
 
-import { Suspense } from 'react';
+import { Suspense, useEffect } from 'react';
 import Link from 'next/link';
-import { usePathname, useSearchParams } from 'next/navigation';
+import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import { useApp } from '@/lib/store';
+
+const LAST_TRAINING_PATH_STORAGE_KEY = 'control-center:last-training-path';
+
+const isTrainingHref = (href: string | null): href is string =>
+    href === '/training' || Boolean(href?.startsWith('/training/'));
+
+const applyObserverRole = (href: string, isObserver: boolean) => {
+    const [pathname, query = ''] = href.split('?');
+    const params = new URLSearchParams(query);
+
+    if (isObserver) {
+        params.set('role', 'observer');
+    } else {
+        params.delete('role');
+    }
+
+    const nextQuery = params.toString();
+    return `${pathname}${nextQuery ? `?${nextQuery}` : ''}`;
+};
 
 function BottomNavInner() {
     const pathname = usePathname();
+    const router = useRouter();
     const searchParams = useSearchParams();
     const { currentEmployee, getDeliveredEvents } = useApp();
+
+    const isObserver = searchParams.get('role') === 'observer';
+    // 참관 모드(Observer)로 진입한 사용자는 탭바를 눌러도 권한이 유지되도록 파라미터 보존
+    const roleParam = isObserver ? '?role=observer' : '';
+    const defaultTrainingHref = `/training${roleParam}`;
+    const currentQuery = searchParams.toString();
+
+    useEffect(() => {
+        if (!pathname.startsWith('/training')) return;
+
+        const currentTrainingHref = applyObserverRole(
+            `${pathname}${currentQuery ? `?${currentQuery}` : ''}`,
+            isObserver
+        );
+
+        try {
+            sessionStorage.setItem(LAST_TRAINING_PATH_STORAGE_KEY, currentTrainingHref);
+        } catch {
+            // Storage can be unavailable in restricted browser modes.
+        }
+    }, [currentQuery, isObserver, pathname]);
+
+    const handleTrainingClick = (event: React.MouseEvent<HTMLAnchorElement>) => {
+        if (
+            pathname.startsWith('/training')
+            || event.button !== 0
+            || event.metaKey
+            || event.ctrlKey
+            || event.shiftKey
+            || event.altKey
+        ) {
+            return;
+        }
+
+        let storedTrainingHref: string | null = null;
+        try {
+            storedTrainingHref = sessionStorage.getItem(LAST_TRAINING_PATH_STORAGE_KEY);
+        } catch {
+            storedTrainingHref = null;
+        }
+
+        if (!isTrainingHref(storedTrainingHref)) return;
+
+        const targetHref = applyObserverRole(storedTrainingHref, isObserver);
+        if (targetHref === defaultTrainingHref) return;
+
+        event.preventDefault();
+        router.push(targetHref);
+    };
 
     // 체크인 과정에서는 항상 숨김
     if (pathname.startsWith('/checkin')) {
@@ -20,17 +89,13 @@ function BottomNavInner() {
         return null;
     }
 
-    const isObserver = searchParams.get('role') === 'observer';
-    // 참관 모드(Observer)로 진입한 사용자는 탭바를 눌러도 권한이 유지되도록 파라미터 보존
-    const roleParam = isObserver ? '?role=observer' : '';
-
     const eventCount = getDeliveredEvents().length;
 
     const navItems = [
         { name: '대시보드', href: `/dashboard${roleParam}`, icon: '📱', baseRoute: '/dashboard' },
         { name: '보고서', href: `/reports${roleParam}`, icon: '📋', baseRoute: '/reports' },
         { name: '언론 대응', href: `/media${roleParam}`, icon: '🎤', baseRoute: '/media' },
-        { name: '훈련모드', href: `/training${roleParam}`, icon: '🚨', baseRoute: '/training', badge: eventCount },
+        { name: '훈련모드', href: defaultTrainingHref, icon: '🚨', baseRoute: '/training', badge: eventCount },
         { name: '관리자', href: '/admin', icon: '⚙️', baseRoute: '/admin' }
     ];
 
@@ -43,6 +108,7 @@ function BottomNavInner() {
                         <Link 
                             key={item.name}
                             href={item.href}
+                            onClick={item.baseRoute === '/training' ? handleTrainingClick : undefined}
                             className={`nav-item ${isActive ? 'active' : ''}`}
                             style={{ position: 'relative' }}
                         >

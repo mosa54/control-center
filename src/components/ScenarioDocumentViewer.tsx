@@ -6,7 +6,17 @@ import { normalizeScenarioRows } from '@/lib/scenarioDocumentRows';
 
 interface ScenarioDocumentViewerProps {
     document: ScenarioDocument;
+    restoreScrollPosition?: boolean;
 }
+
+interface StoredScenarioScrollPosition {
+    pageId: string | null;
+    pageTop: number;
+    scrollY: number;
+}
+
+const SCENARIO_SCROLL_STORAGE_KEY = 'control-center:scenario-scroll-position';
+const SCENARIO_SPEAKERS_STORAGE_KEY = 'control-center:scenario-selected-speakers';
 
 const normalize = (value: string) => value.replace(/\s+/g, ' ').trim().toLowerCase();
 
@@ -222,13 +232,18 @@ const getVisiblePageNumber = (page: ScenarioDocument['pages'][number]) => {
     return page.displayPageNumber ?? page.pageNumber;
 };
 
-export default function ScenarioDocumentViewer({ document }: ScenarioDocumentViewerProps) {
+export default function ScenarioDocumentViewer({
+    document,
+    restoreScrollPosition = true,
+}: ScenarioDocumentViewerProps) {
     const [query, setQuery] = useState('');
     const [activeSearchIndex, setActiveSearchIndex] = useState(0);
     const [hasSearchNavigated, setHasSearchNavigated] = useState(false);
     const [activeSectionId, setActiveSectionId] = useState('all');
     const [selectedSpeakers, setSelectedSpeakers] = useState<string[]>([]);
     const speakerPickerRef = useRef<HTMLDetailsElement>(null);
+    const hasRestoredScrollRef = useRef(false);
+    const hasRestoredSpeakersRef = useRef(false);
 
     const visibleSections = useMemo(
         () => document.sections.filter((section) => section.id !== 'overview'),
@@ -286,12 +301,25 @@ export default function ScenarioDocumentViewer({ document }: ScenarioDocumentVie
                 ? selectedSpeakers[0]
                 : `${selectedSpeakers.length}명 선택`;
 
+    const saveSelectedSpeakers = (nextSpeakers: string[]) => {
+        try {
+            sessionStorage.setItem(SCENARIO_SPEAKERS_STORAGE_KEY, JSON.stringify(nextSpeakers));
+        } catch {
+            // Storage can be unavailable in restricted browser modes.
+        }
+    };
+
+    const updateSelectedSpeakers = (nextSpeakers: string[]) => {
+        setSelectedSpeakers(nextSpeakers);
+        saveSelectedSpeakers(nextSpeakers);
+    };
+
     const toggleSpeaker = (speaker: string) => {
-        setSelectedSpeakers((current) =>
-            current.includes(speaker)
-                ? current.filter((selectedSpeaker) => selectedSpeaker !== speaker)
-                : [...current, speaker]
-        );
+        const nextSpeakers = selectedSpeakers.includes(speaker)
+            ? selectedSpeakers.filter((selectedSpeaker) => selectedSpeaker !== speaker)
+            : [...selectedSpeakers, speaker];
+
+        updateSelectedSpeakers(nextSpeakers);
     };
 
     const handleSearchChange = (value: string) => {
@@ -338,6 +366,156 @@ export default function ScenarioDocumentViewer({ document }: ScenarioDocumentVie
             globalThis.document.removeEventListener('pointerdown', closeSpeakerPickerOnOutsideClick);
         };
     }, []);
+
+    useEffect(() => {
+        if (!restoreScrollPosition) return;
+
+        let frameId: number | null = null;
+        let isNavigatingAway = false;
+
+        const saveScrollPosition = () => {
+            const pages = Array.from(
+                globalThis.document.querySelectorAll<HTMLElement>('.scenario-doc-page[id]')
+            );
+            if (pages.length === 0) return;
+
+            const anchorLine = Math.min(160, globalThis.innerHeight / 3);
+            const anchorPage =
+                pages.find((page) => page.getBoundingClientRect().bottom > anchorLine)
+                ?? pages[pages.length - 1]
+                ?? null;
+
+            const position: StoredScenarioScrollPosition = {
+                pageId: anchorPage?.id ?? null,
+                pageTop: anchorPage?.getBoundingClientRect().top ?? 0,
+                scrollY: globalThis.scrollY,
+            };
+
+            try {
+                sessionStorage.setItem(SCENARIO_SCROLL_STORAGE_KEY, JSON.stringify(position));
+            } catch {
+                // Storage can be unavailable in restricted browser modes.
+            }
+        };
+
+        const scheduleSaveScrollPosition = () => {
+            if (isNavigatingAway || frameId !== null) return;
+
+            frameId = requestAnimationFrame(() => {
+                frameId = null;
+                saveScrollPosition();
+            });
+        };
+
+        const saveBeforeNavigation = (event: MouseEvent) => {
+            if (
+                event.button !== 0
+                || event.metaKey
+                || event.ctrlKey
+                || event.shiftKey
+                || event.altKey
+                || !(event.target instanceof Element)
+            ) {
+                return;
+            }
+
+            const link = event.target.closest<HTMLAnchorElement>('a[href]');
+            if (!link) return;
+
+            const targetUrl = new URL(link.href, globalThis.location.href);
+            if (
+                targetUrl.origin === globalThis.location.origin
+                && targetUrl.pathname !== globalThis.location.pathname
+            ) {
+                saveScrollPosition();
+                isNavigatingAway = true;
+            }
+        };
+
+        globalThis.addEventListener('scroll', scheduleSaveScrollPosition, { passive: true });
+        globalThis.addEventListener('pagehide', saveScrollPosition);
+        globalThis.document.addEventListener('click', saveBeforeNavigation, true);
+
+        return () => {
+            globalThis.removeEventListener('scroll', scheduleSaveScrollPosition);
+            globalThis.removeEventListener('pagehide', saveScrollPosition);
+            globalThis.document.removeEventListener('click', saveBeforeNavigation, true);
+            if (frameId !== null) cancelAnimationFrame(frameId);
+        };
+    }, [restoreScrollPosition]);
+
+    useEffect(() => {
+        if (!restoreScrollPosition || hasRestoredScrollRef.current) return;
+        hasRestoredScrollRef.current = true;
+
+        let storedPosition: StoredScenarioScrollPosition | null = null;
+
+        try {
+            const storedValue = sessionStorage.getItem(SCENARIO_SCROLL_STORAGE_KEY);
+            if (storedValue) {
+                const parsedValue = JSON.parse(storedValue) as Partial<StoredScenarioScrollPosition>;
+                if (
+                    (typeof parsedValue.pageId === 'string' || parsedValue.pageId === null)
+                    && typeof parsedValue.pageTop === 'number'
+                    && typeof parsedValue.scrollY === 'number'
+                ) {
+                    storedPosition = parsedValue as StoredScenarioScrollPosition;
+                }
+            }
+        } catch {
+            storedPosition = null;
+        }
+
+        if (!storedPosition) return;
+        const position = storedPosition;
+        const restorePosition = () => {
+            const anchorPage = position.pageId
+                ? globalThis.document.getElementById(position.pageId)
+                : null;
+            const targetScrollY = anchorPage
+                ? globalThis.scrollY + anchorPage.getBoundingClientRect().top - position.pageTop
+                : position.scrollY;
+
+            globalThis.scrollTo({ top: Math.max(0, targetScrollY), behavior: 'auto' });
+        };
+
+        let secondFrameId: number | null = null;
+        const firstFrameId = requestAnimationFrame(() => {
+            secondFrameId = requestAnimationFrame(restorePosition);
+        });
+        const delayedRestoreId = globalThis.setTimeout(restorePosition, 250);
+
+        return () => {
+            cancelAnimationFrame(firstFrameId);
+            if (secondFrameId !== null) cancelAnimationFrame(secondFrameId);
+            globalThis.clearTimeout(delayedRestoreId);
+        };
+    }, [restoreScrollPosition]);
+
+    useEffect(() => {
+        if (!restoreScrollPosition || hasRestoredSpeakersRef.current) return;
+        hasRestoredSpeakersRef.current = true;
+
+        try {
+            const storedValue = sessionStorage.getItem(SCENARIO_SPEAKERS_STORAGE_KEY);
+            if (!storedValue) return;
+
+            const storedSpeakers = JSON.parse(storedValue);
+            if (!Array.isArray(storedSpeakers)) return;
+
+            const validSpeakers = storedSpeakers.filter(
+                (speaker): speaker is string =>
+                    typeof speaker === 'string' && speakers.includes(speaker)
+            );
+            const restoreFrameId = requestAnimationFrame(() => {
+                setSelectedSpeakers(validSpeakers);
+            });
+
+            return () => cancelAnimationFrame(restoreFrameId);
+        } catch {
+            // Ignore invalid or unavailable session storage.
+        }
+    }, [restoreScrollPosition, speakers]);
 
     useEffect(() => {
         const needle = normalize(query);
@@ -400,7 +578,7 @@ export default function ScenarioDocumentViewer({ document }: ScenarioDocumentVie
                                     type="button"
                                     className="scenario-doc-speaker-clear"
                                     disabled={selectedSpeakers.length === 0}
-                                    onClick={() => setSelectedSpeakers([])}
+                                    onClick={() => updateSelectedSpeakers([])}
                                 >
                                     선택 해제
                                 </button>
