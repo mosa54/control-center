@@ -27,28 +27,84 @@ interface SearchCursor {
     activeIndex: number;
 }
 
-const speakerColors = [
-    '#C62828',
+const highFrequencySpeakerColors = [
     '#1565C0',
     '#2E7D32',
     '#6A1B9A',
-    '#EF6C00',
     '#00838F',
     '#AD1457',
     '#4527A0',
-    '#5D4037',
     '#283593',
     '#00695C',
-    '#B71C1C',
 ];
 
-const getSpeakerColor = (speaker: string) => {
+const mediumFrequencySpeakerColors = [
+    '#2F6F9F',
+    '#3D766E',
+    '#5F7A3A',
+    '#75538F',
+    '#8F4C6B',
+    '#52657A',
+];
+
+const lowFrequencySpeakerColors = [
+    '#60717D',
+    '#62736B',
+    '#6F625D',
+    '#626A78',
+    '#675E73',
+    '#5B6C70',
+];
+
+type SpeakerEmphasis = 'priority' | 'high' | 'medium' | 'low';
+
+interface SpeakerVisual {
+    color: string;
+    emphasis: SpeakerEmphasis;
+    backgroundAlpha: string;
+}
+
+const getSpeakerColorFromPalette = (speaker: string, colors: string[]) => {
     let hash = 0;
     for (let i = 0; i < speaker.length; i += 1) {
-        hash = (hash + speaker.charCodeAt(i) * (i + 1)) % speakerColors.length;
+        hash = (hash + speaker.charCodeAt(i) * (i + 1)) % colors.length;
     }
 
-    return speakerColors[hash];
+    return colors[hash];
+};
+
+const getSpeakerVisual = (speaker: string, mentionCount: number): SpeakerVisual => {
+    const baseSpeaker = speaker.replace(/\s*\/.*$/, '').replace(/\s*\(!\)\s*$/, '').trim();
+
+    if (baseSpeaker === '통제단장') {
+        return { color: '#C62828', emphasis: 'priority', backgroundAlpha: '24' };
+    }
+
+    if (baseSpeaker === '중부지휘') {
+        return { color: '#EF6C00', emphasis: 'priority', backgroundAlpha: '24' };
+    }
+
+    if (mentionCount >= 10) {
+        return {
+            color: getSpeakerColorFromPalette(speaker, highFrequencySpeakerColors),
+            emphasis: 'high',
+            backgroundAlpha: '1F',
+        };
+    }
+
+    if (mentionCount >= 4) {
+        return {
+            color: getSpeakerColorFromPalette(speaker, mediumFrequencySpeakerColors),
+            emphasis: 'medium',
+            backgroundAlpha: '16',
+        };
+    }
+
+    return {
+        color: getSpeakerColorFromPalette(speaker, lowFrequencySpeakerColors),
+        emphasis: 'low',
+        backgroundAlpha: '0F',
+    };
 };
 
 const isSpeakerName = (speaker: string) => {
@@ -148,11 +204,20 @@ const getScenarioTextBlocks = (text: string): ScenarioTextBlock[] => {
     return blocks;
 };
 
-const renderScenarioText = (text: string, selectedSpeakers: string[], query: string, searchCursor: SearchCursor) => {
+const renderScenarioText = (
+    text: string,
+    selectedSpeakers: string[],
+    query: string,
+    searchCursor: SearchCursor,
+    speakerCounts: Map<string, number>,
+) => {
     return getScenarioTextBlocks(text).map((block, index) => {
         if (block.type === 'quote' && block.speaker) {
             const speaker = block.speaker;
-            const color = getSpeakerColor(speaker);
+            const { color, emphasis, backgroundAlpha } = getSpeakerVisual(
+                speaker,
+                speakerCounts.get(speaker) ?? 0
+            );
             const isHighlighted = selectedSpeakers.includes(speaker);
 
             return (
@@ -162,8 +227,12 @@ const renderScenarioText = (text: string, selectedSpeakers: string[], query: str
                     style={isHighlighted ? { borderColor: color, backgroundColor: `${color}1F` } : undefined}
                 >
                     <span
-                        className="scenario-doc-speaker"
-                        style={{ color, borderColor: color, backgroundColor: isHighlighted ? `${color}2E` : `${color}14` }}
+                        className={`scenario-doc-speaker is-${emphasis}`}
+                        style={{
+                            color,
+                            borderColor: color,
+                            backgroundColor: isHighlighted ? `${color}33` : `${color}${backgroundAlpha}`,
+                        }}
                     >
                         {renderHighlightedText(speaker, query, searchCursor)}
                     </span>
@@ -191,6 +260,7 @@ const renderScenarioRows = (
     selectedSpeakers: string[],
     query: string,
     searchCursor: SearchCursor,
+    speakerCounts: Map<string, number>,
 ) => {
     return rows.map((row, index) => {
         const hasAction = Boolean(row.action.trim());
@@ -211,7 +281,7 @@ const renderScenarioRows = (
                     <section className="scenario-doc-cell scenario-doc-action">
                         <strong>행동 및 시나리오</strong>
                         <div>
-                            {renderScenarioText(row.action, selectedSpeakers, query, searchCursor)}
+                            {renderScenarioText(row.action, selectedSpeakers, query, searchCursor, speakerCounts)}
                         </div>
                     </section>
                 )}
@@ -219,7 +289,7 @@ const renderScenarioRows = (
                 <section className="scenario-doc-cell scenario-doc-other">
                     <strong>기타</strong>
                     <div>
-                        {renderScenarioText(row.other, selectedSpeakers, query, searchCursor)}
+                        {renderScenarioText(row.other, selectedSpeakers, query, searchCursor, speakerCounts)}
                     </div>
                 </section>
                 )}
@@ -288,6 +358,22 @@ export default function ScenarioDocumentViewer({
         });
 
         return Array.from(speakerSet).sort((a, b) => a.localeCompare(b, 'ko'));
+    }, [visiblePages]);
+
+    const speakerCounts = useMemo(() => {
+        const counts = new Map<string, number>();
+        visiblePages.forEach((page) => {
+            page.text.split('\n').forEach((line) => {
+                const speakerMatch = line.trim().match(/^\[\s*([^\]]+?)\s*\]/);
+                if (!speakerMatch) return;
+
+                const speaker = speakerMatch[1].trim();
+                if (!isSpeakerName(speaker)) return;
+                counts.set(speaker, (counts.get(speaker) ?? 0) + 1);
+            });
+        });
+
+        return counts;
     }, [visiblePages]);
 
     const activeSection = visibleSections.find((section) => section.id === activeSectionId);
@@ -592,16 +678,33 @@ export default function ScenarioDocumentViewer({
                                     적용
                                 </button>
                             </div>
-                            {speakers.map((speaker) => (
-                                <label key={speaker} className="scenario-doc-speaker-option">
-                                    <input
-                                        type="checkbox"
-                                        checked={selectedSpeakers.includes(speaker)}
-                                        onChange={() => toggleSpeaker(speaker)}
-                                    />
-                                    <span>{speaker}</span>
-                                </label>
-                            ))}
+                            {speakers.map((speaker) => {
+                                const { color, emphasis, backgroundAlpha } = getSpeakerVisual(
+                                    speaker,
+                                    speakerCounts.get(speaker) ?? 0
+                                );
+
+                                return (
+                                    <label key={speaker} className="scenario-doc-speaker-option">
+                                        <input
+                                            type="checkbox"
+                                            checked={selectedSpeakers.includes(speaker)}
+                                            style={{ accentColor: color }}
+                                            onChange={() => toggleSpeaker(speaker)}
+                                        />
+                                        <span
+                                            className={`scenario-doc-speaker-option-label is-${emphasis}`}
+                                            style={{
+                                                color,
+                                                borderColor: color,
+                                                backgroundColor: `${color}${backgroundAlpha}`,
+                                            }}
+                                        >
+                                            {speaker}
+                                        </span>
+                                    </label>
+                                );
+                            })}
                         </div>
                     </details>
                 </div>
@@ -660,8 +763,15 @@ export default function ScenarioDocumentViewer({
                                         selectedSpeakers,
                                         query,
                                         searchCursor,
+                                        speakerCounts,
                                     )
-                                    : renderScenarioText(page.text, selectedSpeakers, query, searchCursor)}
+                                    : renderScenarioText(
+                                        page.text,
+                                        selectedSpeakers,
+                                        query,
+                                        searchCursor,
+                                        speakerCounts
+                                    )}
                             </div>
                         </article>
                     ))}
