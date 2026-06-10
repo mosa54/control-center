@@ -76,7 +76,7 @@ const getSpeakerColorFromPalette = (speaker: string, colors: string[]) => {
 const getSpeakerVisual = (speaker: string, mentionCount: number): SpeakerVisual => {
     const baseSpeaker = speaker.replace(/\s*\/.*$/, '').replace(/\s*\(!\)\s*$/, '').trim();
 
-    if (baseSpeaker === '통제단장') {
+    if (baseSpeaker === '통제단장' || baseSpeaker === '중부하나') {
         return { color: '#C62828', emphasis: 'priority', backgroundAlpha: '24' };
     }
 
