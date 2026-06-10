@@ -75,7 +75,7 @@ function PinModal({ onSuccess, onCancel }: { onSuccess: () => void; onCancel: ()
     const [error, setError] = useState(false);
 
     const handleSubmit = () => {
-        if (pin === '1234') {
+        if (pin === '0611') {
             onSuccess();
         } else {
             setError(true);
@@ -108,7 +108,21 @@ function PinModal({ onSuccess, onCancel }: { onSuccess: () => void; onCancel: ()
     );
 }
 
-function CasualtyPreview({ data, lastSavedAt }: { data: CasualtyReportData, lastSavedAt?: string }) {
+function CasualtyPreview({
+    data,
+    lastSavedAt,
+    minimumRows = 0,
+}: {
+    data: CasualtyReportData;
+    lastSavedAt?: string;
+    minimumRows?: number;
+}) {
+    const previewRows = data.rows.length >= minimumRows
+        ? data.rows
+        : [
+            ...data.rows,
+            ...Array.from({ length: minimumRows - data.rows.length }, () => createEmptyRow()),
+        ];
     const counts = {
         긴급: data.rows.filter(r => r.중증도 === '긴급').length,
         응급: data.rows.filter(r => r.중증도 === '응급').length,
@@ -121,7 +135,7 @@ function CasualtyPreview({ data, lastSavedAt }: { data: CasualtyReportData, last
         <div className="fullscreen-report">
             <h2 style={{ textAlign: 'center', marginBottom: '24px' }}>사상자 이송현황</h2>
 
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', marginBottom: '12px', gap: '16px' }}>
+            <div className="casualty-preview-summary" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', marginBottom: '12px', gap: '16px' }}>
                 <table className="report-table" style={{ width: '55%', margin: 0 }}>
                     <thead>
                         <tr>
@@ -150,7 +164,7 @@ function CasualtyPreview({ data, lastSavedAt }: { data: CasualtyReportData, last
                 )}
             </div>
 
-            <div>
+            <div className="casualty-preview-table-wrap">
                 <table className="report-table" style={{ width: '100%', tableLayout: 'fixed' }}>
                     <thead>
                         <tr>
@@ -169,7 +183,7 @@ function CasualtyPreview({ data, lastSavedAt }: { data: CasualtyReportData, last
                         </tr>
                     </thead>
                     <tbody>
-                        {data.rows.map((row, i) => (
+                        {previewRows.map((row, i) => (
                             <tr key={i}>
                                 <td>{i + 1}</td>
                                 <td>{maskCasualtyName(row.성명)}</td>
@@ -189,7 +203,7 @@ function CasualtyPreview({ data, lastSavedAt }: { data: CasualtyReportData, last
                 </table>
             </div>
 
-            <div style={{ marginTop: '16px', fontSize: '14px', display: 'flex', gap: '24px', justifyContent: 'center' }}>
+            <div className="casualty-preview-writer" style={{ marginTop: '16px', fontSize: '14px', display: 'flex', gap: '24px', justifyContent: 'center' }}>
                 <span>□ 작성자 : 소속 <strong>{data.작성자_소속}</strong></span>
                 <span>직급 <strong>{data.작성자_직급}</strong></span>
                 <span>성명 <strong>{data.작성자_성명}</strong></span>
@@ -377,7 +391,7 @@ function CasualtyReportContent() {
             }
 
             const pdf = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
-            const margin = 6;
+            const margin = 2;
             const pageWidth = pdf.internal.pageSize.getWidth();
             const pageHeight = pdf.internal.pageSize.getHeight();
             const contentWidth = pageWidth - margin * 2;
@@ -445,7 +459,7 @@ function CasualtyReportContent() {
 
     const pdfExportContent = (
         <div ref={pdfExportRef} className="casualty-pdf-export" aria-hidden="true">
-            <CasualtyPreview data={data} lastSavedAt={lastSavedAt} />
+            <CasualtyPreview data={data} lastSavedAt={lastSavedAt} minimumRows={25} />
         </div>
     );
 

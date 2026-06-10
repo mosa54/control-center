@@ -831,17 +831,64 @@ body.roster-preview-open .roster-page .page-content {
   top: 0;
   left: 0;
   z-index: -10;
-  width: 1120px;
-  padding: 32px;
+  box-sizing: border-box;
+  width: 794px;
+  min-height: 1120px;
+  padding: 14px;
   background: white;
   color: #111;
   pointer-events: none;
 }
 
 .casualty-pdf-export .fullscreen-report {
+  display: flex;
+  flex-direction: column;
   width: 100%;
+  min-height: 1092px;
   max-width: none;
   margin: 0;
+}
+
+.casualty-pdf-export .fullscreen-report h2 {
+  margin: 4px 0 20px;
+  font-size: 25px;
+}
+
+.casualty-pdf-export .casualty-preview-summary {
+  flex: 0 0 auto;
+}
+
+.casualty-pdf-export .casualty-preview-summary .report-table {
+  width: 68% !important;
+  font-size: 12px;
+}
+
+.casualty-pdf-export .casualty-preview-summary .report-table th,
+.casualty-pdf-export .casualty-preview-summary .report-table td {
+  padding: 5px 3px;
+}
+
+.casualty-pdf-export .casualty-preview-table-wrap {
+  display: flex;
+  flex: 1 1 auto;
+  align-items: stretch;
+}
+
+.casualty-pdf-export .casualty-preview-table-wrap .report-table {
+  height: 820px;
+  font-size: 11px;
+}
+
+.casualty-pdf-export .casualty-preview-table-wrap .report-table th,
+.casualty-pdf-export .casualty-preview-table-wrap .report-table td {
+  padding: 2px;
+  line-height: 1.1;
+}
+
+.casualty-pdf-export .casualty-preview-writer {
+  flex: 0 0 auto;
+  margin: 20px 0 6px !important;
+  font-size: 15px !important;
 }
 
 .casualty-pdf-export .report-table tr {
