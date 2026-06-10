@@ -6,6 +6,7 @@ import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
 import { Suspense } from 'react';
 import FullscreenOverlay from '@/components/FullscreenOverlay';
+import { maskCasualtyName } from '@/lib/casualtyName';
 
 export interface CasualtyRow {
     성명: string;
@@ -171,7 +172,7 @@ function CasualtyPreview({ data, lastSavedAt }: { data: CasualtyReportData, last
                         {data.rows.map((row, i) => (
                             <tr key={i}>
                                 <td>{i + 1}</td>
-                                <td>{row.성명}</td>
+                                <td>{maskCasualtyName(row.성명)}</td>
                                 <td>{row.성별}</td>
                                 <td style={{ whiteSpace: 'nowrap' }}>{row.연령}</td>
                                 <td>{row.주증상}</td>
@@ -210,8 +211,10 @@ function CasualtyReportContent() {
         rows: [...INITIAL_ROWS],
         작성자_소속: '', 작성자_직급: '', 작성자_성명: '',
     });
+    const [isDownloadingPdf, setIsDownloadingPdf] = useState(false);
     const [saveStatus, setSaveStatus] = useState<'idle' | 'saving' | 'saved' | 'error'>('idle');
     const [lastSavedAt, setLastSavedAt] = useState<string>('');
+    const pdfExportRef = useRef<HTMLDivElement>(null);
     const lastAppliedUpdatedAtRef = useRef<string | null>(null);
     const syncRevisionRef = useRef(0);
 
@@ -343,10 +346,108 @@ function CasualtyReportContent() {
         setShowPinModal(true);
     };
 
-    const handleDownloadHwpx = async () => {
-        const { generateCasualtyReportHwpx } = await import('@/lib/hwpxGenerator');
-        await generateCasualtyReportHwpx(data);
+    const handleDownloadPdf = async () => {
+        const exportElement = pdfExportRef.current;
+        if (!exportElement || isDownloadingPdf) return;
+
+        setIsDownloadingPdf(true);
+        try {
+            const [{ default: html2canvas }, { jsPDF }] = await Promise.all([
+                import('html2canvas'),
+                import('jspdf'),
+            ]);
+            const canvas = await html2canvas(exportElement, {
+                scale: 2,
+                useCORS: true,
+                backgroundColor: '#ffffff',
+                logging: false,
+                onclone: (clonedDocument) => {
+                    clonedDocument
+                        .querySelectorAll<HTMLElement>('.casualty-pdf-export')
+                        .forEach((clonedExport) => {
+                            clonedExport.style.position = 'absolute';
+                            clonedExport.style.left = '0';
+                            clonedExport.style.top = '0';
+                            clonedExport.style.zIndex = '0';
+                        });
+                },
+            });
+            if (canvas.width === 0 || canvas.height === 0) {
+                throw new Error('PDF canvas is empty');
+            }
+
+            const pdf = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
+            const margin = 6;
+            const pageWidth = pdf.internal.pageSize.getWidth();
+            const pageHeight = pdf.internal.pageSize.getHeight();
+            const contentWidth = pageWidth - margin * 2;
+            const contentHeight = pageHeight - margin * 2;
+            const pageHeightInPixels = Math.max(
+                1,
+                Math.floor((contentHeight / contentWidth) * canvas.width)
+            );
+
+            let offsetY = 0;
+            let pageIndex = 0;
+            while (offsetY < canvas.height) {
+                const sliceHeight = Math.min(pageHeightInPixels, canvas.height - offsetY);
+                const pageCanvas = globalThis.document.createElement('canvas');
+                pageCanvas.width = canvas.width;
+                pageCanvas.height = sliceHeight;
+
+                const context = pageCanvas.getContext('2d');
+                if (!context) {
+                    throw new Error('PDF canvas context is unavailable');
+                }
+
+                context.fillStyle = '#ffffff';
+                context.fillRect(0, 0, pageCanvas.width, pageCanvas.height);
+                context.drawImage(
+                    canvas,
+                    0,
+                    offsetY,
+                    canvas.width,
+                    sliceHeight,
+                    0,
+                    0,
+                    canvas.width,
+                    sliceHeight
+                );
+
+                if (pageIndex > 0) {
+                    pdf.addPage('a4', 'portrait');
+                }
+
+                const renderedHeight = (sliceHeight * contentWidth) / canvas.width;
+                pdf.addImage(
+                    pageCanvas.toDataURL('image/jpeg', 0.98),
+                    'JPEG',
+                    margin,
+                    margin,
+                    contentWidth,
+                    renderedHeight,
+                    undefined,
+                    'FAST'
+                );
+
+                offsetY += sliceHeight;
+                pageIndex += 1;
+            }
+
+            pdf.save('사상자 이송현황.pdf');
+        } catch (error) {
+            console.error('Failed to generate casualty PDF:', error);
+            alert('PDF 생성에 실패했습니다. 잠시 후 다시 시도해 주세요.');
+        } finally {
+            setIsDownloadingPdf(false);
+        }
     };
+
+    const pdfExportContent = (
+        <div ref={pdfExportRef} className="casualty-pdf-export" aria-hidden="true">
+            <CasualtyPreview data={data} lastSavedAt={lastSavedAt} />
+        </div>
+    );
 
     // 인증되지 않은 상태
     if (!isAuthed) {
@@ -377,12 +478,15 @@ function CasualtyReportContent() {
                         <button
                             className="btn btn-block"
                             style={{ marginTop: '8px', background: '#43A047', color: 'white' }}
-                            onClick={handleDownloadHwpx}
+                            onClick={handleDownloadPdf}
+                            disabled={isDownloadingPdf}
                         >
-                            📥 HWPX 다운로드
+                            {isDownloadingPdf ? '⏳ PDF 생성 중...' : '📥 PDF 다운로드'}
                         </button>
                     </div>
                 </div>
+
+                {pdfExportContent}
 
                 {showPinModal && (
                     <PinModal
@@ -429,7 +533,14 @@ function CasualtyReportContent() {
                     {saveStatus === 'saving' ? '⏳ 저장 중...' : saveStatus === 'saved' ? '✅ 저장 완료' : saveStatus === 'error' ? '❌ 오류' : '💾 저장'}
                 </button>
                 <button className="btn btn-primary" onClick={() => setShowFullscreen(true)}>👁️ 보고서 보기</button>
-                <button className="btn" style={{ background: '#43A047', color: 'white' }} onClick={handleDownloadHwpx}>📥 HWPX</button>
+                <button
+                    className="btn"
+                    style={{ background: '#43A047', color: 'white' }}
+                    onClick={handleDownloadPdf}
+                    disabled={isDownloadingPdf}
+                >
+                    {isDownloadingPdf ? '⏳ PDF 생성 중...' : '📥 PDF'}
+                </button>
             </div>
 
             <div className="page-content" style={{ padding: '16px 16px 96px 16px' }}>
@@ -544,6 +655,8 @@ function CasualtyReportContent() {
 
                 <div style={{ height: '60px' }} />
             </div>
+
+            {pdfExportContent}
 
             {showFullscreen && (
                 <FullscreenOverlay onClose={() => setShowFullscreen(false)}>

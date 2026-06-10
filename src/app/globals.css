@@ -826,6 +826,29 @@ body.roster-preview-open .roster-page .page-content {
   margin-bottom: 16px;
 }
 
+.casualty-pdf-export {
+  position: fixed;
+  top: 0;
+  left: 0;
+  z-index: -10;
+  width: 1120px;
+  padding: 32px;
+  background: white;
+  color: #111;
+  pointer-events: none;
+}
+
+.casualty-pdf-export .fullscreen-report {
+  width: 100%;
+  max-width: none;
+  margin: 0;
+}
+
+.casualty-pdf-export .report-table tr {
+  break-inside: avoid;
+  page-break-inside: avoid;
+}
+
 /* 사고상황보고서 미리보기 */
 .accident-preview-header {
   display: grid;

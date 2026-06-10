@@ -8,6 +8,7 @@ import { supabase } from '@/lib/supabase';
 import FullscreenOverlay from '@/components/FullscreenOverlay';
 import { FilePreview } from '@/components/FileUploadReport';
 import { normalizeReportFileData, preloadPdfViewer, reportHasPdf, type NormalizedReportFileData } from '@/lib/pdfPreview';
+import { maskCasualtyName } from '@/lib/casualtyName';
 import type { CasualtyReportData } from './casualty/page';
 
 type PreviewType = 'accident' | 'casualty' | 'building-register' | 'building-plan' | 'misc-docs' | 'response-plan' | 'field-command' | 'resource-support';
@@ -603,7 +604,7 @@ function CasualtyPreviewInline({ data, lastSavedAt }: { data: CasualtyReportData
                         {rows.map((row, i) => (
                             <tr key={i}>
                                 <td>{i + 1}</td>
-                                <td>{row.성명}</td>
+                                <td>{maskCasualtyName(row.성명)}</td>
                                 <td>{row.성별}</td>
                                 <td style={{ whiteSpace: 'nowrap' }}>{row.연령}</td>
                                 <td>{row.주증상}</td>
