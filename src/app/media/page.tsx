@@ -1,10 +1,8 @@
 'use client';
 
 import { useState, useEffect, useMemo } from 'react';
-import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { supabase } from '@/lib/supabase';
-import { useApp } from '@/lib/store';
 import Toast from '@/components/Toast';
 
 type Category = 'general' | 'pressure';
@@ -48,7 +46,6 @@ const DEFAULT_QA_DATA: QA[] = [
 
 export default function MediaResponsePage() {
     const router = useRouter();
-    const { currentEmployee } = useApp();
     
     const [questions, setQuestions] = useState<QA[]>([]);
     const [activeTab, setActiveTab] = useState<Category>('general');
@@ -70,14 +67,26 @@ export default function MediaResponsePage() {
         try {
             const { data, error } = await supabase
                 .from('reports')
-                .select('file_data')
-                .eq('report_id', 'media-responses')
+                .select('data')
+                .eq('id', 'media-responses')
                 .maybeSingle();
 
-            if (data && data.file_data) {
-                setQuestions(JSON.parse(data.file_data));
+            if (error) throw error;
+
+            if (data?.data) {
+                const storedQuestions = typeof data.data === 'string'
+                    ? JSON.parse(data.data)
+                    : data.data;
+
+                if (Array.isArray(storedQuestions)) {
+                    setQuestions(storedQuestions as QA[]);
+                    return;
+                }
+            }
+
+            if (data?.data === null) {
+                setQuestions(DEFAULT_QA_DATA);
             } else {
-                // 데이터가 없을 경우 기본값으로 세팅
                 setQuestions(DEFAULT_QA_DATA);
             }
         } catch (error) {
@@ -102,22 +111,21 @@ export default function MediaResponsePage() {
 
     const handleSave = async () => {
         try {
-            const jsonStr = JSON.stringify(questions);
-            const { error } = await supabase.from('reports').upsert({
-                report_id: 'media-responses',
-                file_data: jsonStr,
-                file_type: 'application/json',
-                original_name: 'qa.json',
-                updated_at: new Date().toISOString(),
-                user_id: currentEmployee?.id || 'admin'
-            });
+            const { error } = await supabase
+                .from('reports')
+                .upsert({
+                    id: 'media-responses',
+                    data: questions,
+                    updated_at: new Date().toISOString(),
+                }, { onConflict: 'id' });
 
             if (error) throw error;
             setToast('저장되었습니다.');
             setIsEditMode(false);
         } catch (error) {
             console.error(error);
-            setToast('저장에 실패했습니다.');
+            const message = error instanceof Error ? error.message : '알 수 없는 오류';
+            setToast(`저장에 실패했습니다: ${message}`);
         }
     };
 
