@@ -1,17 +1,20 @@
 'use client';
 
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { supabase } from '@/lib/supabase';
 import Toast from '@/components/Toast';
+import { BRIEFING_EXAMPLES, type BriefingExample } from '@/lib/mediaBriefingExamples';
+import './media.css';
 
-type Category = 'general' | 'pressure';
+type QACategory = 'general' | 'pressure';
+type MediaTab = QACategory | 'briefing';
 
 interface QA {
     id: string;
     q: string;
     a: string;
-    category: Category;
+    category: QACategory;
 }
 
 const DEFAULT_QA_DATA: QA[] = [
@@ -44,13 +47,146 @@ const DEFAULT_QA_DATA: QA[] = [
     { id: 'p8', category: 'pressure', q: '유가족들이 납득하겠습니까?', a: '안타까운 상황에 대해 깊이 유감을 표하며, 현재는 인명 수색과 피해 수습에 최선을 다하고 있습니다. 향후 조사 결과에 따라 필요한 조치가 이루어질 것입니다.' }
 ];
 
+interface BriefingExamplesPanelProps {
+    selectedBriefing: BriefingExample | undefined;
+    selectedBriefingId: string;
+    examples: BriefingExample[];
+    isEditMode: boolean;
+    onSelect: (id: string) => void;
+    onAddExample: () => void;
+    onDeleteExample: () => void;
+    onUpdateDisasterType: (value: string) => void;
+    onUpdateSection: (sectionIndex: number, field: 'title' | 'paragraphs', value: string) => void;
+    onAddSection: () => void;
+}
+
+function BriefingExamplesPanel({
+    selectedBriefing, selectedBriefingId, examples, isEditMode, onSelect,
+    onAddExample, onDeleteExample, onUpdateDisasterType, onUpdateSection,
+    onAddSection,
+}: BriefingExamplesPanelProps) {
+    return (
+        <div className="briefing-panel">
+            <div className="briefing-selector">
+                <label htmlFor={isEditMode ? 'briefing-type-name' : 'briefing-disaster-type'} className="briefing-label">재난 유형</label>
+                {isEditMode && selectedBriefing ? (
+                    <input
+                        id="briefing-type-name"
+                        className="form-input"
+                        value={selectedBriefing.disasterType}
+                        onChange={(event) => onUpdateDisasterType(event.target.value)}
+                    />
+                ) : (
+                    <select
+                        id="briefing-disaster-type"
+                        className="form-input"
+                        value={selectedBriefingId}
+                        onChange={(event) => onSelect(event.target.value)}
+                        disabled={examples.length === 0}
+                    >
+                        {examples.length === 0 && <option value="">등록된 유형 없음</option>}
+                        {examples.map((example) => (
+                            <option key={example.id} value={example.id}>
+                                {example.disasterType}
+                            </option>
+                        ))}
+                    </select>
+                )}
+                {isEditMode && (
+                    <div className="briefing-selector-actions">
+                        <button type="button" className="briefing-add-button" onClick={onAddExample}>
+                            + 재난 유형 추가
+                        </button>
+                        {selectedBriefing && (
+                            <button type="button" className="briefing-delete-button" onClick={onDeleteExample}>유형 삭제</button>
+                        )}
+                    </div>
+                )}
+            </div>
+
+            {!selectedBriefing ? (
+                <div className="briefing-empty">등록된 브리핑 예문이 없습니다.{isEditMode && ' 재난 유형을 추가해 주세요.'}</div>
+            ) : (
+                <div className="briefing-paper">
+                    {!isEditMode && (
+                        <div className="briefing-paper-header">
+                            <span className="briefing-kicker">언론 대응 · 브리핑 예문</span>
+                            <h2 className="briefing-paper-title">{selectedBriefing.disasterType}</h2>
+                            <p className="briefing-paper-intro">현장 정보에 맞게 시간·장소·피해 수치 등을 확인한 후 활용하세요.</p>
+                        </div>
+                    )}
+
+                    <div className="briefing-paper-body">
+                        {selectedBriefing.sections.map((section, sectionIndex) => (
+                            <section key={`${selectedBriefing.id}-${sectionIndex}`} className="briefing-section">
+                                {isEditMode ? (
+                                    <>
+                                        {selectedBriefing.sections.length > 1 && (
+                                            <>
+                                                <label htmlFor={`briefing-section-title-${sectionIndex}`} className="briefing-label">예문 제목</label>
+                                                <input
+                                                    id={`briefing-section-title-${sectionIndex}`}
+                                                    className="form-input"
+                                                    value={section.title}
+                                                    onChange={(event) => onUpdateSection(sectionIndex, 'title', event.target.value)}
+                                                />
+                                            </>
+                                        )}
+                                        <label htmlFor={`briefing-section-body-${sectionIndex}`} className="briefing-label briefing-body-label">본문</label>
+                                        <textarea
+                                            id={`briefing-section-body-${sectionIndex}`}
+                                            className="form-input briefing-textarea"
+                                            rows={Math.min(Math.max(section.paragraphs.length + 2, 10), 24)}
+                                            value={section.paragraphs.join('\n')}
+                                            onChange={(event) => onUpdateSection(sectionIndex, 'paragraphs', event.target.value)}
+                                            placeholder="브리핑 내용을 입력하세요. 줄바꿈으로 문단을 구분합니다."
+                                        />
+                                    </>
+                                ) : (
+                                    <>
+                                        {selectedBriefing.sections.length > 1 && <h3 className="briefing-section-title">{section.title}</h3>}
+                                        <div className="briefing-paragraphs">
+                                            {section.paragraphs.map((paragraph, paragraphIndex) => (
+                                                <p
+                                                    key={`${selectedBriefing.id}-${sectionIndex}-${paragraphIndex}`}
+                                                    className={paragraph.trimStart().startsWith('□') ? 'briefing-paragraph briefing-paragraph-heading' : 'briefing-paragraph'}
+                                                >
+                                                    {paragraph}
+                                                </p>
+                                            ))}
+                                        </div>
+                                    </>
+                                )}
+                            </section>
+                        ))}
+                        {isEditMode && (
+                            <button type="button" className="briefing-add-button briefing-add-section" onClick={onAddSection}>
+                                + 예문 추가
+                            </button>
+                        )}
+                    </div>
+                </div>
+            )}
+        </div>
+    );
+}
+
 export default function MediaResponsePage() {
     const router = useRouter();
     
     const [questions, setQuestions] = useState<QA[]>([]);
-    const [activeTab, setActiveTab] = useState<Category>('general');
+    const [briefingExamples, setBriefingExamples] = useState<BriefingExample[]>(BRIEFING_EXAMPLES);
+    const [activeTab, setActiveTab] = useState<MediaTab>('general');
+    const [selectedBriefingId, setSelectedBriefingId] = useState(BRIEFING_EXAMPLES[0]?.id ?? '');
     const [isLoading, setIsLoading] = useState(true);
+    const [isBriefingLoading, setIsBriefingLoading] = useState(true);
     const [isEditMode, setIsEditMode] = useState(false);
+    const [isSaving, setIsSaving] = useState(false);
+    const editSnapshot = useRef<{
+        questions: QA[];
+        briefings: BriefingExample[];
+        selectedBriefingId: string;
+    } | null>(null);
     
     const [showPinDialog, setShowPinDialog] = useState(false);
     const [pin, setPin] = useState('');
@@ -60,6 +196,7 @@ export default function MediaResponsePage() {
 
     useEffect(() => {
         fetchQA();
+        fetchBriefings();
     }, []);
 
     const fetchQA = async () => {
@@ -97,8 +234,45 @@ export default function MediaResponsePage() {
         }
     };
 
+    const fetchBriefings = async () => {
+        setIsBriefingLoading(true);
+        try {
+            const { data, error } = await supabase
+                .from('reports')
+                .select('data')
+                .eq('id', 'media-briefing-examples')
+                .maybeSingle();
+
+            if (error) throw error;
+
+            if (data?.data != null) {
+                const stored = typeof data.data === 'string' ? JSON.parse(data.data) : data.data;
+                if (!Array.isArray(stored) || !stored.every((example) =>
+                    typeof example?.id === 'string' &&
+                    typeof example?.disasterType === 'string' &&
+                    Array.isArray(example?.sections) &&
+                    example.sections.every((section: BriefingExample['sections'][number]) =>
+                        typeof section?.title === 'string' &&
+                        Array.isArray(section?.paragraphs) &&
+                        section.paragraphs.every((paragraph) => typeof paragraph === 'string'))
+                )) {
+                    throw new Error('브리핑 예문 데이터 형식이 올바르지 않습니다.');
+                }
+
+                setBriefingExamples(stored as BriefingExample[]);
+                setSelectedBriefingId(stored[0]?.id ?? '');
+            }
+        } catch (error) {
+            console.error('Failed to load briefing examples:', error);
+            setToast('브리핑 예문을 불러오지 못해 기본 예문을 표시합니다.');
+        } finally {
+            setIsBriefingLoading(false);
+        }
+    };
+
     const handleVerifyPin = () => {
         if (pin === '1234') {
+            editSnapshot.current = { questions, briefings: briefingExamples, selectedBriefingId };
             setIsEditMode(true);
             setShowPinDialog(false);
             setPin('');
@@ -109,27 +283,88 @@ export default function MediaResponsePage() {
         }
     };
 
+    const handleCancelEdit = () => {
+        if (editSnapshot.current) {
+            setQuestions(editSnapshot.current.questions);
+            setBriefingExamples(editSnapshot.current.briefings);
+            setSelectedBriefingId(editSnapshot.current.selectedBriefingId);
+            editSnapshot.current = null;
+        }
+        setIsEditMode(false);
+    };
+
     const handleSave = async () => {
+        if (isSaving) return;
+        if (activeTab === 'briefing' && briefingExamples.some((example) =>
+            !example.disasterType.trim() || (example.sections.length > 1 && example.sections.some((section) => !section.title.trim())))) {
+            setToast('재난 유형 이름과 예문 제목을 확인해 주세요.');
+            return;
+        }
+
+        setIsSaving(true);
         try {
             const { error } = await supabase
                 .from('reports')
                 .upsert({
-                    id: 'media-responses',
-                    data: questions,
+                    id: activeTab === 'briefing' ? 'media-briefing-examples' : 'media-responses',
+                    data: activeTab === 'briefing' ? briefingExamples : questions,
                     updated_at: new Date().toISOString(),
                 }, { onConflict: 'id' });
 
             if (error) throw error;
             setToast('저장되었습니다.');
             setIsEditMode(false);
+            editSnapshot.current = null;
         } catch (error) {
             console.error(error);
             const message = error instanceof Error ? error.message : '알 수 없는 오류';
             setToast(`저장에 실패했습니다: ${message}`);
+        } finally {
+            setIsSaving(false);
         }
     };
 
+    const updateSelectedBriefing = (update: (example: BriefingExample) => BriefingExample) => {
+        setBriefingExamples((examples) => examples.map((example) =>
+            example.id === selectedBriefingId ? update(example) : example
+        ));
+    };
+
+    const addBriefingExample = () => {
+        const id = `briefing-${crypto.randomUUID()}`;
+        setBriefingExamples((examples) => [
+            ...examples,
+            { id, disasterType: '새 재난 유형', sections: [{ title: '브리핑 예문', paragraphs: [''] }] },
+        ]);
+        setSelectedBriefingId(id);
+    };
+
+    const deleteBriefingExample = () => {
+        if (!window.confirm('선택한 재난 유형과 모든 예문을 삭제할까요? 저장 전까지는 취소할 수 있습니다.')) return;
+        const next = briefingExamples.filter((example) => example.id !== selectedBriefingId);
+        setBriefingExamples(next);
+        setSelectedBriefingId(next[0]?.id ?? '');
+    };
+
+    const updateBriefingSection = (sectionIndex: number, field: 'title' | 'paragraphs', value: string) => {
+        updateSelectedBriefing((example) => ({
+            ...example,
+            sections: example.sections.map((section, index) => index === sectionIndex
+                ? { ...section, [field]: field === 'paragraphs' ? value.split('\n') : value }
+                : section),
+        }));
+    };
+
+    const addBriefingSection = () => {
+        updateSelectedBriefing((example) => ({
+            ...example,
+            sections: [...example.sections, { title: `${example.sections.length + 1}차 브리핑`, paragraphs: [''] }],
+        }));
+    };
+
     const addNewQA = () => {
+        if (activeTab === 'briefing') return;
+
         const newId = Date.now().toString();
         setQuestions([
             ...questions,
@@ -148,34 +383,45 @@ export default function MediaResponsePage() {
     };
 
     const filteredQuestions = useMemo(() => {
+        if (activeTab === 'briefing') return [];
         return questions.filter(qa => qa.category === activeTab);
     }, [questions, activeTab]);
 
+    const selectedBriefing = useMemo(() => {
+        return briefingExamples.find(example => example.id === selectedBriefingId) ?? briefingExamples[0];
+    }, [briefingExamples, selectedBriefingId]);
+
+    const isBriefingTab = activeTab === 'briefing';
+
     return (
-        <div className="page">
+        <div className="page media-page">
             <div className="header">
-                <button 
+                <button
                     onClick={() => {
                         if (isEditMode) {
-                            setIsEditMode(false);
+                            handleCancelEdit();
                         } else {
                             router.back();
                         }
                     }} 
                     className="header-back"
+                    disabled={isSaving}
                 >
                     ←
                 </button>
-                <h1 className="header-title">언론 대응 (Q&A)</h1>
+                <h1 className="header-title">언론 대응</h1>
             </div>
 
             <div className="page-content" style={{ padding: '0' }}>
                 {/* 탭 헤더 */}
-                <div style={{ display: 'flex', background: 'white', borderBottom: '1px solid #e0e0e0', position: 'sticky', top: 0, zIndex: 10 }}>
+                <div className="media-tabs" role="tablist" aria-label="언론 대응 카테고리">
                     <button 
                         onClick={() => setActiveTab('general')}
+                        disabled={isEditMode || isSaving}
+                        role="tab"
+                        aria-selected={activeTab === 'general'}
                         style={{ 
-                            flex: 1, padding: '14px', border: 'none', background: 'none', fontSize: '15px', fontWeight: 600,
+                            flex: '1 1 33.333%', minWidth: 0, padding: '12px 8px', border: 'none', background: 'none', fontSize: '14px', lineHeight: '1.3', fontWeight: 600,
                             color: activeTab === 'general' ? '#1976D2' : '#757575',
                             borderBottom: activeTab === 'general' ? '3px solid #1976D2' : '3px solid transparent'
                         }}
@@ -184,38 +430,65 @@ export default function MediaResponsePage() {
                     </button>
                     <button 
                         onClick={() => setActiveTab('pressure')}
+                        disabled={isEditMode || isSaving}
+                        role="tab"
+                        aria-selected={activeTab === 'pressure'}
                         style={{ 
-                            flex: 1, padding: '14px', border: 'none', background: 'none', fontSize: '15px', fontWeight: 600,
+                            flex: '1 1 33.333%', minWidth: 0, padding: '12px 8px', border: 'none', background: 'none', fontSize: '14px', lineHeight: '1.3', fontWeight: 600,
                             color: activeTab === 'pressure' ? '#D32F2F' : '#757575',
                             borderBottom: activeTab === 'pressure' ? '3px solid #D32F2F' : '3px solid transparent'
                         }}
                     >
                         압박 질문 ({questions.filter(q => q.category === 'pressure').length})
                     </button>
+                    <button
+                        onClick={() => setActiveTab('briefing')}
+                        disabled={isEditMode || isSaving}
+                        role="tab"
+                        aria-selected={activeTab === 'briefing'}
+                        style={{
+                            flex: '1 1 33.333%', minWidth: 0, padding: '12px 8px', border: 'none', background: 'none', fontSize: '14px', lineHeight: '1.3', fontWeight: 600,
+                            color: activeTab === 'briefing' ? '#388E3C' : '#757575',
+                            borderBottom: activeTab === 'briefing' ? '3px solid #388E3C' : '3px solid transparent'
+                        }}
+                    >
+                        브리핑 예문 ({briefingExamples.length})
+                    </button>
                 </div>
 
                 <div style={{ padding: '16px' }}>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
+                    <div className="media-toolbar">
                         <p style={{ color: '#757575', fontSize: '14px', margin: 0 }}>
-                            {activeTab === 'general' ? '사실 확인 중심 / 기본 브리핑' : '책임 / 문제 제기 대응'}
+                            {activeTab === 'general'
+                                ? '사실 확인 중심 / 기본 브리핑'
+                                : activeTab === 'pressure'
+                                    ? '책임 / 문제 제기 대응'
+                                    : '재난 유형별 언론브리핑 원문 예문'}
                         </p>
-                        {!isEditMode ? (
-                            <button 
-                                onClick={() => setShowPinDialog(true)}
-                                className="btn btn-secondary"
-                                style={{ padding: '6px 12px', fontSize: '13px' }}
-                            >
-                                ✏️ 편집
-                            </button>
-                        ) : (
-                            <button 
-                                onClick={handleSave}
-                                className="btn btn-primary"
-                                style={{ padding: '6px 12px', fontSize: '13px' }}
-                            >
-                                💾 저장
-                            </button>
-                        )}
+                        <div className="media-actions">
+                            {isBriefingTab && !isEditMode && selectedBriefing && selectedBriefing.sections.length > 0 && (
+                                <button type="button" onClick={() => window.print()} className="btn btn-secondary">
+                                    🖨️ 출력
+                                </button>
+                            )}
+                            {!isEditMode ? (
+                                <button
+                                    type="button"
+                                    onClick={() => setShowPinDialog(true)}
+                                    className="btn btn-secondary"
+                                    disabled={isBriefingTab ? isBriefingLoading : isLoading}
+                                >
+                                    ✏️ 편집
+                                </button>
+                            ) : (
+                                <>
+                                    <button type="button" onClick={handleCancelEdit} className="btn btn-secondary" disabled={isSaving}>취소</button>
+                                    <button type="button" onClick={handleSave} className="btn btn-primary" disabled={isSaving}>
+                                        {isSaving ? '저장 중…' : '💾 저장'}
+                                    </button>
+                                </>
+                            )}
+                        </div>
                     </div>
 
                     {/* 압박 질문 가이드 포인트 */}
@@ -231,7 +504,22 @@ export default function MediaResponsePage() {
                         </div>
                     )}
 
-                    {isLoading ? (
+                    {isBriefingTab && isBriefingLoading ? (
+                        <div className="briefing-empty">브리핑 예문을 불러오는 중...</div>
+                    ) : isBriefingTab ? (
+                        <BriefingExamplesPanel
+                            selectedBriefing={selectedBriefing}
+                            selectedBriefingId={selectedBriefingId}
+                            examples={briefingExamples}
+                            isEditMode={isEditMode}
+                            onSelect={setSelectedBriefingId}
+                            onAddExample={addBriefingExample}
+                            onDeleteExample={deleteBriefingExample}
+                            onUpdateDisasterType={(value) => updateSelectedBriefing((example) => ({ ...example, disasterType: value }))}
+                            onUpdateSection={updateBriefingSection}
+                            onAddSection={addBriefingSection}
+                        />
+                    ) : isLoading ? (
                         <div style={{ textAlign: 'center', padding: '40px', color: '#9E9E9E' }}>
                             불러오는 중...
                         </div>
@@ -315,7 +603,7 @@ export default function MediaResponsePage() {
                     <div className="card" style={{ width: '90%', maxWidth: '320px' }}>
                         <div className="card-title">편집 권한 확인</div>
                         <p style={{ fontSize: '14px', color: '#757575', marginBottom: '16px' }}>
-                            질의응답을 수정하려면 관리자 PIN을 입력하세요.
+                            {isBriefingTab ? '브리핑 예문' : '질의응답'}을 수정하려면 관리자 PIN을 입력하세요.
                         </p>
                         <input
                             type="password"
