@@ -1,6 +1,7 @@
 import ScenarioDocumentPageClient from '@/components/ScenarioDocumentPageClient';
-import scenarioDocument from '@/lib/scenarioDocument.generated.json';
+import songdoDocument from '@/lib/scenarioDocument.songdo.generated.json';
+import type { ScenarioDocument } from '@/lib/scenarioDocumentTypes';
 
 export default function ScenarioDocumentPage() {
-    return <ScenarioDocumentPageClient defaultDocument={scenarioDocument} />;
+    return <ScenarioDocumentPageClient defaultDocument={songdoDocument as ScenarioDocument} />;
 }

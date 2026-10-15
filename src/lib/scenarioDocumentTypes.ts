@@ -24,6 +24,7 @@ export interface ScenarioPage {
 export interface ScenarioDocument {
     title: string;
     sourceFilename: string;
+    sourceType?: 'xlsx' | 'pdf';
     uploadedAt?: string;
     sections: ScenarioSection[];
     pages: ScenarioPage[];

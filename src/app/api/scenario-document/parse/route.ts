@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { existsSync } from 'node:fs';
 import { join } from 'node:path';
 import { pathToFileURL } from 'node:url';
+import { parseScenarioExcel } from '@/lib/scenarioDocumentExcel';
 import {
     ScenarioContentRow,
     ScenarioDocument,
@@ -188,11 +189,22 @@ export async function POST(request: NextRequest) {
         const file = formData.get('file');
 
         if (!(file instanceof File)) {
-            return NextResponse.json({ error: 'PDF 파일이 없습니다.' }, { status: 400 });
+            return NextResponse.json({ error: '시나리오 파일이 없습니다.' }, { status: 400 });
         }
 
-        if (file.type && file.type !== 'application/pdf') {
-            return NextResponse.json({ error: 'PDF 파일만 업로드할 수 있습니다.' }, { status: 400 });
+        if (/\.xlsx$/i.test(file.name)) {
+            try {
+                const document = parseScenarioExcel(await file.arrayBuffer(), file.name);
+                document.uploadedAt = new Date().toISOString();
+                return NextResponse.json({ document });
+            } catch (error) {
+                const message = error instanceof Error ? error.message : '엑셀 파일을 읽지 못했습니다.';
+                return NextResponse.json({ error: message }, { status: 422 });
+            }
+        }
+
+        if (!/\.pdf$/i.test(file.name)) {
+            return NextResponse.json({ error: 'PDF 또는 엑셀(.xlsx) 파일만 업로드할 수 있습니다.' }, { status: 400 });
         }
 
         const { PDFParse } = await import('pdf-parse');

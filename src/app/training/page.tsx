@@ -5,8 +5,8 @@ import ScenarioTimeline from '@/components/ScenarioTimeline';
 export default function TrainingPage() {
     return (
         <div className="page" style={{ padding: '20px 16px', paddingBottom: '96px', maxWidth: '800px', margin: '0 auto', width: '100%' }}>
-            <div style={{ marginBottom: '20px', display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: '12px' }}>
-                <div>
+            <div className="training-header">
+                <div className="training-header-intro">
                     <h1 style={{ fontSize: '22px', fontWeight: 800, color: '#1A237E', display: 'flex', alignItems: 'center', gap: '8px' }}>
                         <span>📋</span> 상황부여 메시지
                     </h1>
@@ -16,19 +16,7 @@ export default function TrainingPage() {
                 </div>
                 <Link
                     href="/training/scenario"
-                    style={{
-                        flex: '0 0 auto',
-                        textDecoration: 'none',
-                        color: '#0D47A1',
-                        border: '1px solid #BBDEFB',
-                        background: '#E3F2FD',
-                        borderRadius: '8px',
-                        padding: '9px 11px',
-                        fontSize: '13px',
-                        fontWeight: 800,
-                        lineHeight: 1.2,
-                        whiteSpace: 'nowrap'
-                    }}
+                    className="training-scenario-link"
                 >
                     원문 보기
                 </Link>

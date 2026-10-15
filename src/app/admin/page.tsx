@@ -70,12 +70,12 @@ export default function AdminPage() {
         }
     }, [setExcelData]);
 
-    const handleScenarioPdfUpload = useCallback(async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const handleScenarioUpload = useCallback(async (e: React.ChangeEvent<HTMLInputElement>) => {
         const file = e.target.files?.[0];
         if (!file) return;
 
-        if (file.type && file.type !== 'application/pdf') {
-            setToast('PDF 파일만 업로드할 수 있습니다.');
+        if (!/\.(pdf|xlsx)$/i.test(file.name)) {
+            setToast('PDF 또는 엑셀(.xlsx) 파일만 업로드할 수 있습니다.');
             e.target.value = '';
             return;
         }
@@ -98,15 +98,15 @@ export default function AdminPage() {
             }
 
             if (!response.ok || !result?.document) {
-                throw new Error(result?.error || `PDF 텍스트 추출에 실패했습니다. HTTP ${response.status}`);
+                throw new Error(result?.error || `시나리오 추출에 실패했습니다. HTTP ${response.status}`);
             }
 
             const document = result.document as ScenarioDocument;
             await saveScenarioDocument(document);
-            setToast(`시나리오 업로드 완료: ${document.pages.length}쪽`);
+            setToast(`시나리오 업로드 완료: ${document.pages.length}${document.sourceType === 'xlsx' ? '개 상황' : '쪽'}`);
         } catch (error) {
-            console.error('Scenario PDF upload error:', error);
-            const message = error instanceof Error ? error.message : '시나리오 PDF 업로드에 실패했습니다.';
+            console.error('Scenario upload error:', error);
+            const message = error instanceof Error ? error.message : '시나리오 업로드에 실패했습니다.';
             setToast(`${message} Supabase에 scenario_document 컬럼이 없으면 supabase_schema.sql의 마이그레이션을 먼저 실행하세요.`);
         } finally {
             setIsScenarioUploading(false);
@@ -216,7 +216,7 @@ export default function AdminPage() {
                 <div className="card">
                     <div className="card-title">📄 시나리오 원문 관리</div>
                     <div style={{ padding: '12px', background: '#E8F5E9', borderRadius: '8px', fontSize: '14px', marginBottom: '16px' }}>
-                        수정된 훈련 시나리오 PDF를 업로드하면 원문 보기 화면에 텍스트 문서로 반영됩니다.
+                        훈련 시나리오 PDF 또는 엑셀(.xlsx)을 업로드하면 직원들의 원문 보기 화면에 반영됩니다.
                     </div>
                     <label
                         className="btn btn-primary btn-block"
@@ -226,17 +226,21 @@ export default function AdminPage() {
                             background: '#2E7D32'
                         }}
                     >
-                        {isScenarioUploading ? '시나리오 반영 중...' : '시나리오 PDF 업로드'}
+                        {isScenarioUploading ? '시나리오 반영 중...' : '시나리오 PDF / 엑셀 업로드'}
                         <input
                             type="file"
-                            accept="application/pdf,.pdf"
-                            onChange={handleScenarioPdfUpload}
+                            accept="application/pdf,.pdf,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,.xlsx"
+                            onChange={handleScenarioUpload}
                             disabled={isScenarioUploading}
                             style={{ display: 'none' }}
                         />
                     </label>
                     <p style={{ marginTop: '12px', fontSize: '13px', color: '#757575' }}>
                         ※ PDF의 6쪽부터 훈련 전 단계, 7쪽부터 1단계로 인식합니다.
+                        <br />
+                        ※ 엑셀은 주요상황, 시간, 대상자, 내용, 판단·행동 포인트, 근거 열을 읽습니다.
+                        <br />
+                        ※ 업로드한 문서는 직원들의 원문 보기 화면에 표시됩니다.
                     </p>
                 </div>
 

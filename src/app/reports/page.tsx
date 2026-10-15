@@ -515,7 +515,7 @@ function ReportsContent() {
     );
 }
 
-import { AccidentPreview } from './accident/page';
+import { AccidentPreview } from '@/components/AccidentPreview';
 
 /* 사고상황보고서 인라인 미리보기 (파일 업로드 버전) */
 function AccidentPreviewInline({ data }: { data: NormalizedReportFileData | null }) {

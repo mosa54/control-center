@@ -261,6 +261,7 @@ const renderScenarioRows = (
     query: string,
     searchCursor: SearchCursor,
     speakerCounts: Map<string, number>,
+    isSpreadsheet: boolean,
 ) => {
     return rows.map((row, index) => {
         const hasAction = Boolean(row.action.trim());
@@ -272,14 +273,14 @@ const renderScenarioRows = (
                 key={`scenario-row-${index}`}
                 className={`scenario-doc-table-row ${hasAction && hasOther ? 'has-other' : ''}`}
             >
-                {index > 0 && row.situation.replace(/\s+/g, ' ').trim() !== pageTitle.replace(/\s+/g, ' ').trim() && (
+                {index > 0 && row.situation.trim() && row.situation.replace(/\s+/g, ' ').trim() !== pageTitle.replace(/\s+/g, ' ').trim() && (
                     <h3 className="scenario-doc-row-title">
                         {renderHighlightedText(row.situation.replace(/\s+/g, ' ').trim(), query, searchCursor)}
                     </h3>
                 )}
                 {hasAction && (
                     <section className="scenario-doc-cell scenario-doc-action">
-                        <strong>행동 및 시나리오</strong>
+                        <strong>{isSpreadsheet ? '대상자 · 내용' : '행동 및 시나리오'}</strong>
                         <div>
                             {renderScenarioText(row.action, selectedSpeakers, query, searchCursor, speakerCounts)}
                         </div>
@@ -287,7 +288,7 @@ const renderScenarioRows = (
                 )}
                 {hasOther && (
                 <section className="scenario-doc-cell scenario-doc-other">
-                    <strong>기타</strong>
+                    <strong>{isSpreadsheet ? '판단·행동 포인트 / 근거' : '기타'}</strong>
                     <div>
                         {renderScenarioText(row.other, selectedSpeakers, query, searchCursor, speakerCounts)}
                     </div>
@@ -306,10 +307,13 @@ export default function ScenarioDocumentViewer({
     document,
     restoreScrollPosition = true,
 }: ScenarioDocumentViewerProps) {
+    const isSpreadsheet = document.sourceType === 'xlsx';
+    const scrollStorageKey = `${SCENARIO_SCROLL_STORAGE_KEY}:${document.sourceFilename}`;
+    const speakersStorageKey = `${SCENARIO_SPEAKERS_STORAGE_KEY}:${document.sourceFilename}`;
     const [query, setQuery] = useState('');
     const [activeSearchIndex, setActiveSearchIndex] = useState(0);
     const [hasSearchNavigated, setHasSearchNavigated] = useState(false);
-    const [activeSectionId, setActiveSectionId] = useState('all');
+    const [activeNavigationId, setActiveNavigationId] = useState('start');
     const [selectedSpeakers, setSelectedSpeakers] = useState<string[]>([]);
     const speakerPickerRef = useRef<HTMLDetailsElement>(null);
     const hasRestoredScrollRef = useRef(false);
@@ -325,11 +329,11 @@ export default function ScenarioDocumentViewer({
             .filter((page) => page.sectionId !== 'overview')
             .map((page) => ({
                 ...page,
-                rows: page.rows
+                rows: page.rows && !isSpreadsheet
                     ? normalizeScenarioRows(page.rows, page.title)
                     : page.rows,
             })),
-        [document.pages]
+        [document.pages, isSpreadsheet]
     );
 
     const searchMatchCount = useMemo(() => {
@@ -340,16 +344,24 @@ export default function ScenarioDocumentViewer({
         }, 0);
     }, [query, visiblePages]);
 
-    const firstPageNumberBySection = useMemo(() => {
-        const pageNumbers = new Map<string, number>();
-        visiblePages.forEach((page) => {
-            if (!pageNumbers.has(page.sectionId)) {
-                pageNumbers.set(page.sectionId, page.pageNumber);
-            }
-        });
+    const navigationItems = useMemo(() => {
+        if (isSpreadsheet) {
+            return visiblePages.map((page) => ({
+                id: `page-${page.pageNumber}`,
+                title: page.title.replace(/^\[\d{1,2}:\d{2}(?::\d{2})?\]\s*/, ''),
+                targetId: `scenario-page-${page.pageNumber}`,
+            }));
+        }
 
-        return pageNumbers;
-    }, [visiblePages]);
+        return visibleSections.flatMap((section) => {
+            const firstPage = visiblePages.find((page) => page.sectionId === section.id);
+            return firstPage ? [{
+                id: section.id,
+                title: section.title,
+                targetId: `scenario-page-${firstPage.pageNumber}`,
+            }] : [];
+        });
+    }, [isSpreadsheet, visiblePages, visibleSections]);
 
     const speakers = useMemo(() => {
         const speakerSet = new Set<string>();
@@ -376,7 +388,7 @@ export default function ScenarioDocumentViewer({
         return counts;
     }, [visiblePages]);
 
-    const activeSection = visibleSections.find((section) => section.id === activeSectionId);
+    const activeNavigation = navigationItems.find((item) => item.id === activeNavigationId);
     const hasSearchQuery = query.trim().length > 0;
     const hasSearchMatches = searchMatchCount > 0;
     const visibleSearchIndex = hasSearchMatches ? Math.min(activeSearchIndex, searchMatchCount - 1) : 0;
@@ -389,7 +401,7 @@ export default function ScenarioDocumentViewer({
 
     const saveSelectedSpeakers = (nextSpeakers: string[]) => {
         try {
-            sessionStorage.setItem(SCENARIO_SPEAKERS_STORAGE_KEY, JSON.stringify(nextSpeakers));
+            sessionStorage.setItem(speakersStorageKey, JSON.stringify(nextSpeakers));
         } catch {
             // Storage can be unavailable in restricted browser modes.
         }
@@ -478,7 +490,7 @@ export default function ScenarioDocumentViewer({
             };
 
             try {
-                sessionStorage.setItem(SCENARIO_SCROLL_STORAGE_KEY, JSON.stringify(position));
+                sessionStorage.setItem(scrollStorageKey, JSON.stringify(position));
             } catch {
                 // Storage can be unavailable in restricted browser modes.
             }
@@ -528,7 +540,7 @@ export default function ScenarioDocumentViewer({
             globalThis.document.removeEventListener('click', saveBeforeNavigation, true);
             if (frameId !== null) cancelAnimationFrame(frameId);
         };
-    }, [restoreScrollPosition]);
+    }, [restoreScrollPosition, scrollStorageKey]);
 
     useEffect(() => {
         if (!restoreScrollPosition || hasRestoredScrollRef.current) return;
@@ -537,7 +549,7 @@ export default function ScenarioDocumentViewer({
         let storedPosition: StoredScenarioScrollPosition | null = null;
 
         try {
-            const storedValue = sessionStorage.getItem(SCENARIO_SCROLL_STORAGE_KEY);
+            const storedValue = sessionStorage.getItem(scrollStorageKey);
             if (storedValue) {
                 const parsedValue = JSON.parse(storedValue) as Partial<StoredScenarioScrollPosition>;
                 if (
@@ -576,14 +588,14 @@ export default function ScenarioDocumentViewer({
             if (secondFrameId !== null) cancelAnimationFrame(secondFrameId);
             globalThis.clearTimeout(delayedRestoreId);
         };
-    }, [restoreScrollPosition]);
+    }, [restoreScrollPosition, scrollStorageKey]);
 
     useEffect(() => {
         if (!restoreScrollPosition || hasRestoredSpeakersRef.current) return;
         hasRestoredSpeakersRef.current = true;
 
         try {
-            const storedValue = sessionStorage.getItem(SCENARIO_SPEAKERS_STORAGE_KEY);
+            const storedValue = sessionStorage.getItem(speakersStorageKey);
             if (!storedValue) return;
 
             const storedSpeakers = JSON.parse(storedValue);
@@ -601,7 +613,7 @@ export default function ScenarioDocumentViewer({
         } catch {
             // Ignore invalid or unavailable session storage.
         }
-    }, [restoreScrollPosition, speakers]);
+    }, [restoreScrollPosition, speakers, speakersStorageKey]);
 
     useEffect(() => {
         const needle = normalize(query);
@@ -611,17 +623,14 @@ export default function ScenarioDocumentViewer({
         }
     }, [query]);
 
-    const scrollToScenarioTarget = (targetSectionId: string) => {
-        setActiveSectionId(targetSectionId);
+    const scrollToScenarioTarget = (navigationId: string) => {
+        setActiveNavigationId(navigationId);
 
         requestAnimationFrame(() => {
-            const firstPageNumber = firstPageNumberBySection.get(targetSectionId);
-            const target =
-                targetSectionId === 'all'
-                    ? globalThis.document.getElementById('scenario-doc-start')
-                    : firstPageNumber
-                        ? globalThis.document.getElementById(`scenario-page-${firstPageNumber}`)
-                        : null;
+            const targetId = navigationId === 'start'
+                ? 'scenario-doc-start'
+                : navigationItems.find((item) => item.id === navigationId)?.targetId;
+            const target = targetId ? globalThis.document.getElementById(targetId) : null;
 
             target?.scrollIntoView({ behavior: 'smooth', block: 'start' });
         });
@@ -710,30 +719,33 @@ export default function ScenarioDocumentViewer({
                 </div>
             </div>
 
-            <div className="scenario-doc-tabs no-print" aria-label="시나리오 단계">
+            <nav className="scenario-doc-tabs no-print" aria-label="시나리오 바로가기">
                 <button
                     type="button"
-                    className={activeSectionId === 'all' ? 'active' : ''}
-                    onClick={() => scrollToScenarioTarget('all')}
+                    className={`scenario-doc-start-button ${activeNavigationId === 'start' ? 'active' : ''}`}
+                    aria-current={activeNavigationId === 'start' ? 'location' : undefined}
+                    onClick={() => scrollToScenarioTarget('start')}
                 >
-                    전체
+                    처음
                 </button>
-                {visibleSections.map((section) => (
+                {navigationItems.map((item) => (
                     <button
-                        key={section.id}
+                        key={item.id}
                         type="button"
-                        className={activeSectionId === section.id ? 'active' : ''}
-                        onClick={() => scrollToScenarioTarget(section.id)}
+                        className={activeNavigationId === item.id ? 'active' : ''}
+                        aria-current={activeNavigationId === item.id ? 'location' : undefined}
+                        aria-controls={item.targetId}
+                        onClick={() => scrollToScenarioTarget(item.id)}
                     >
-                        {section.title}
+                        {item.title}
                     </button>
                 ))}
-            </div>
+            </nav>
 
             <div className="scenario-doc-summary">
-                <strong>{activeSection ? `${activeSection.title} 위치` : '전체 시나리오'}</strong>
+                <strong>{activeNavigation ? `${activeNavigation.title} 위치` : '전체 시나리오'}</strong>
                 <span>
-                    원문 {visiblePages.length}쪽
+                    원문 {visiblePages.length}{isSpreadsheet ? '개 상황' : '쪽'}
                     {query.trim() ? ` / 검색 ${searchMatchCount}개` : ''}
                 </span>
             </div>
@@ -753,7 +765,7 @@ export default function ScenarioDocumentViewer({
                                     </span>
                                     <h2>{renderHighlightedText(page.title, query, searchCursor)}</h2>
                                 </div>
-                                <span className="scenario-doc-page-number">p.{getVisiblePageNumber(page)}</span>
+                                <span className="scenario-doc-page-number">{isSpreadsheet ? '상황 ' : 'p.'}{getVisiblePageNumber(page)}</span>
                             </header>
                             <div className="scenario-doc-page-body">
                                 {page.rows?.length
@@ -764,6 +776,7 @@ export default function ScenarioDocumentViewer({
                                         query,
                                         searchCursor,
                                         speakerCounts,
+                                        isSpreadsheet,
                                     )
                                     : renderScenarioText(
                                         page.text,
