@@ -1764,6 +1764,15 @@ body.roster-preview-open .roster-page .page-content {
   grid-template-columns: minmax(0, 2fr) minmax(150px, 0.9fr);
 }
 
+.scenario-doc-table-row.is-compact {
+  margin-bottom: 8px;
+  padding-bottom: 8px;
+}
+
+.scenario-doc-table-row.is-compact .scenario-doc-action > div {
+  padding: 8px 10px;
+}
+
 .scenario-doc-row-title {
   grid-column: 1 / -1;
   margin: 0;

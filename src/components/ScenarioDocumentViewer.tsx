@@ -271,7 +271,7 @@ const renderScenarioRows = (
         return (
             <div
                 key={`scenario-row-${index}`}
-                className={`scenario-doc-table-row ${hasAction && hasOther ? 'has-other' : ''}`}
+                className={`scenario-doc-table-row ${hasAction && hasOther ? 'has-other' : ''} ${isSpreadsheet ? 'is-compact' : ''}`}
             >
                 {index > 0 && row.situation.trim() && row.situation.replace(/\s+/g, ' ').trim() !== pageTitle.replace(/\s+/g, ' ').trim() && (
                     <h3 className="scenario-doc-row-title">
@@ -280,7 +280,7 @@ const renderScenarioRows = (
                 )}
                 {hasAction && (
                     <section className="scenario-doc-cell scenario-doc-action">
-                        <strong>{isSpreadsheet ? '대상자 · 내용' : '행동 및 시나리오'}</strong>
+                        {!isSpreadsheet && <strong>행동 및 시나리오</strong>}
                         <div>
                             {renderScenarioText(row.action, selectedSpeakers, query, searchCursor, speakerCounts)}
                         </div>
