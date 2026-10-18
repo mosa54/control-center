@@ -1730,6 +1730,14 @@ body.roster-preview-open .roster-page .page-content {
   letter-spacing: 0;
 }
 
+.scenario-doc-page h2.scenario-doc-situation-title {
+  color: #1A237E;
+}
+
+.scenario-doc-title-time {
+  color: #212121;
+}
+
 .scenario-doc-page-number {
   flex: 0 0 auto;
   color: #757575;

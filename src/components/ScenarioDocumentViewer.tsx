@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { ScenarioContentRow, ScenarioDocument } from '@/lib/scenarioDocumentTypes';
 import { normalizeScenarioRows } from '@/lib/scenarioDocumentRows';
 
@@ -136,13 +136,21 @@ const countTextMatches = (text: string, query: string) => {
     return text.match(new RegExp(escapeRegExp(keyword), 'gi'))?.length ?? 0;
 };
 
-const renderHighlightedText = (text: string, query: string, searchCursor?: SearchCursor) => {
+const renderHighlightedText = (
+    text: string,
+    query: string,
+    searchCursor?: SearchCursor,
+    formatText: (part: string, offset: number) => ReactNode = (part) => part,
+) => {
     const keyword = query.trim();
-    if (!keyword) return text;
+    if (!keyword) return formatText(text, 0);
 
     const parts = text.split(new RegExp(`(${escapeRegExp(keyword)})`, 'gi'));
+    let offset = 0;
     return parts.map((part, index) => {
-        if (part.toLowerCase() !== keyword.toLowerCase()) return part;
+        const content = formatText(part, offset);
+        offset += part.length;
+        if (part.toLowerCase() !== keyword.toLowerCase()) return content;
 
         const matchIndex = searchCursor?.current ?? index;
         if (searchCursor) searchCursor.current += 1;
@@ -153,8 +161,21 @@ const renderHighlightedText = (text: string, query: string, searchCursor?: Searc
                 className={`scenario-doc-search-highlight ${matchIndex === searchCursor?.activeIndex ? 'active' : ''}`}
                 data-scenario-search-match={matchIndex}
             >
-                {part}
+                {content}
             </mark>
+        );
+    });
+};
+
+const renderScenarioTitle = (title: string, query: string, searchCursor: SearchCursor) => {
+    const timeLength = title.match(/^\[\d{1,2}:\d{2}(?::\d{2})?\]\s*/)?.[0].length ?? 0;
+    return renderHighlightedText(title, query, searchCursor, (part, offset) => {
+        const timeEnd = Math.max(0, Math.min(part.length, timeLength - offset));
+        return (
+            <span key={offset}>
+                {timeEnd > 0 && <span className="scenario-doc-title-time">{part.slice(0, timeEnd)}</span>}
+                {part.slice(timeEnd)}
+            </span>
         );
     });
 };
@@ -763,7 +784,11 @@ export default function ScenarioDocumentViewer({
                                     {!isSpreadsheet && <span className="scenario-doc-section">
                                         {renderHighlightedText(page.sectionTitle, query, searchCursor)}
                                     </span>}
-                                    <h2>{renderHighlightedText(page.title, query, searchCursor)}</h2>
+                                    <h2 className={isSpreadsheet ? 'scenario-doc-situation-title' : undefined}>
+                                        {isSpreadsheet
+                                            ? renderScenarioTitle(page.title, query, searchCursor)
+                                            : renderHighlightedText(page.title, query, searchCursor)}
+                                    </h2>
                                 </div>
                                 <span className="scenario-doc-page-number">{isSpreadsheet ? '상황 ' : 'p.'}{getVisiblePageNumber(page)}</span>
                             </header>
