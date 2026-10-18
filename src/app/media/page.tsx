@@ -1,14 +1,14 @@
 'use client';
 
-import { useState, useEffect, useMemo, useRef } from 'react';
+import { useState, useEffect, useMemo, useRef, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import { supabase } from '@/lib/supabase';
 import Toast from '@/components/Toast';
 import { BRIEFING_EXAMPLES, type BriefingExample } from '@/lib/mediaBriefingExamples';
+import { useMediaReadingState } from '@/lib/useMediaReadingState';
 import './media.css';
 
 type QACategory = 'general' | 'pressure';
-type MediaTab = QACategory | 'briefing';
 
 interface QA {
     id: string;
@@ -149,6 +149,7 @@ function BriefingExamplesPanel({
                                             {section.paragraphs.map((paragraph, paragraphIndex) => (
                                                 <p
                                                     key={`${selectedBriefing.id}-${sectionIndex}-${paragraphIndex}`}
+                                                    data-media-reading-id={`briefing-${selectedBriefing.id}-${sectionIndex}-${paragraphIndex}`}
                                                     className={paragraph.trimStart().startsWith('□') ? 'briefing-paragraph briefing-paragraph-heading' : 'briefing-paragraph'}
                                                 >
                                                     {paragraph}
@@ -176,12 +177,13 @@ export default function MediaResponsePage() {
     
     const [questions, setQuestions] = useState<QA[]>([]);
     const [briefingExamples, setBriefingExamples] = useState<BriefingExample[]>(BRIEFING_EXAMPLES);
-    const [activeTab, setActiveTab] = useState<MediaTab>('general');
-    const [selectedBriefingId, setSelectedBriefingId] = useState(BRIEFING_EXAMPLES[0]?.id ?? '');
     const [isLoading, setIsLoading] = useState(true);
     const [isBriefingLoading, setIsBriefingLoading] = useState(true);
     const [isEditMode, setIsEditMode] = useState(false);
     const [isSaving, setIsSaving] = useState(false);
+    const { pageRef, isReady, activeTab, setActiveTab, selectedBriefingId, setSelectedBriefingId, openQuestionIds, toggleQuestion } = useMediaReadingState(
+        !isLoading && !isBriefingLoading, BRIEFING_EXAMPLES[0]?.id ?? '', isEditMode,
+    );
     const editSnapshot = useRef<{
         questions: QA[];
         briefings: BriefingExample[];
@@ -194,12 +196,7 @@ export default function MediaResponsePage() {
     
     const [toast, setToast] = useState<string | null>(null);
 
-    useEffect(() => {
-        fetchQA();
-        fetchBriefings();
-    }, []);
-
-    const fetchQA = async () => {
+    const fetchQA = useCallback(async () => {
         setIsLoading(true);
         try {
             const { data, error } = await supabase
@@ -232,9 +229,9 @@ export default function MediaResponsePage() {
         } finally {
             setIsLoading(false);
         }
-    };
+    }, []);
 
-    const fetchBriefings = async () => {
+    const fetchBriefings = useCallback(async () => {
         setIsBriefingLoading(true);
         try {
             const { data, error } = await supabase
@@ -260,7 +257,8 @@ export default function MediaResponsePage() {
                 }
 
                 setBriefingExamples(stored as BriefingExample[]);
-                setSelectedBriefingId(stored[0]?.id ?? '');
+                setSelectedBriefingId((current) => stored.some((example: BriefingExample) => example.id === current)
+                    ? current : stored[0]?.id ?? '');
             }
         } catch (error) {
             console.error('Failed to load briefing examples:', error);
@@ -268,7 +266,13 @@ export default function MediaResponsePage() {
         } finally {
             setIsBriefingLoading(false);
         }
-    };
+    }, [setSelectedBriefingId]);
+
+    useEffect(() => {
+        if (!isReady) return;
+        void fetchQA();
+        void fetchBriefings();
+    }, [fetchBriefings, fetchQA, isReady]);
 
     const handleVerifyPin = () => {
         if (pin === '1234') {
@@ -394,7 +398,7 @@ export default function MediaResponsePage() {
     const isBriefingTab = activeTab === 'briefing';
 
     return (
-        <div className="page media-page">
+        <div ref={pageRef} className="page media-page">
             <div className="header">
                 <button
                     onClick={() => {
@@ -532,7 +536,7 @@ export default function MediaResponsePage() {
                             )}
 
                             {filteredQuestions.map((qa, index) => (
-                                <div key={qa.id} className="card" style={{ padding: '16px' }}>
+                                <div key={qa.id} data-media-reading-id={`question-${qa.id}`} className="card" style={{ padding: '16px' }}>
                                     {isEditMode ? (
                                         <>
                                             <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px' }}>
@@ -565,7 +569,11 @@ export default function MediaResponsePage() {
                                             />
                                         </>
                                     ) : (
-                                        <details style={{ cursor: 'pointer' }}>
+                                        <details
+                                            open={openQuestionIds.includes(qa.id)}
+                                            onToggle={(event) => toggleQuestion(qa.id, event.currentTarget.open)}
+                                            style={{ cursor: 'pointer' }}
+                                        >
                                             <summary style={{ outline: 'none', fontWeight: 600, fontSize: '15px', lineHeight: '1.4', listStylePosition: 'inside' }}>
                                                 <span style={{ color: qa.category === 'pressure' ? '#D32F2F' : '#757575', marginRight: '6px' }}>Q.</span>
                                                 <span style={{ wordBreak: 'keep-all' }}>{qa.q}</span>

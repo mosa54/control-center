@@ -76,7 +76,7 @@ function BottomNavInner() {
         if (targetHref === defaultTrainingHref) return;
 
         event.preventDefault();
-        router.push(targetHref);
+        router.replace(targetHref);
     };
 
     // 체크인 과정에서는 항상 숨김
@@ -108,6 +108,7 @@ function BottomNavInner() {
                         <Link 
                             key={item.name}
                             href={item.href}
+                            replace
                             onClick={item.baseRoute === '/training' ? handleTrainingClick : undefined}
                             className={`nav-item ${isActive ? 'active' : ''}`}
                             style={{ position: 'relative' }}

@@ -340,9 +340,9 @@ export default function ScenarioDocumentViewer({
         if (!query.trim()) return 0;
 
         return visiblePages.reduce((total, page) => {
-            return total + countTextMatches(`${page.sectionTitle}\n${page.title}\n${page.text}`, query);
+            return total + countTextMatches(`${isSpreadsheet ? '' : page.sectionTitle}\n${page.title}\n${page.text}`, query);
         }, 0);
-    }, [query, visiblePages]);
+    }, [query, visiblePages, isSpreadsheet]);
 
     const navigationItems = useMemo(() => {
         if (isSpreadsheet) {
@@ -760,9 +760,9 @@ export default function ScenarioDocumentViewer({
                         <article key={page.pageNumber} id={`scenario-page-${page.pageNumber}`} className="scenario-doc-page">
                             <header>
                                 <div>
-                                    <span className="scenario-doc-section">
+                                    {!isSpreadsheet && <span className="scenario-doc-section">
                                         {renderHighlightedText(page.sectionTitle, query, searchCursor)}
-                                    </span>
+                                    </span>}
                                     <h2>{renderHighlightedText(page.title, query, searchCursor)}</h2>
                                 </div>
                                 <span className="scenario-doc-page-number">{isSpreadsheet ? '상황 ' : 'p.'}{getVisiblePageNumber(page)}</span>
