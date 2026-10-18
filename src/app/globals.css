@@ -1856,7 +1856,7 @@ body.roster-preview-open .roster-page .page-content {
 .scenario-doc-quote-body {
   flex: 1 1 auto;
   min-width: 0;
-  font-size: calc(1em + 1pt);
+  font-size: calc(1em + 2pt);
   line-height: 1.75;
   white-space: pre-line;
 }
@@ -1868,7 +1868,7 @@ body.roster-preview-open .roster-page .page-content {
   border-left: 3px solid currentColor;
   border-radius: 6px;
   padding: 3px 7px 4px;
-  font-size: 13px;
+  font-size: calc(13px + 1pt);
   line-height: 1.25;
   font-weight: 700;
   text-align: center;
@@ -2005,7 +2005,7 @@ body.roster-preview-open .roster-page .page-content {
     min-width: 70px;
     max-width: 96px;
     padding: 3px 5px;
-    font-size: 12px;
+    font-size: calc(12px + 1pt);
   }
 }
 
