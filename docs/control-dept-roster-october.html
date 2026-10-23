@@ -1,0 +1,330 @@
+<!doctype html>
+<html lang="ko"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>중부소방서 긴급구조통제단 편성 현황</title>
+<style>
+:root{--paper:#f5f7fb;--ink:#172b4d;--muted:#52647a;--accent:#124caa;--sans:'Pretendard','Geist','Noto Sans KR','Malgun Gothic',system-ui,sans-serif}
+*{box-sizing:border-box}body{margin:0;background:var(--paper);color:var(--ink);font-family:var(--sans);line-height:1.7;word-break:keep-all}main{max-width:1360px;min-width:0;margin:auto;padding:48px 40px}header{border-left:4px solid #ec775c;padding-left:24px}.eyebrow{font-size:12px;color:#124caa;font-weight:600;letter-spacing:.08em}h1{font-family:'Instrument Serif','Noto Serif KR','Batang',serif;font-size:36px;font-weight:400;line-height:1.4;margin:12px 0}header p{font-size:16px;color:var(--muted);margin:8px 0}.stamp{display:inline-block;margin-top:8px;border:1px solid #d3e0f3;background:#eaf0fa;padding:4px 12px;border-radius:4px;font-size:12px;color:#234e85}.diagram-container{margin-top:32px;width:100%;overflow-x:auto;border:1px solid #dce4ef;border-radius:8px}svg{width:100%;min-width:1280px;display:block}svg text{font-family:var(--sans);fill:#172b4d}.section-label{font-size:14px;font-weight:600;fill:#52647a}.department{font-size:16px;font-weight:600}.count{font-size:16px;font-weight:600;text-anchor:end}.person{font-size:16px;font-weight:600}.rank{font-size:12px;fill:#52647a}.position{font-size:12px;fill:#52647a}.right-note{font-size:12px;fill:#52647a;text-anchor:end}.command-tag{font-size:14px;font-weight:600;fill:#fff}.command-name{font-size:28px;font-weight:600;fill:#fff}.command-detail{font-size:12px;fill:#e3edff}.total{font-size:28px;font-weight:600;fill:#124caa}.note-title{font-size:14px;font-weight:600;fill:#234e85}svg text[fill]{fill:revert-layer}.hint{font-size:12px;color:#52647a}footer{margin-top:24px;border-top:1px solid #dce4ef;padding-top:20px;font-size:13px;color:#52647a}footer p{margin:8px 0}strong{color:#172b4d}@media(max-width:700px){main{padding:28px 16px}header{padding-left:16px}h1{font-size:28px}}@media print{@page{size:A3 portrait;margin:12mm}main{padding:0}.diagram-container{overflow-x:visible;border:none}svg{min-width:0}.hint{display:none}body{-webkit-print-color-adjust:exact;print-color-adjust:exact}header{break-after:avoid}footer{font-size:10px}}
+.oct-badge{font-size:12px;font-weight:500;fill:#854421;text-anchor:middle}.oct-legend{font-size:12px;font-weight:500;fill:#854421}.shift-note{font-size:12px;font-weight:400;fill:#667085;text-anchor:middle}
+.replacement-badge{font-size:12px;font-weight:500;fill:#fff;text-anchor:middle}.replacement-note{font-size:12px;font-weight:500;fill:#176653}.replacement-summary{margin-top:28px;border:1px solid #a3cfc1;border-left:4px solid #177562;border-radius:6px;background:#f0faf6;padding:20px 24px}.replacement-summary h2{margin:0 0 12px;font-size:18px;color:#176653;font-weight:600}.replacement-summary table{border-collapse:collapse;width:100%;font-size:16px}.replacement-summary th{text-align:left;width:42%;font-weight:500;color:#34584c}.replacement-summary td{font-weight:600;color:#175f50}.replacement-summary th,.replacement-summary td{padding:10px 12px;border-bottom:1px solid #d3e8df}.replacement-summary tr:last-child th,.replacement-summary tr:last-child td{border-bottom:0}@media(max-width:700px){.replacement-summary{padding:16px}.replacement-summary table{font-size:14px}.replacement-summary th,.replacement-summary td{padding:10px 4px}}@media print{.replacement-summary{break-inside:avoid}}
+
+/* Increase type by role while preserving room for attendance and assignment badges. */
+svg .person{font-size:24px}svg .rank{font-size:18px}svg .position{font-size:14px}svg .department{font-size:22px}svg .section-label{font-size:18px}svg .right-note{font-size:14px}svg .command-name{font-size:36px}svg .command-tag{font-size:18px}svg .command-detail{font-size:16px}svg .oct-badge,svg .replacement-badge{font-size:14px}svg .shift-note{font-size:14px}svg .oct-legend{font-size:14px}
+svg g[data-department="지휘보좌관"] .person,svg g[data-department="본서 상황관리"] .person,svg g[data-department="지원기관 연락관"] .person,svg g[data-department="기동감찰"] .person{font-size:20px}
+svg g[data-department="지휘보좌관"] .rank,svg g[data-department="본서 상황관리"] .rank,svg g[data-department="지원기관 연락관"] .rank,svg g[data-department="기동감찰"] .rank{font-size:16px}
+@media print{
+  @page{size:A4 portrait;margin:6mm}
+  html,body{margin:0!important;padding:0!important;background:#fff}
+  main{margin:0 auto!important;padding:0!important;width:190mm!important;max-width:none!important}
+  footer,.hint,.replacement-summary{display:none!important}
+  header{display:flex!important;flex-direction:column;justify-content:center;height:16mm!important;margin:0 0 2mm!important;padding:0!important;border:0!important;break-after:avoid}
+  header h1{font-size:16pt!important;line-height:1.25!important;margin:0 0 2mm!important;white-space:nowrap}
+  header p{font-size:10pt!important;line-height:1.2!important;margin:0!important;white-space:nowrap}
+  .diagram-container{margin:0!important;padding:0!important;border:0!important;border-radius:0!important;width:190mm!important;height:264.21875mm!important;overflow:visible!important;break-inside:avoid;page-break-inside:avoid}
+  .diagram-container svg{display:block;width:190mm!important;min-width:0!important;max-width:none!important;height:264.21875mm!important}
+  body{-webkit-print-color-adjust:exact;print-color-adjust:exact}
+}
+</style></head><body><main><header><h1>중부소방서 긴급구조통제단 편성 현황</h1><p style="font-size:18px">10월 28일~29일 내근 워크숍 참석자 및 대체 근무자 현황</p></header><div class="diagram-container"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1280 1780" role="img" aria-labelledby="control-dept-roster-title control-dept-roster-desc">
+<title id="control-dept-roster-title">중부소방서 긴급구조통제단 편성 현황</title>
+<desc id="control-dept-roster-desc">서버에 등록된 전체 직원의 이름, 직급, 직위를 통제단장과 일곱 편성 부서별로 정리하고, 10월 힐링데이 참석자의 직위 옆에 참석 표시를 붙이고 행을 강조했습니다.</desc>
+<rect x="0" y="0" width="1280" height="1780" fill="#f5f7fb" />
+<text x="40" y="64" class="section-label">현장 운영 편성</text>
+<text x="40" y="92" class="position">전체 편성 명단</text>
+<rect x="432" y="40" width="416" height="136" rx="8" fill="#124caa" />
+<text x="456" y="76" class="command-tag">긴급구조통제단장</text>
+<text x="456" y="116" class="command-name">정진호</text>
+<text x="584" y="116" class="command-detail">소방정 · 소방서장</text>
+<text x="456" y="148" class="command-detail">총괄지휘</text>
+<text x="40" y="216" class="section-label">주요 3개 부</text>
+<text x="1240" y="216" class="right-note">성명 / 직급 / 직위</text>
+<g data-department="대응계획부">
+<rect x="40" y="240" width="384" height="1024" rx="8" fill="#ffffff" stroke="#d9e2ed" />
+<rect x="40" y="240" width="384" height="64" rx="8" fill="#edf6ee" />
+<rect x="40" y="296" width="384" height="8" fill="#edf6ee" />
+<rect x="60" y="264" width="4" height="20" rx="2" fill="#287447" />
+<text x="76" y="280" class="department" style="fill:#287447">대응계획부</text>
+<text x="64" y="336" class="person">김경민</text>
+<text x="140" y="336" class="rank">소방위</text>
+<text x="204" y="336" class="position">소방행정주임</text>
+<line x1="64" y1="356" x2="400" y2="356" stroke="#edf1f6" />
+<rect x="52" y="356" width="360" height="32" rx="4" fill="#fff0dc" /><text x="64" y="376" class="person">백승창</text><rect data-october-person="백승창" x="328" y="360" width="80" height="20" rx="3" fill="#f8dfbc" /><text x="368" y="374" class="oct-badge">워크숍 참석</text>
+<text x="140" y="376" class="rank">소방위</text>
+<text x="204" y="376" class="position">기획담당자</text>
+<line x1="64" y1="396" x2="400" y2="396" stroke="#edf1f6" />
+<rect x="52" y="396" width="360" height="32" rx="4" fill="#fff0dc" /><text x="64" y="416" class="person">정문수</text><rect data-october-person="정문수" x="328" y="400" width="80" height="20" rx="3" fill="#f8dfbc" /><text x="368" y="414" class="oct-badge">워크숍 참석</text>
+<text x="140" y="416" class="rank">소방경</text>
+<text x="204" y="416" class="position">소방민원계장</text>
+<line x1="64" y1="436" x2="400" y2="436" stroke="#edf1f6" />
+<rect x="52" y="436" width="360" height="32" rx="4" fill="#fff0dc" /><text x="64" y="456" class="person">신용문</text><rect data-october-person="신용문" x="328" y="440" width="80" height="20" rx="3" fill="#f8dfbc" /><text x="368" y="454" class="oct-badge">워크숍 참석</text>
+<text x="140" y="456" class="rank">소방령</text>
+<text x="204" y="456" class="position">구조구급과장</text>
+<line x1="64" y1="476" x2="400" y2="476" stroke="#edf1f6" />
+<rect x="52" y="476" width="360" height="40" rx="4" fill="#e0f4ee" /><text x="64" y="496" class="person">김현진</text><rect data-replacement-person="김현진" x="328" y="480" width="80" height="20" rx="3" fill="#177562" /><text x="368" y="494" class="replacement-badge">관리 겸임</text><text x="204" y="512" class="replacement-note">→ 대응계획부 관리 겸임</text>
+<text x="140" y="496" class="rank">소방경</text>
+<text x="204" y="496" class="position">홍보교육계장</text>
+<line x1="64" y1="516" x2="400" y2="516" stroke="#edf1f6" />
+<text x="64" y="536" class="person">이순미</text>
+<text x="140" y="536" class="rank">소방위</text>
+<text x="204" y="536" class="position">홍보교육주임</text>
+<line x1="64" y1="556" x2="400" y2="556" stroke="#edf1f6" />
+<text x="64" y="576" class="person">김경국</text>
+<text x="140" y="576" class="rank">소방위</text>
+<text x="204" y="576" class="position">방호주임</text>
+<line x1="64" y1="596" x2="400" y2="596" stroke="#edf1f6" />
+<text x="64" y="616" class="person">김원형</text>
+<text x="140" y="616" class="rank">소방교</text>
+<text x="204" y="616" class="position">훈련담당자</text>
+<line x1="64" y1="636" x2="400" y2="636" stroke="#edf1f6" />
+<text x="64" y="656" class="person">양미주</text>
+<text x="140" y="656" class="rank">소방위</text>
+<text x="204" y="656" class="position">의소대담당자</text>
+<line x1="64" y1="676" x2="400" y2="676" stroke="#edf1f6" />
+<text x="64" y="696" class="person">강찬우</text>
+<text x="140" y="696" class="rank">소방사</text>
+<text x="204" y="696" class="position">방호서무</text>
+<line x1="64" y1="716" x2="400" y2="716" stroke="#edf1f6" />
+<text x="64" y="736" class="person">강병윤</text><text data-shift-person="강병윤" x="368" y="736" class="shift-note">교대근무자</text>
+<text x="140" y="736" class="rank">소방위</text>
+<text x="204" y="736" class="position">지휘조사1주임</text>
+<line x1="64" y1="756" x2="400" y2="756" stroke="#edf1f6" />
+<text x="64" y="776" class="person">안준근</text><text data-shift-person="안준근" x="368" y="776" class="shift-note">교대근무자</text>
+<text x="140" y="776" class="rank">소방장</text>
+<text x="204" y="776" class="position">지휘조사2반장</text>
+<line x1="64" y1="796" x2="400" y2="796" stroke="#edf1f6" />
+<text x="64" y="816" class="person">이창석</text><text data-shift-person="이창석" x="368" y="816" class="shift-note">교대근무자</text>
+<text x="140" y="816" class="rank">소방위</text>
+<text x="204" y="816" class="position">지휘조사3주임</text>
+</g>
+<g data-department="현장지휘부">
+<rect x="448" y="240" width="384" height="1024" rx="8" fill="#ffffff" stroke="#d9e2ed" />
+<rect x="448" y="240" width="384" height="64" rx="8" fill="#eaf2fc" />
+<rect x="448" y="296" width="384" height="8" fill="#eaf2fc" />
+<rect x="468" y="264" width="4" height="20" rx="2" fill="#165bab" />
+<text x="484" y="280" class="department" style="fill:#165bab">현장지휘부</text>
+<rect x="460" y="316" width="360" height="32" rx="4" fill="#fff0dc" /><text x="472" y="336" class="person">방현수</text><rect data-october-person="방현수" x="736" y="320" width="80" height="20" rx="3" fill="#f8dfbc" /><text x="776" y="334" class="oct-badge">워크숍 참석</text>
+<text x="548" y="336" class="rank">소방경</text>
+<text x="612" y="336" class="position">보건안전계장</text>
+<line x1="472" y1="356" x2="808" y2="356" stroke="#edf1f6" />
+<rect x="460" y="356" width="360" height="32" rx="4" fill="#fff0dc" /><text x="472" y="376" class="person">이우종</text><rect data-october-person="이우종" x="736" y="360" width="80" height="20" rx="3" fill="#f8dfbc" /><text x="776" y="374" class="oct-badge">워크숍 참석</text>
+<text x="548" y="376" class="rank">소방위</text>
+<text x="612" y="376" class="position">보건안전주임</text>
+<line x1="472" y1="396" x2="808" y2="396" stroke="#edf1f6" />
+<rect x="460" y="396" width="360" height="32" rx="4" fill="#fff0dc" /><text x="472" y="416" class="person">김유진</text><rect data-october-person="김유진" x="736" y="400" width="80" height="20" rx="3" fill="#f8dfbc" /><text x="776" y="414" class="oct-badge">워크숍 참석</text>
+<text x="548" y="416" class="rank">소방장</text>
+<text x="612" y="416" class="position">복지담당자</text>
+<line x1="472" y1="436" x2="808" y2="436" stroke="#edf1f6" />
+<text x="472" y="456" class="person">최해출</text>
+<text x="548" y="456" class="rank">소방경</text>
+<text x="612" y="456" class="position">예방지도계장</text>
+<line x1="472" y1="476" x2="808" y2="476" stroke="#edf1f6" />
+<text x="472" y="496" class="person">양재원</text>
+<text x="548" y="496" class="rank">소방위</text>
+<text x="612" y="496" class="position">화재안전조사1주임</text>
+<line x1="472" y1="516" x2="808" y2="516" stroke="#edf1f6" />
+<rect x="460" y="516" width="360" height="32" rx="4" fill="#fff0dc" /><text x="472" y="536" class="person">정재기</text><rect data-october-person="정재기" x="736" y="520" width="80" height="20" rx="3" fill="#f8dfbc" /><text x="776" y="534" class="oct-badge">워크숍 참석</text>
+<text x="548" y="536" class="rank">소방위</text>
+<text x="612" y="536" class="position">화재안전조사2주임</text>
+<line x1="472" y1="556" x2="808" y2="556" stroke="#edf1f6" />
+<text x="472" y="576" class="person">김종훈</text>
+<text x="548" y="576" class="rank">소방장</text>
+<text x="612" y="576" class="position">화재안전조사1반장</text>
+<line x1="472" y1="596" x2="808" y2="596" stroke="#edf1f6" />
+<rect x="460" y="596" width="360" height="32" rx="4" fill="#fff0dc" /><text x="472" y="616" class="person">이동찬</text><rect data-october-person="이동찬" x="736" y="600" width="80" height="20" rx="3" fill="#f8dfbc" /><text x="776" y="614" class="oct-badge">워크숍 참석</text>
+<text x="548" y="616" class="rank">소방교</text>
+<text x="612" y="616" class="position">화재안전조사2반장</text>
+<line x1="472" y1="636" x2="808" y2="636" stroke="#edf1f6" />
+<text x="472" y="656" class="person">이두영</text>
+<text x="548" y="656" class="rank">소방교</text>
+<text x="612" y="656" class="position">주택용소방시설</text>
+<line x1="472" y1="676" x2="808" y2="676" stroke="#edf1f6" />
+<rect x="460" y="676" width="360" height="32" rx="4" fill="#fff0dc" /><text x="472" y="696" class="person">이성은</text><rect data-october-person="이성은" x="736" y="680" width="80" height="20" rx="3" fill="#f8dfbc" /><text x="776" y="694" class="oct-badge">워크숍 참석</text>
+<text x="548" y="696" class="rank">소방교</text>
+<text x="612" y="696" class="position">구급반장</text>
+<line x1="472" y1="716" x2="808" y2="716" stroke="#edf1f6" />
+<rect x="460" y="716" width="360" height="32" rx="4" fill="#fff0dc" /><text x="472" y="736" class="person">김수연</text><rect data-october-person="김수연" x="736" y="720" width="80" height="20" rx="3" fill="#f8dfbc" /><text x="776" y="734" class="oct-badge">워크숍 참석</text>
+<text x="548" y="736" class="rank">소방교</text>
+<text x="612" y="736" class="position">CPR교관</text>
+<line x1="472" y1="756" x2="808" y2="756" stroke="#edf1f6" />
+<text x="472" y="776" class="person">손시헌</text><text data-shift-person="손시헌" x="776" y="776" class="shift-note">교대근무자</text>
+<text x="548" y="776" class="rank">소방령</text>
+<text x="612" y="776" class="position">현장대응1단장</text>
+<line x1="472" y1="796" x2="808" y2="796" stroke="#edf1f6" />
+<text x="472" y="816" class="person">남현도</text><text data-shift-person="남현도" x="776" y="816" class="shift-note">교대근무자</text>
+<text x="548" y="816" class="rank">소방령</text>
+<text x="612" y="816" class="position">현장대응2단장</text>
+<line x1="472" y1="836" x2="808" y2="836" stroke="#edf1f6" />
+<text x="472" y="856" class="person">김준해</text><text data-shift-person="김준해" x="776" y="856" class="shift-note">교대근무자</text>
+<text x="548" y="856" class="rank">소방령</text>
+<text x="612" y="856" class="position">현장대응3단장</text>
+<line x1="472" y1="876" x2="808" y2="876" stroke="#edf1f6" />
+<text x="472" y="896" class="person">조강원</text><text data-shift-person="조강원" x="776" y="896" class="shift-note">교대근무자</text>
+<text x="548" y="896" class="rank">소방경</text>
+<text x="612" y="896" class="position">지휘조사1계장</text>
+<line x1="472" y1="916" x2="808" y2="916" stroke="#edf1f6" />
+<text x="472" y="936" class="person">김종철</text><text data-shift-person="김종철" x="776" y="936" class="shift-note">교대근무자</text>
+<text x="548" y="936" class="rank">소방장</text>
+<text x="612" y="936" class="position">화재조사1반장</text>
+<line x1="472" y1="956" x2="808" y2="956" stroke="#edf1f6" />
+<text x="472" y="976" class="person">송지훈</text><text data-shift-person="송지훈" x="776" y="976" class="shift-note">교대근무자</text>
+<text x="548" y="976" class="rank">소방교</text>
+<text x="612" y="976" class="position">지휘차1반장</text>
+<line x1="472" y1="996" x2="808" y2="996" stroke="#edf1f6" />
+<text x="472" y="1016" class="person">정희석</text><text data-shift-person="정희석" x="776" y="1016" class="shift-note">교대근무자</text>
+<text x="548" y="1016" class="rank">소방경</text>
+<text x="612" y="1016" class="position">지휘조사2계장</text>
+<line x1="472" y1="1036" x2="808" y2="1036" stroke="#edf1f6" />
+<text x="472" y="1056" class="person">장민석</text><text data-shift-person="장민석" x="776" y="1056" class="shift-note">교대근무자</text>
+<text x="548" y="1056" class="rank">소방교</text>
+<text x="612" y="1056" class="position">화재조사2반장</text>
+<line x1="472" y1="1076" x2="808" y2="1076" stroke="#edf1f6" />
+<text x="472" y="1096" class="person">이상빈</text><text data-shift-person="이상빈" x="776" y="1096" class="shift-note">교대근무자</text>
+<text x="548" y="1096" class="rank">소방장</text>
+<text x="612" y="1096" class="position">지휘차2반장</text>
+<line x1="472" y1="1116" x2="808" y2="1116" stroke="#edf1f6" />
+<text x="472" y="1136" class="person">정호근</text><text data-shift-person="정호근" x="776" y="1136" class="shift-note">교대근무자</text>
+<text x="548" y="1136" class="rank">소방경</text>
+<text x="612" y="1136" class="position">지휘조사3계장</text>
+<line x1="472" y1="1156" x2="808" y2="1156" stroke="#edf1f6" />
+<text x="472" y="1176" class="person">김동혁</text><text data-shift-person="김동혁" x="776" y="1176" class="shift-note">교대근무자</text>
+<text x="548" y="1176" class="rank">소방교</text>
+<text x="612" y="1176" class="position">화재조사3반장</text>
+<line x1="472" y1="1196" x2="808" y2="1196" stroke="#edf1f6" />
+<text x="472" y="1216" class="person">이주현</text><text data-shift-person="이주현" x="776" y="1216" class="shift-note">교대근무자</text>
+<text x="548" y="1216" class="rank">소방사</text>
+<text x="612" y="1216" class="position">지휘차3반장</text>
+</g>
+<g data-department="자원지원부">
+<rect x="856" y="240" width="384" height="1024" rx="8" fill="#ffffff" stroke="#d9e2ed" />
+<rect x="856" y="240" width="384" height="64" rx="8" fill="#f4eef8" />
+<rect x="856" y="296" width="384" height="8" fill="#f4eef8" />
+<rect x="876" y="264" width="4" height="20" rx="2" fill="#78439b" />
+<text x="892" y="280" class="department" style="fill:#78439b">자원지원부</text>
+<text x="880" y="336" class="person">정우식</text>
+<text x="956" y="336" class="rank">소방경</text>
+<text x="1020" y="336" class="position">예산장비계장</text>
+<line x1="880" y1="356" x2="1216" y2="356" stroke="#edf1f6" />
+<text x="880" y="376" class="person">강인호</text>
+<text x="956" y="376" class="rank">소방위</text>
+<text x="1020" y="376" class="position">예산장비주임</text>
+<line x1="880" y1="396" x2="1216" y2="396" stroke="#edf1f6" />
+<text x="880" y="416" class="person">정장호</text>
+<text x="956" y="416" class="rank">소방교</text>
+<text x="1020" y="416" class="position">급여담당자</text>
+<line x1="880" y1="436" x2="1216" y2="436" stroke="#edf1f6" />
+<text x="880" y="456" class="person">권순호</text>
+<text x="956" y="456" class="rank">소방교</text>
+<text x="1020" y="456" class="position">용도담당자</text>
+<line x1="880" y1="476" x2="1216" y2="476" stroke="#edf1f6" />
+<text x="880" y="496" class="person">장윤영</text>
+<text x="956" y="496" class="rank">소방령</text>
+<text x="1020" y="496" class="position">예방안전과장</text>
+<line x1="880" y1="516" x2="1216" y2="516" stroke="#edf1f6" />
+<text x="880" y="536" class="person">신영일</text>
+<text x="956" y="536" class="rank">소방위</text>
+<text x="1020" y="536" class="position">대책담당자</text>
+<line x1="880" y1="556" x2="1216" y2="556" stroke="#edf1f6" />
+<rect x="868" y="556" width="360" height="40" rx="4" fill="#e0f4ee" /><text x="880" y="576" class="person">김선화</text><rect data-replacement-person="김선화" x="1144" y="560" width="80" height="20" rx="3" fill="#177562" /><text x="1184" y="574" class="replacement-badge">대체근무</text><text x="1020" y="592" class="replacement-note">→ 현장지휘부 응급의료</text>
+<text x="956" y="576" class="rank">소방장</text>
+<text x="1020" y="576" class="position">자체점검담당자</text>
+<line x1="880" y1="596" x2="1216" y2="596" stroke="#edf1f6" />
+<rect x="868" y="596" width="360" height="40" rx="4" fill="#e0f4ee" /><text x="880" y="616" class="person">남상균</text><rect data-replacement-person="남상균" x="1144" y="600" width="80" height="20" rx="3" fill="#177562" /><text x="1184" y="614" class="replacement-badge">대체근무</text><text x="1020" y="632" class="replacement-note">→ 본서 상황관리</text>
+<text x="956" y="616" class="rank">소방교</text>
+<text x="1020" y="616" class="position">검사서무</text>
+<line x1="880" y1="636" x2="1216" y2="636" stroke="#edf1f6" />
+<text x="880" y="656" class="person">임종래</text>
+<text x="956" y="656" class="rank">소방위</text>
+<text x="1020" y="656" class="position">건축주임</text>
+</g>
+<text x="40" y="1316" class="section-label">보좌 · 상황관리 · 지원</text>
+<g data-department="지휘보좌관">
+<rect x="40" y="1340" width="280" height="424" rx="8" fill="#ffffff" stroke="#d9e2ed" />
+<rect x="40" y="1340" width="280" height="64" rx="8" fill="#fbefed" />
+<rect x="40" y="1396" width="280" height="8" fill="#fbefed" />
+<rect x="60" y="1364" width="4" height="20" rx="2" fill="#aa3937" />
+<text x="76" y="1380" class="department" style="fill:#aa3937">지휘보좌관</text>
+<rect x="52" y="1416" width="256" height="40" rx="4" fill="#e0f4ee" /><text x="64" y="1436" class="person">신희진</text><rect data-replacement-person="신희진" x="224" y="1420" width="80" height="20" rx="3" fill="#177562" /><text x="264" y="1434" class="replacement-badge">대체근무</text><text x="176" y="1452" class="replacement-note">→ 현장지휘부 안전관리</text>
+<text x="140" y="1436" class="rank">소방경</text>
+<text x="64" y="1452" class="position">소방행정계장</text>
+<line x1="64" y1="1456" x2="296" y2="1456" stroke="#edf1f6" />
+<rect x="52" y="1456" width="256" height="40" rx="4" fill="#fff0dc" /><text x="64" y="1476" class="person">김만수</text><rect data-october-person="김만수" x="224" y="1478" width="80" height="20" rx="3" fill="#f8dfbc" /><text x="264" y="1492" class="oct-badge">워크숍 참석</text>
+<text x="140" y="1476" class="rank">소방교</text>
+<text x="64" y="1492" class="position">복무담당자</text>
+<line x1="64" y1="1496" x2="296" y2="1496" stroke="#edf1f6" />
+<rect x="52" y="1496" width="256" height="40" rx="4" fill="#e0f4ee" /><text x="64" y="1516" class="person">장한성</text><rect data-replacement-person="장한성" x="224" y="1500" width="80" height="20" rx="3" fill="#177562" /><text x="264" y="1514" class="replacement-badge">대체근무</text><text x="176" y="1532" class="replacement-note">→ 현장지휘부 안전관리</text>
+<text x="140" y="1516" class="rank">소방위</text>
+<text x="64" y="1532" class="position">완비주임</text>
+<line x1="64" y1="1536" x2="296" y2="1536" stroke="#edf1f6" />
+<text x="64" y="1556" class="person">김경훈</text>
+<text x="140" y="1556" class="rank">소방경</text>
+<text x="64" y="1572" class="position">구조구급계장</text>
+<line x1="64" y1="1576" x2="296" y2="1576" stroke="#edf1f6" />
+<text x="64" y="1596" class="person">김종욱</text>
+<text x="140" y="1596" class="rank">소방경</text>
+<text x="64" y="1612" class="position">방호계장</text>
+<line x1="64" y1="1616" x2="296" y2="1616" stroke="#edf1f6" />
+<text x="64" y="1636" class="person">박재형</text><text data-shift-person="박재형" x="264" y="1636" class="shift-note">교대근무자</text>
+<text x="140" y="1636" class="rank">소방교</text>
+<text x="64" y="1652" class="position">통신1반장</text>
+<line x1="64" y1="1656" x2="296" y2="1656" stroke="#edf1f6" />
+<text x="64" y="1676" class="person">이현명</text><text data-shift-person="이현명" x="264" y="1676" class="shift-note">교대근무자</text>
+<text x="140" y="1676" class="rank">소방위</text>
+<text x="64" y="1692" class="position">통신2주임</text>
+<line x1="64" y1="1696" x2="296" y2="1696" stroke="#edf1f6" />
+<text x="64" y="1716" class="person">박지환</text><text data-shift-person="박지환" x="264" y="1716" class="shift-note">교대근무자</text>
+<text x="140" y="1716" class="rank">소방장</text>
+<text x="64" y="1732" class="position">통신3반장</text>
+</g>
+<g data-department="본서 상황관리">
+<rect x="344" y="1340" width="280" height="264" rx="8" fill="#ffffff" stroke="#d9e2ed" />
+<rect x="344" y="1340" width="280" height="64" rx="8" fill="#fff4e6" />
+<rect x="344" y="1396" width="280" height="8" fill="#fff4e6" />
+<rect x="364" y="1364" width="4" height="20" rx="2" fill="#93530c" />
+<text x="380" y="1380" class="department" style="fill:#93530c">본서 상황관리</text>
+<rect x="356" y="1416" width="256" height="40" rx="4" fill="#fff0dc" /><text x="368" y="1436" class="person">김도완</text><rect data-october-person="김도완" x="528" y="1438" width="80" height="20" rx="3" fill="#f8dfbc" /><text x="568" y="1452" class="oct-badge">워크숍 참석</text>
+<text x="444" y="1436" class="rank">소방교</text>
+<text x="368" y="1452" class="position">감사감찰반장</text>
+<line x1="368" y1="1456" x2="600" y2="1456" stroke="#edf1f6" />
+<rect x="356" y="1456" width="256" height="40" rx="4" fill="#fff0dc" /><text x="368" y="1476" class="person">강승주</text><rect data-october-person="강승주" x="528" y="1478" width="80" height="20" rx="3" fill="#f8dfbc" /><text x="568" y="1492" class="oct-badge">워크숍 참석</text>
+<text x="444" y="1476" class="rank">소방령</text>
+<text x="368" y="1492" class="position">소방행정과장</text>
+<line x1="368" y1="1496" x2="600" y2="1496" stroke="#edf1f6" />
+<rect x="356" y="1496" width="256" height="40" rx="4" fill="#fff0dc" /><text x="368" y="1516" class="person">조은정</text><rect data-october-person="조은정" x="528" y="1518" width="80" height="20" rx="3" fill="#f8dfbc" /><text x="568" y="1532" class="oct-badge">워크숍 참석</text>
+<text x="444" y="1516" class="rank">소방사</text>
+<text x="368" y="1532" class="position">위험물</text>
+<line x1="368" y1="1536" x2="600" y2="1536" stroke="#edf1f6" />
+<rect x="356" y="1536" width="256" height="40" rx="4" fill="#fff0dc" /><text x="368" y="1556" class="person">이유진</text><rect data-october-person="이유진" x="528" y="1558" width="80" height="20" rx="3" fill="#f8dfbc" /><text x="568" y="1572" class="oct-badge">워크숍 참석</text>
+<text x="444" y="1556" class="rank">소방사</text>
+<text x="368" y="1572" class="position">즉시민원</text>
+</g>
+<g data-department="지원기관 연락관">
+<rect x="648" y="1340" width="280" height="184" rx="8" fill="#ffffff" stroke="#d9e2ed" />
+<rect x="648" y="1340" width="280" height="64" rx="8" fill="#edf3f5" />
+<rect x="648" y="1396" width="280" height="8" fill="#edf3f5" />
+<rect x="668" y="1364" width="4" height="20" rx="2" fill="#405f70" />
+<text x="684" y="1380" class="department" style="fill:#405f70">지원기관 연락관</text>
+<text x="672" y="1436" class="person">윤재윤</text>
+<text x="748" y="1436" class="rank">소방위</text>
+<text x="672" y="1452" class="position">구조구급주임</text>
+<line x1="672" y1="1456" x2="904" y2="1456" stroke="#edf1f6" />
+<text x="672" y="1476" class="person">박재권</text>
+<text x="748" y="1476" class="rank">소방교</text>
+<text x="672" y="1492" class="position">구조반장</text>
+</g>
+<g data-department="기동감찰">
+<rect x="952" y="1340" width="288" height="224" rx="8" fill="#ffffff" stroke="#d9e2ed" />
+<rect x="952" y="1340" width="288" height="64" rx="8" fill="#f5efec" />
+<rect x="952" y="1396" width="288" height="8" fill="#f5efec" />
+<rect x="972" y="1364" width="4" height="20" rx="2" fill="#795548" />
+<text x="988" y="1380" class="department" style="fill:#795548">기동감찰</text>
+<rect x="964" y="1416" width="264" height="40" rx="4" fill="#e0f4ee" /><text x="976" y="1436" class="person">엄기철</text><rect data-replacement-person="엄기철" x="1144" y="1420" width="80" height="20" rx="3" fill="#177562" /><text x="1184" y="1434" class="replacement-badge">대체근무</text><text x="1088" y="1452" class="replacement-note">→ 본서 상황관리</text>
+<text x="1052" y="1436" class="rank">소방령</text>
+<text x="976" y="1452" class="position">청문감사과장</text>
+<line x1="976" y1="1456" x2="1216" y2="1456" stroke="#edf1f6" />
+<rect x="964" y="1456" width="264" height="40" rx="4" fill="#fff0dc" /><text x="976" y="1476" class="person">김병철</text><rect data-october-person="김병철" x="1144" y="1478" width="80" height="20" rx="3" fill="#f8dfbc" /><text x="1184" y="1492" class="oct-badge">워크숍 참석</text>
+<text x="1052" y="1476" class="rank">소방경</text>
+<text x="976" y="1492" class="position">감사감찰계장</text>
+<line x1="976" y1="1496" x2="1216" y2="1496" stroke="#edf1f6" />
+<rect x="964" y="1496" width="264" height="40" rx="4" fill="#e0f4ee" /><text x="976" y="1516" class="person">서창봉</text><rect data-replacement-person="서창봉" x="1144" y="1500" width="80" height="20" rx="3" fill="#177562" /><text x="1184" y="1514" class="replacement-badge">대체근무</text><text x="1088" y="1532" class="replacement-note">→ 본서 상황관리</text>
+<text x="1052" y="1516" class="rank">소방위</text>
+<text x="976" y="1532" class="position">감사감찰주임</text>
+</g>
+<rect x="888" y="40" width="328" height="144" rx="6" fill="#fff" stroke="#d9e2ed" /><text x="908" y="68" class="oct-legend">내근 워크숍 · 10월 28일~29일</text><text x="908" y="100" class="oct-legend">주황색 행 · 워크숍 참석</text><text x="908" y="132" class="replacement-note">청록색 행 · 대체근무 / 관리 겸임</text><text x="908" y="164" class="shift-note" style="text-anchor:start">회색 글씨 · 교대근무자</text></svg></div><p class="hint">인쇄: A4 세로 · 배율 100% · 머리글/바닥글 해제. 제목과 편성표가 한 페이지로 출력됩니다.</p><footer><p>출처: 앱 서버의 직원 편성 명단. 원본 명단 순번에 따라 부서별로 정리했습니다.</p><p>워크숍 참석자 출처: 「토닥토닥, 숲속 힐링데이」 회차별 참석자 명단의 1회차(10.28.~29.). 원문 상단은 17명으로 표기되어 있으나 실제 열거된 이름은 16명으로, 이름이 기재된 참석자를 모두 표시했습니다.</p></footer></main></body></html>
