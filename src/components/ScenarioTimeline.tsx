@@ -100,18 +100,23 @@ export default function ScenarioTimeline() {
 
     return (
         <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-            {admin && !observer && (
-                <section className="card">
-                    <Link href="/admin/timeline">타임라인 관리 →</Link>
-                    {next && <p style={{ margin: '12px 0' }}>다음 메시지 · {next.time_label} {next.title}</p>}
-                    {next?.delivery_type === 'instant' &&
-                        <button type="button" className="btn btn-primary btn-block" disabled={sending} onClick={sendNext}>
-                            {sending ? '부여 중…' : '다음 메시지 부여'}
-                        </button>}
-                    {next && next.delivery_type !== 'instant' && <p>이 메시지는 타임라인 관리에서 부여하세요.</p>}
-                    {sendError && <p role="alert">{sendError}</p>}
-                </section>
-            )}
+            <div className="training-actions">
+                {admin && !observer && (
+                    <section className="card training-admin-panel">
+                        <Link href="/admin/timeline">타임라인 관리 →</Link>
+                        {next && <p className="training-next-message">다음 메시지 · {next.time_label} {next.title}</p>}
+                        {next?.delivery_type === 'instant' &&
+                            <button type="button" className="btn btn-primary btn-block" disabled={sending} onClick={sendNext}>
+                                {sending ? '부여 중…' : '다음 메시지 부여'}
+                            </button>}
+                        {next && next.delivery_type !== 'instant' && <p>이 메시지는 타임라인 관리에서 부여하세요.</p>}
+                        {sendError && <p role="alert">{sendError}</p>}
+                    </section>
+                )}
+                <Link href={observer ? '/training/scenario?role=observer' : '/training/scenario'} className="training-scenario-link">
+                    원문 보기
+                </Link>
+            </div>
             {!delivered.length && <p style={{ textAlign: 'center', padding: '40px 20px', color: '#757575' }}>진행 중인 상황부여 내역이 없습니다.</p>}
             {reversed.map(ev => {
                 const cat = getCat(ev.category);

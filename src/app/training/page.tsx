@@ -1,5 +1,4 @@
 import { Suspense } from 'react';
-import Link from 'next/link';
 import ScenarioTimeline from '@/components/ScenarioTimeline';
 
 export default function TrainingPage() {
@@ -14,12 +13,6 @@ export default function TrainingPage() {
                         통제단 훈련 중 수신된 상황 정보를 확인합니다.
                     </p>
                 </div>
-                <Link
-                    href="/training/scenario"
-                    className="training-scenario-link"
-                >
-                    원문 보기
-                </Link>
             </div>
             
             <Suspense fallback={<div style={{ textAlign: 'center', padding: '20px' }}>로딩 중...</div>}>

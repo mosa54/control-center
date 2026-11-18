@@ -5,7 +5,7 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useApp, SessionMode } from '@/lib/store';
 import { parseExcelFile } from '@/lib/excel';
-import { saveScenarioDocument } from '@/lib/scenarioDocumentStorage';
+import { deleteUploadedScenario, getUploadedScenarioInfo, saveScenarioDocument } from '@/lib/scenarioDocumentStorage';
 import { ScenarioDocument } from '@/lib/scenarioDocumentTypes';
 import Toast from '@/components/Toast';
 import AssemblyRoster from '@/components/AssemblyRoster';
@@ -26,6 +26,34 @@ export default function AdminPage() {
     const [toast, setToast] = useState<string | null>(null);
     const [isUploading, setIsUploading] = useState(false);
     const [isScenarioUploading, setIsScenarioUploading] = useState(false);
+    const [uploadedScenario, setUploadedScenario] = useState<Awaited<ReturnType<typeof getUploadedScenarioInfo>>>(null);
+    const [scenarioBusy, setScenarioBusy] = useState(true);
+    const [isDeleting, setIsDeleting] = useState(false);
+    const scenarioDisabled = isScenarioUploading || scenarioBusy || isDeleting;
+    useEffect(() => {
+        if (!isLoggedIn) return;
+        let active = true;
+        getUploadedScenarioInfo()
+            .then(info => { if (active) setUploadedScenario(info); })
+            .catch(() => { if (active) setToast('업로드된 시나리오를 확인하지 못했습니다. 새로고침해 주세요.'); })
+            .finally(() => { if (active) setScenarioBusy(false); });
+        return () => { active = false; };
+    }, [isLoggedIn]);
+
+    const handleDeleteScenario = async () => {
+        if (!uploadedScenario || scenarioDisabled) return;
+        if (!window.confirm(`‘${uploadedScenario.filename}’을 삭제할까요? 삭제하면 원문 보기에 기본 시나리오가 표시됩니다.`)) return;
+        setIsDeleting(true);
+        try {
+            const removed = await deleteUploadedScenario(uploadedScenario.filename, uploadedScenario.uploadedAt);
+            setUploadedScenario(removed ? null : await getUploadedScenarioInfo());
+            setToast(removed ? '업로드한 시나리오를 삭제했습니다.' : '업로드 상태가 변경되어 목록을 갱신했습니다.');
+        } catch {
+            setToast('삭제 여부를 확인하지 못했습니다. 새로고침해 주세요.');
+        } finally {
+            setIsDeleting(false);
+        }
+    };
     const [showResetConfirm, setShowResetConfirm] = useState(false);
     const [showRoster, setShowRoster] = useState(false);
 
@@ -103,6 +131,7 @@ export default function AdminPage() {
 
             const document = result.document as ScenarioDocument;
             await saveScenarioDocument(document);
+            setUploadedScenario({ filename: document.sourceFilename, uploadedAt: document.uploadedAt ?? null });
             setToast(`시나리오 업로드 완료: ${document.pages.length}${document.sourceType === 'xlsx' ? '개 상황' : '쪽'}`);
         } catch (error) {
             console.error('Scenario upload error:', error);
@@ -221,8 +250,8 @@ export default function AdminPage() {
                     <label
                         className="btn btn-primary btn-block"
                         style={{
-                            cursor: isScenarioUploading ? 'wait' : 'pointer',
-                            opacity: isScenarioUploading ? 0.7 : 1,
+                            cursor: scenarioDisabled ? 'wait' : 'pointer',
+                            opacity: scenarioDisabled ? 0.7 : 1,
                             background: '#2E7D32'
                         }}
                     >
@@ -231,10 +260,21 @@ export default function AdminPage() {
                             type="file"
                             accept="application/pdf,.pdf,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,.xlsx"
                             onChange={handleScenarioUpload}
-                            disabled={isScenarioUploading}
+                            disabled={scenarioDisabled}
                             style={{ display: 'none' }}
                         />
                     </label>
+                    {uploadedScenario && (
+                        <div style={{ marginTop: 12, display: 'flex', alignItems: 'center', gap: 8 }}>
+                            <span style={{ flex: 1, minWidth: 0, overflowWrap: 'anywhere', fontSize: 13 }}>
+                                현재 원문 · {uploadedScenario.filename}
+                            </span>
+                            <button type="button" className="btn btn-secondary" onClick={handleDeleteScenario}
+                                disabled={scenarioDisabled} style={{ color: '#B71C1C', flexShrink: 0 }}>
+                                {isDeleting ? '삭제 중…' : '원문 삭제'}
+                            </button>
+                        </div>
+                    )}
                     <p style={{ marginTop: '12px', fontSize: '13px', color: '#757575' }}>
                         ※ PDF의 6쪽부터 훈련 전 단계, 7쪽부터 1단계로 인식합니다.
                         <br />

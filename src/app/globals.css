@@ -1313,12 +1313,33 @@ body.roster-preview-open .roster-page .page-content {
 }
 
 .training-header {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) auto;
-  align-items: center;
-  gap: 16px;
-  margin-bottom: 20px;
+  margin-bottom: 12px;
   padding-right: 32px;
+}
+
+.training-actions {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 8px;
+}
+
+.training-admin-panel {
+  flex: 1;
+  min-width: 0;
+  margin: 0;
+  padding: 10px 12px;
+  font-size: 13px;
+  overflow-wrap: anywhere;
+}
+
+.training-next-message {
+  margin: 6px 0;
+}
+
+.training-admin-panel .btn {
+  min-height: 44px;
+  font-size: 13px;
 }
 
 .training-scenario-link {
@@ -1326,7 +1347,8 @@ body.roster-preview-open .roster-page .page-content {
   align-items: center;
   justify-content: center;
   min-height: 44px;
-  padding: 10px 16px;
+  flex: none;
+  padding: 8px 12px;
   border: 1px solid #BBDEFB;
   border-radius: 8px;
   background: #E3F2FD;
@@ -1340,22 +1362,6 @@ body.roster-preview-open .roster-page .page-content {
 
 .training-scenario-link:hover {
   background: #BBDEFB;
-}
-
-@media (max-width: 600px) {
-  .training-header {
-    grid-template-columns: minmax(0, 1fr);
-    gap: 12px;
-    padding-right: 0;
-  }
-
-  .training-header-intro {
-    padding-right: 32px;
-  }
-
-  .training-scenario-link {
-    justify-self: end;
-  }
 }
 
 .scenario-doc-shell {
