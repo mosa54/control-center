@@ -5,7 +5,6 @@ import { useRouter } from 'next/navigation';
 import { useApp, ScenarioEvent, RoleChecklist, RoleTask } from '@/lib/store';
 import { supabase } from '@/lib/supabase';
 import Toast from '@/components/Toast';
-import { PHASE1_PRESET, PHASE2_PRESET, PHASE3_PRESET } from '@/lib/scenarioPresets';
 
 const PREDEFINED_ROLES = ['상황실', '현장지휘대', '선착분대', '구조대', '구급대', '통제단', '통제단장', '대응계획부', '현장지휘부', '자원지원부', '후착부대'];
 
@@ -366,117 +365,6 @@ export default function TimelinePage() {
         }
         setShowTemplateList(false);
         setToast(`"${tpl.name}" 불러옴`);
-    };
-
-    const loadPhase1Preset = async () => {
-        if (scenarioEvents.some(ev => ev.category === 'phase_1')) {
-            setToast('1단계 상황이 이미 추가되어 있습니다.');
-            return;
-        }
-        if (!confirm('1단계 상황 10개를 타임라인에 추가하시겠습니까?')) return;
-        
-        // 09:30 부터 시작해서 5분 간격으로 시간 부여
-        const startTime = new Date();
-        startTime.setHours(9, 30, 0, 0);
-
-        const currentCount = scenarioEvents.length;
-
-        for (let i = 0; i < PHASE1_PRESET.length; i++) {
-            const ev = PHASE1_PRESET[i];
-            const eventTime = new Date(startTime.getTime() + i * 5 * 60000);
-            const time_label = `${eventTime.getHours().toString().padStart(2, '0')}:${eventTime.getMinutes().toString().padStart(2, '0')}`;
-            
-            await addScenarioEvent({
-                time_label,
-                title: ev.title || '',
-                description: ev.description || '',
-                category: ev.category || 'phase_1',
-                sub_types: ev.sub_types || [],
-                delivery_type: ev.delivery_type || 'instant',
-                scheduled_delay_min: ev.scheduled_delay_min || 0,
-                condition_note: ev.condition_note || '',
-                status: 'pending',
-                sort_order: currentCount + i,
-                roles: ev.roles
-            });
-        }
-        
-        setShowTemplateList(false);
-        setToast('1단계 상황 추가 완료');
-    };
-
-    const loadPhase2Preset = async () => {
-        if (scenarioEvents.some(ev => ev.category === 'phase_2')) {
-            setToast('2단계 상황이 이미 추가되어 있습니다.');
-            return;
-        }
-        if (!confirm('2단계 상황 10개를 타임라인에 추가하시겠습니까?')) return;
-        
-        // 10:15 부터 시작해서 5분 간격으로 시간 부여
-        const startTime = new Date();
-        startTime.setHours(10, 15, 0, 0);
-
-        const currentCount = scenarioEvents.length;
-
-        for (let i = 0; i < PHASE2_PRESET.length; i++) {
-            const ev = PHASE2_PRESET[i];
-            const eventTime = new Date(startTime.getTime() + i * 5 * 60000);
-            const time_label = `${eventTime.getHours().toString().padStart(2, '0')}:${eventTime.getMinutes().toString().padStart(2, '0')}`;
-            
-            await addScenarioEvent({
-                time_label,
-                title: ev.title || '',
-                description: ev.description || '',
-                category: ev.category || 'phase_2',
-                sub_types: ev.sub_types || [],
-                delivery_type: ev.delivery_type as 'instant' | 'scheduled' | 'conditional' || 'instant',
-                scheduled_delay_min: ev.scheduled_delay_min || 0,
-                condition_note: ev.condition_note || '',
-                status: 'pending',
-                sort_order: currentCount + i,
-                roles: ev.roles
-            });
-        }
-        
-        setShowTemplateList(false);
-        setToast('2단계 상황 추가 완료');
-    };
-
-    const loadPhase3Preset = async () => {
-        if (scenarioEvents.some(ev => ev.category === 'phase_3')) {
-            setToast('3단계 상황이 이미 추가되어 있습니다.');
-            return;
-        }
-        if (!confirm('3단계 상황 10개를 타임라인에 추가하시겠습니까?')) return;
-        
-        // 11:00 부터 시작해서 5분 간격으로 시간 부여
-        const startTime = new Date();
-        startTime.setHours(11, 0, 0, 0);
-
-        const currentCount = scenarioEvents.length;
-
-        for (let i = 0; i < PHASE3_PRESET.length; i++) {
-            const ev = PHASE3_PRESET[i];
-            const eventTime = new Date(startTime.getTime() + i * 5 * 60000);
-            const time_label = `${eventTime.getHours().toString().padStart(2, '0')}:${eventTime.getMinutes().toString().padStart(2, '0')}`;
-            
-            await addScenarioEvent({
-                time_label,
-                title: ev.title || '',
-                description: ev.description || '',
-                category: ev.category || 'phase_3',
-                sub_types: ev.sub_types || [],
-                delivery_type: ev.delivery_type as 'instant' | 'scheduled' | 'conditional' || 'instant',
-                scheduled_delay_min: ev.scheduled_delay_min || 0,
-                condition_note: ev.condition_note || '',
-                status: 'pending',
-                sort_order: currentCount + i,
-                roles: ev.roles
-            });
-        }
-        
-        setShowTemplateList(false);
-        setToast('3단계 상황 추가 완료');
     };
 
     const deleteTemplate = async (id: string) => {
@@ -901,26 +789,7 @@ export default function TimelinePage() {
                             <button className="modal-close" onClick={() => setShowTemplateList(false)}>✕</button>
                         </div>
                         <div className="modal-body">
-                            {/* 상황부여 로드 섹션 */}
-                            <div style={{ marginBottom: 20 }}>
-                                <h4 style={{ margin: '0 0 12px 0', fontSize: 14, color: '#424242' }}>🔥 단계별 상황 추가</h4>
-                                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 8 }}>
-                                    <button className="btn" onClick={loadPhase1Preset}
-                                        style={{ background: '#E3F2FD', border: '1px solid #90CAF9', color: '#1565C0', fontWeight: 600, padding: '12px 0', fontSize: '12px' }}>
-                                        🚀 1단계 (09:30)
-                                    </button>
-                                    <button className="btn" onClick={loadPhase2Preset}
-                                        style={{ background: '#FCE4EC', border: '1px solid #F48FB1', color: '#AD1457', fontWeight: 600, padding: '12px 0', fontSize: '12px' }}>
-                                        🚀 2단계 (10:15)
-                                    </button>
-                                    <button className="btn" onClick={loadPhase3Preset}
-                                        style={{ background: '#E8F5E9', border: '1px solid #81C784', color: '#2E7D32', fontWeight: 600, padding: '12px 0', fontSize: '12px' }}>
-                                        🚀 3단계 (11:00)
-                                    </button>
-                                </div>
-                            </div>
-                            
-                            <h4 style={{ margin: '0 0 12px 0', fontSize: 14, color: '#424242', paddingTop: 16, borderTop: '1px solid #EEEEEE' }}>💾 저장된 내 템플릿 목록</h4>
+                            <h4 style={{ margin: '0 0 12px 0', fontSize: 14, color: '#424242' }}>💾 저장된 내 템플릿 목록</h4>
                             {templates.length === 0 ? (
                                 <p style={{ textAlign: 'center', color: '#757575', padding: '12px 0' }}>저장된 템플릿이 없습니다.</p>
                             ) : templates.map(tpl => (
