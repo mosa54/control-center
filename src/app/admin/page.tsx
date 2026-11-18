@@ -7,13 +7,14 @@ import { useApp, SessionMode } from '@/lib/store';
 import { parseExcelFile } from '@/lib/excel';
 import { deleteUploadedScenario, getUploadedScenarioInfo, saveScenarioDocument } from '@/lib/scenarioDocumentStorage';
 import { ScenarioDocument } from '@/lib/scenarioDocumentTypes';
+import { resetReports } from '@/lib/resetReports';
 import Toast from '@/components/Toast';
 import AssemblyRoster from '@/components/AssemblyRoster';
 
 export default function AdminPage() {
     const {
         sessionMode, sessionSummary, excelData, getTotalCount,
-        setSessionMode, setSessionSummary, setExcelData, resetAllCheckIns
+        setSessionMode, setSessionSummary, setExcelData, resetAllCheckIns, setScenarioDocument
     } = useApp();
     const router = useRouter();
 
@@ -27,6 +28,8 @@ export default function AdminPage() {
     const [isUploading, setIsUploading] = useState(false);
     const [isScenarioUploading, setIsScenarioUploading] = useState(false);
     const [uploadedScenario, setUploadedScenario] = useState<Awaited<ReturnType<typeof getUploadedScenarioInfo>>>(null);
+    const [reportResetBusy, setReportResetBusy] = useState(false);
+    const [scenarioLookupFailed, setScenarioLookupFailed] = useState(false);
     const [scenarioBusy, setScenarioBusy] = useState(true);
     const [isDeleting, setIsDeleting] = useState(false);
     const scenarioDisabled = isScenarioUploading || scenarioBusy || isDeleting;
@@ -35,17 +38,18 @@ export default function AdminPage() {
         let active = true;
         getUploadedScenarioInfo()
             .then(info => { if (active) setUploadedScenario(info); })
-            .catch(() => { if (active) setToast('업로드된 시나리오를 확인하지 못했습니다. 새로고침해 주세요.'); })
+            .catch(() => { if (active) setScenarioLookupFailed(true); })
             .finally(() => { if (active) setScenarioBusy(false); });
         return () => { active = false; };
     }, [isLoggedIn]);
 
     const handleDeleteScenario = async () => {
         if (!uploadedScenario || scenarioDisabled) return;
-        if (!window.confirm(`‘${uploadedScenario.filename}’을 삭제할까요? 삭제하면 원문 보기에 기본 시나리오가 표시됩니다.`)) return;
+        if (!window.confirm(`‘${uploadedScenario.filename}’을 삭제할까요? 삭제하면 훈련 화면에서 원문 보기 버튼이 사라집니다.`)) return;
         setIsDeleting(true);
         try {
             const removed = await deleteUploadedScenario(uploadedScenario.filename, uploadedScenario.uploadedAt);
+            if (removed) setScenarioDocument(null);
             setUploadedScenario(removed ? null : await getUploadedScenarioInfo());
             setToast(removed ? '업로드한 시나리오를 삭제했습니다.' : '업로드 상태가 변경되어 목록을 갱신했습니다.');
         } catch {
@@ -131,6 +135,8 @@ export default function AdminPage() {
 
             const document = result.document as ScenarioDocument;
             await saveScenarioDocument(document);
+            setScenarioDocument(document);
+            setScenarioLookupFailed(false);
             setUploadedScenario({ filename: document.sourceFilename, uploadedAt: document.uploadedAt ?? null });
             setToast(`시나리오 업로드 완료: ${document.pages.length}${document.sourceType === 'xlsx' ? '개 상황' : '쪽'}`);
         } catch (error) {
@@ -141,7 +147,7 @@ export default function AdminPage() {
             setIsScenarioUploading(false);
             e.target.value = '';
         }
-    }, []);
+    }, [setScenarioDocument]);
 
     if (!isLoggedIn) {
         return (
@@ -264,17 +270,17 @@ export default function AdminPage() {
                             style={{ display: 'none' }}
                         />
                     </label>
-                    {uploadedScenario && (
-                        <div style={{ marginTop: 12, display: 'flex', alignItems: 'center', gap: 8 }}>
-                            <span style={{ flex: 1, minWidth: 0, overflowWrap: 'anywhere', fontSize: 13 }}>
-                                현재 원문 · {uploadedScenario.filename}
-                            </span>
-                            <button type="button" className="btn btn-secondary" onClick={handleDeleteScenario}
-                                disabled={scenarioDisabled} style={{ color: '#B71C1C', flexShrink: 0 }}>
-                                {isDeleting ? '삭제 중…' : '원문 삭제'}
-                            </button>
-                        </div>
-                    )}
+                    <div style={{ marginTop: 12, display: 'flex', alignItems: 'center', gap: 8 }}>
+                        <span style={{ flex: 1, minWidth: 0, overflowWrap: 'anywhere', fontSize: 13 }}>
+                            {scenarioBusy ? '원문 확인 중…' : uploadedScenario ? `현재 원문 · ${uploadedScenario.filename}`
+                                : scenarioLookupFailed ? '원문 조회 실패 · 새로고침해 주세요.' : '등록된 시나리오가 없습니다.'}
+                        </span>
+                        <button type="button" className="btn btn-secondary" onClick={handleDeleteScenario}
+                            disabled={scenarioDisabled || !uploadedScenario}
+                            style={{ color: uploadedScenario ? '#B71C1C' : '#757575', flexShrink: 0 }}>
+                            {isDeleting ? '삭제 중…' : '원문 삭제'}
+                        </button>
+                    </div>
                     <p style={{ marginTop: '12px', fontSize: '13px', color: '#757575' }}>
                         ※ PDF의 6쪽부터 훈련 전 단계, 7쪽부터 1단계로 인식합니다.
                         <br />
@@ -376,6 +382,27 @@ export default function AdminPage() {
                         style={{ border: '1px solid #E0E0E0', background: 'white' }}
                     >
                         응소부 보기 (인쇄)
+                    </button>
+                </div>
+
+                <div className="card">
+                    <div className="card-title">보고서 초기화</div>
+                    <p style={{ fontSize: 14, marginBottom: 12 }}>보고서 8종의 저장 내용과 첨부파일을 삭제합니다.</p>
+                    <button type="button" className="btn btn-block" style={{ background: '#B71C1C', color: 'white' }}
+                        disabled={reportResetBusy} onClick={async () => {
+                            if (!window.confirm('모든 사용자의 보고서 8종과 첨부파일을 삭제할까요? 삭제 후에는 복구할 수 없습니다.')) return;
+                            setReportResetBusy(true);
+                            try {
+                                await resetReports();
+                                setToast('보고서 초기화를 완료했습니다.');
+                            } catch (error) {
+                                console.error('Report reset failed:', error);
+                                setToast('초기화를 완료하지 못했습니다. 다시 시도해 주세요.');
+                            } finally {
+                                setReportResetBusy(false);
+                            }
+                        }}>
+                        {reportResetBusy ? '초기화 중…' : '보고서 전체 초기화'}
                     </button>
                 </div>
 

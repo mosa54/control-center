@@ -234,6 +234,12 @@ function CasualtyReportContent() {
 
     const applyStoredReport = useCallback((row: StoredCasualtyReport | null) => {
         if (!row?.data) {
+            if (lastAppliedUpdatedAtRef.current !== null) {
+                setData({ 수신: '', 발신: '', rows: [...INITIAL_ROWS], 작성자_소속: '', 작성자_직급: '', 작성자_성명: '' });
+                lastAppliedUpdatedAtRef.current = null;
+                setLastSavedAt('');
+                setSaveStatus('idle');
+            }
             return;
         }
 

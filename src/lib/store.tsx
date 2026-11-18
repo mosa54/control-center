@@ -3,6 +3,7 @@
 import { createContext, useContext, useState, useCallback, ReactNode, useEffect, useRef } from 'react';
 import { Employee, Mission, ExcelData, getMissionByCode } from './excel';
 import { supabase } from './supabase';
+import type { ScenarioDocument } from './scenarioDocumentTypes';
 import { DEFAULT_DATA } from './defaultData';
 
 // 세션 모드 타입
@@ -71,11 +72,13 @@ interface AppState {
     scenarioEvents: ScenarioEvent[];
     realtimeStatus: 'connecting' | 'connected' | 'error' | 'disconnected';
     taskChecks: Record<string, Record<string, TaskCheckInfo>>; // taskChecks[eventId][taskKey]
+    scenarioDocument: ScenarioDocument | null;
     trainingScenarioPdf: TrainingScenarioPdfInfo | null;
 }
 
 // 컨텍스트 액션
 interface AppActions {
+    setScenarioDocument: (document: ScenarioDocument | null) => void;
     setSessionMode: (mode: SessionMode) => Promise<void>;
     setSessionSummary: (summary: string) => Promise<void>;
     setExcelData: (data: ExcelData) => Promise<void>;
@@ -124,6 +127,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
     const [scenarioEvents, setScenarioEvents] = useState<ScenarioEvent[]>([]);
     const [realtimeStatus, setRealtimeStatus] = useState<'connecting' | 'connected' | 'error' | 'disconnected'>('connecting');
     const [taskChecks, setTaskChecks] = useState<Record<string, Record<string, TaskCheckInfo>>>({});
+    const [scenarioDocument, setScenarioDocument] = useState<ScenarioDocument | null>(null);
     const [trainingScenarioPdf, setTrainingScenarioPdf] = useState<TrainingScenarioPdfInfo | null>(null);
     const channelRef = useRef<any>(null);
     const realtimeStatusRef = useRef<'connecting' | 'connected' | 'error' | 'disconnected'>('connecting');
@@ -140,6 +144,8 @@ export function AppProvider({ children }: { children: ReactNode }) {
                 .single();
 
             if (settings) {
+                const document = settings.scenario_document as ScenarioDocument | null;
+                setScenarioDocument(document?.title && document.pages?.length ? document : null);
                 setSessionModeState(settings.mode as SessionMode);
                 setSessionSummaryState(settings.summary || '');
                 if (settings.training_scenario_pdf) {
@@ -707,6 +713,8 @@ export function AppProvider({ children }: { children: ReactNode }) {
         fetchTaskChecks,
         fetchTaskChecksForEvents,
         toggleTaskCheck,
+        scenarioDocument,
+        setScenarioDocument,
         trainingScenarioPdf,
     };
 

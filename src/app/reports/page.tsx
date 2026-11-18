@@ -74,13 +74,14 @@ function ReportsContent() {
                     .from('reports')
                     .select('data, updated_at')
                     .eq('id', type)
-                    .single();
+                    .maybeSingle();
 
                 if (error) {
                     throw error;
                 }
 
                 if (!row?.data) {
+                    delete previewCacheRef.current[type];
                     return null;
                 }
 
@@ -238,27 +239,12 @@ function ReportsContent() {
         previewTypeRef.current = type;
         setPreviewType(type);
 
-        const cached = previewCacheRef.current[type];
-        if (cached) {
-            setPreviewData(cached.data);
-            setLastSavedAt(cached.lastSavedAt);
-            setPreviewStatus('ready');
-
-            if (reportHasPdf(cached.data)) {
-                void preloadPdfViewer();
-            }
-            if (type === 'casualty') {
-                void refreshOpenCasualtyPreview();
-            }
-            return;
-        }
-
         setPreviewData(null);
         setLastSavedAt('');
         setPreviewStatus('loading');
 
         try {
-            const entry = await fetchPreviewData(type);
+            const entry = await fetchPreviewData(type, true);
             if (openRequestIdRef.current !== requestId) {
                 return;
             }
@@ -283,7 +269,7 @@ function ReportsContent() {
             setLastSavedAt('');
             setPreviewStatus('error');
         }
-    }, [fetchPreviewData, refreshOpenCasualtyPreview]);
+    }, [fetchPreviewData]);
 
     const closePreview = useCallback(() => {
         openRequestIdRef.current += 1;

@@ -22,7 +22,7 @@ const CATEGORIES: Record<string, { icon: string; color: string; label: string }>
 const getCat = (v: string) => CATEGORIES[v] || CATEGORIES.phase_10;
 
 export default function ScenarioTimeline() {
-    const { getDeliveredEvents, getPendingEvents, deliverScenarioEvent, fetchTaskChecksForEvents, realtimeStatus } = useApp();
+    const { scenarioDocument, getDeliveredEvents, getPendingEvents, deliverScenarioEvent, fetchTaskChecksForEvents, realtimeStatus } = useApp();
     const observer = useSearchParams().get('role') === 'observer';
     const [admin, setAdmin] = useState(false);
     const [sending, setSending] = useState(false);
@@ -100,7 +100,7 @@ export default function ScenarioTimeline() {
 
     return (
         <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-            <div className="training-actions">
+            {((admin && !observer) || scenarioDocument) && <div className="training-actions">
                 {admin && !observer && (
                     <section className="card training-admin-panel">
                         <Link href="/admin/timeline">타임라인 관리 →</Link>
@@ -113,10 +113,10 @@ export default function ScenarioTimeline() {
                         {sendError && <p role="alert">{sendError}</p>}
                     </section>
                 )}
-                <Link href={observer ? '/training/scenario?role=observer' : '/training/scenario'} className="training-scenario-link">
+                {scenarioDocument && <Link href={observer ? '/training/scenario?role=observer' : '/training/scenario'} className="training-scenario-link">
                     원문 보기
-                </Link>
-            </div>
+                </Link>}
+            </div>}
             {!delivered.length && <p style={{ textAlign: 'center', padding: '40px 20px', color: '#757575' }}>진행 중인 상황부여 내역이 없습니다.</p>}
             {reversed.map(ev => {
                 const cat = getCat(ev.category);
