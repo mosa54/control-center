@@ -1135,9 +1135,20 @@ body.roster-preview-open .roster-page .page-content {
   margin-bottom: var(--spacing-sm);
 }
 
-.timeline-status-filter, .timeline-reset {
-  min-height: 40px;
-  padding: 6px 12px;
+.timeline-toolbar {
+  display: flex;
+  align-items: center;
+  gap: clamp(4px, 1.5vw, 8px);
+  padding: 8px clamp(8px, 3vw, 16px);
+  overflow-x: auto;
+  background: #fff;
+  border-bottom: 1px solid #e0e0e0;
+}
+.timeline-toolbar > button {
+  flex: none;
+  white-space: nowrap;
+  min-height: 44px;
+  padding: 6px clamp(6px, 2vw, 12px);
   border: 1px solid transparent;
   border-radius: 8px;
   font-size: 13px;
@@ -1147,7 +1158,8 @@ body.roster-preview-open .roster-page .page-content {
 .timeline-status-filter.pending { background: #fff9c4; color: #85510a; }
 .timeline-status-filter.delivered { background: #e8f5e9; color: #26632a; }
 .timeline-status-filter[aria-pressed="true"] { border-color: currentColor; box-shadow: inset 0 0 0 1px currentColor; }
-.timeline-reset { background: #fff; border-color: #eed2d2; color: #a42222; }
+.timeline-load { margin-left: auto; background: #e8f2ff; color: #15549b; }
+.timeline-toolbar .timeline-reset { background: #fff; border-color: #eed2d2; color: #a42222; }
 .timeline-reset:disabled { opacity: .5; cursor: default; }
 
 .delivery-badge {

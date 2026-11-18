@@ -85,11 +85,9 @@ export default function TimelinePage() {
 
     // 템플릿
     const [templates, setTemplates] = useState<ScenarioTemplate[]>([]);
-    const [showTemplateSave, setShowTemplateSave] = useState(false);
     const loadLock = useRef(false);
     const [loadingTemplate, setLoadingTemplate] = useState(false);
     const [showTemplateList, setShowTemplateList] = useState(false);
-    const [templateName, setTemplateName] = useState('');
 
     // 예약 타이머
     const [scheduledTimes, setScheduledTimes] = useState<Record<string, string>>({});
@@ -344,23 +342,6 @@ export default function TimelinePage() {
     };
 
     // 템플릿
-    const saveTemplate = async () => {
-        if (!templateName.trim()) { setToast('이름을 입력하세요.'); return; }
-        const evts = scenarioEvents.map(e => ({
-            time_label: e.time_label, title: e.title, description: e.description,
-            category: e.category, sub_types: e.sub_types, delivery_type: e.delivery_type,
-            scheduled_delay_min: e.scheduled_delay_min, condition_note: e.condition_note,
-            sort_order: e.sort_order,
-            roles: e.roles
-        }));
-        await supabase.from('scenario_templates').insert({ name: templateName.trim(), events: evts });
-        const { data } = await supabase.from('scenario_templates').select('*').order('created_at', { ascending: false });
-        if (data) setTemplates(data);
-        setTemplateName('');
-        setShowTemplateSave(false);
-        setToast('템플릿 저장 완료');
-    };
-
     const loadTemplate = async (tpl: ScenarioTemplate) => {
         if (loadLock.current) return;
         loadLock.current = true;
@@ -433,7 +414,7 @@ export default function TimelinePage() {
             </div>
 
             {/* 요약 바 */}
-            <div style={{ display: 'flex', gap: 8, padding: '8px 16px', background: '#fff', borderBottom: '1px solid #E0E0E0', flexWrap: 'wrap' }}>
+            <div className="timeline-toolbar">
                 {(['pending', 'delivered'] as const).map(status => (
                     <button key={status} type="button" className={`timeline-status-filter ${status}`}
                         aria-pressed={statusFilter === status}
@@ -441,14 +422,8 @@ export default function TimelinePage() {
                         {status === 'pending' ? `대기 ${pendingCount}` : `부여됨 ${deliveredCount}`}
                     </button>
                 ))}
-                <div style={{ flex: 1 }} />
-                <button onClick={() => setShowTemplateList(true)}
-                    style={{ background: 'none', border: 'none', fontSize: 13, color: '#1565C0', fontWeight: 600, cursor: 'pointer', padding: '4px 8px' }}>
-                    📂 불러오기
-                </button>
-                <button onClick={() => { if (scenarioEvents.length === 0) { setToast('저장할 이벤트가 없습니다.'); return; } setShowTemplateSave(true); }}
-                    style={{ background: 'none', border: 'none', fontSize: 14, color: '#1565C0', fontWeight: 600, cursor: 'pointer' }}>
-                    💾 저장
+                <button type="button" className="timeline-load" onClick={() => setShowTemplateList(true)}>
+                    불러오기
                 </button>
                 <button type="button" className="timeline-reset" disabled={resetting || !scenarioEvents.length}
                     onClick={async () => {
@@ -776,30 +751,6 @@ export default function TimelinePage() {
                             <button className="btn btn-primary btn-block" onClick={handleSubmit}>
                                 {editingEvent ? '수정 완료' : '추가'}
                             </button>
-                        </div>
-                    </div>
-                </div>
-            )}
-
-            {/* 템플릿 저장 모달 */}
-            {showTemplateSave && (
-                <div className="modal-overlay" onClick={() => setShowTemplateSave(false)}>
-                    <div className="modal-content" onClick={e => e.stopPropagation()}>
-                        <div className="modal-header">
-                            <span className="modal-title">💾 템플릿 저장</span>
-                            <button className="modal-close" onClick={() => setShowTemplateSave(false)}>✕</button>
-                        </div>
-                        <div className="modal-body">
-                            <div className="form-group">
-                                <label className="form-label">템플릿 이름</label>
-                                <input className="form-input" placeholder="예: 화재 시나리오" value={templateName}
-                                    onChange={e => setTemplateName(e.target.value)}
-                                    onKeyDown={e => e.key === 'Enter' && saveTemplate()} />
-                            </div>
-                            <p style={{ fontSize: 13, color: '#757575', marginBottom: 16 }}>
-                                현재 {scenarioEvents.length}개의 상황 카드가 템플릿으로 저장됩니다.
-                            </p>
-                            <button className="btn btn-primary btn-block" onClick={saveTemplate}>저장</button>
                         </div>
                     </div>
                 </div>
