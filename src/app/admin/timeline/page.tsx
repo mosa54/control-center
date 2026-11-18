@@ -561,9 +561,16 @@ export default function TimelinePage() {
             {showModal && (
                 <div className="modal-overlay" onClick={closeModal}>
                     <div className="modal-content" onClick={e => e.stopPropagation()} style={{ maxHeight: '90vh' }}>
-                        <div className="modal-header">
+                        <div className="modal-header" style={editingEvent ? { position: 'sticky', top: 0, zIndex: 1, background: 'var(--color-surface)' } : undefined}>
                             <span className="modal-title">{editingEvent ? '상황 카드 수정' : '상황 카드 추가'}</span>
-                            <button className="modal-close" onClick={closeModal}>✕</button>
+                            <div style={{ display: 'flex', alignItems: 'center', flexShrink: 0 }}>
+                                {editingEvent && (
+                                    <button type="button" className="btn btn-primary" onClick={handleSubmit}>
+                                        수정 완료
+                                    </button>
+                                )}
+                                <button className="modal-close" onClick={closeModal}>✕</button>
+                            </div>
                         </div>
                         <div className="modal-body">
                             <div className="form-group">
