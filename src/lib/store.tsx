@@ -491,6 +491,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
     const cancelDeliverScenarioEvent = useCallback(async (id: string) => {
         await supabase.from('scenario_events').update({
             status: 'pending',
+            scheduled_at: null,
             delivered_at: null
         }).eq('id', id);
         await fetchScenarioEventsLocal();
@@ -519,7 +520,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
 
     const resetScenarioEvents = useCallback(async () => {
         // task_checks는 on delete cascade로 자동 삭제됨
-        await supabase.from('scenario_events').delete().neq('id', '00000000-0000-0000-0000-000000000000');
+        await supabase.from('scenario_events').delete().neq('id', '00000000-0000-0000-0000-000000000000').throwOnError();
         setTaskChecks({});
         await fetchScenarioEventsLocal();
     }, []);

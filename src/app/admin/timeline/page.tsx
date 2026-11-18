@@ -80,7 +80,8 @@ export default function TimelinePage() {
     const [toast, setToast] = useState<string | null>(null);
     const [showModal, setShowModal] = useState(false);
     const [editingEvent, setEditingEvent] = useState<ScenarioEvent | null>(null);
-    const [showResetConfirm, setShowResetConfirm] = useState(false);
+    const [resetting, setResetting] = useState(false);
+    const [statusFilter, setStatusFilter] = useState<'all' | 'pending' | 'delivered'>('all');
 
     // 템플릿
     const [templates, setTemplates] = useState<ScenarioTemplate[]>([]);
@@ -388,13 +389,16 @@ export default function TimelinePage() {
     const fmtCountdown = (s: number) => `${Math.floor(s / 60)}:${(s % 60).toString().padStart(2, '0')}`;
 
     const filteredEvents = filterCategory === 'all' ? scenarioEvents : scenarioEvents.filter(e => e.category === filterCategory);
-    const sorted = [...filteredEvents].sort((a, b) => {
+    const sorted = filteredEvents.filter(e => statusFilter === 'all' || e.status === statusFilter).sort((a, b) => {
+        if (statusFilter === 'delivered') {
+            return (Date.parse(b.delivered_at ?? '') || 0) - (Date.parse(a.delivered_at ?? '') || 0) || a.sort_order - b.sort_order;
+        }
         if (a.status === b.status) return a.sort_order - b.sort_order;
         return a.status === 'pending' ? -1 : 1;
     });
 
-    const pendingCount = scenarioEvents.filter(e => e.status === 'pending').length;
-    const deliveredCount = scenarioEvents.filter(e => e.status === 'delivered').length;
+    const pendingCount = filteredEvents.filter(e => e.status === 'pending').length;
+    const deliveredCount = filteredEvents.filter(e => e.status === 'delivered').length;
 
     // 로그인 화면
     if (!isLoggedIn) {
@@ -430,12 +434,13 @@ export default function TimelinePage() {
 
             {/* 요약 바 */}
             <div style={{ display: 'flex', gap: 8, padding: '8px 16px', background: '#fff', borderBottom: '1px solid #E0E0E0', flexWrap: 'wrap' }}>
-                <span className="delivery-badge pending" style={{ background: '#FFF9C4', color: '#F57F17' }}>
-                    대기 {pendingCount}
-                </span>
-                <span className="delivery-badge delivered" style={{ background: '#E8F5E9', color: '#2E7D32' }}>
-                    부여됨 {deliveredCount}
-                </span>
+                {(['pending', 'delivered'] as const).map(status => (
+                    <button key={status} type="button" className={`timeline-status-filter ${status}`}
+                        aria-pressed={statusFilter === status}
+                        onClick={() => setStatusFilter(current => current === status ? 'all' : status)}>
+                        {status === 'pending' ? `대기 ${pendingCount}` : `부여됨 ${deliveredCount}`}
+                    </button>
+                ))}
                 <div style={{ flex: 1 }} />
                 <button onClick={() => setShowTemplateList(true)}
                     style={{ background: 'none', border: 'none', fontSize: 13, color: '#1565C0', fontWeight: 600, cursor: 'pointer', padding: '4px 8px' }}>
@@ -445,6 +450,24 @@ export default function TimelinePage() {
                     style={{ background: 'none', border: 'none', fontSize: 14, color: '#1565C0', fontWeight: 600, cursor: 'pointer' }}>
                     💾 저장
                 </button>
+                <button type="button" className="timeline-reset" disabled={resetting || !scenarioEvents.length}
+                    onClick={async () => {
+                        if (!confirm(`타임라인의 상황 카드 전체 ${scenarioEvents.length}건을 삭제할까요? 대기·부여됨 카드와 체크 기록이 모두 삭제됩니다.`)) return;
+                        setResetting(true);
+                        try {
+                            await resetScenarioEvents();
+                            timersRef.current.forEach(timer => clearTimeout(timer));
+                            timersRef.current.clear();
+                            setScheduledTimes({});
+                            setStatusFilter('all');
+                            setFilterCategory('all');
+                            setToast('초기화 완료');
+                        } catch {
+                            setToast('초기화에 실패했습니다. 다시 시도해 주세요.');
+                        } finally {
+                            setResetting(false);
+                        }
+                    }}>{resetting ? '초기화 중…' : '전체 초기화'}</button>
             </div>
 
             {/* 카테고리 필터 */}
@@ -468,8 +491,10 @@ export default function TimelinePage() {
                 {sorted.length === 0 && (
                     <div className="card" style={{ textAlign: 'center', color: '#757575' }}>
                         <p style={{ fontSize: 40, marginBottom: 8 }}>📋</p>
-                        <p style={{ fontWeight: 600 }}>상황 카드가 없습니다</p>
-                        <p style={{ fontSize: 13, marginTop: 4 }}>우측 하단 + 버튼으로 추가하거나<br />템플릿을 불러오세요.</p>
+                        <p style={{ fontWeight: 600 }}>{scenarioEvents.length ? '선택한 조건의 상황 카드가 없습니다' : '상황 카드가 없습니다'}</p>
+                        {scenarioEvents.length ? (
+                            <button className="btn btn-secondary" onClick={() => { setStatusFilter('all'); setFilterCategory('all'); }}>전체 카드 보기</button>
+                        ) : <p style={{ fontSize: 13, marginTop: 4 }}>우측 하단 + 버튼으로 추가하거나 템플릿을 불러오세요.</p>}
                     </div>
                 )}
 
@@ -544,26 +569,7 @@ export default function TimelinePage() {
                     );
                 })}
 
-                {/* 초기화 */}
-                {scenarioEvents.length > 0 && (
-                    <div className="card" style={{ marginTop: 16 }}>
-                        {!showResetConfirm ? (
-                            <button className="btn btn-block" style={{ background: '#FF5722', color: '#fff' }}
-                                onClick={() => setShowResetConfirm(true)}>전체 초기화</button>
-                        ) : (
-                            <div style={{ textAlign: 'center' }}>
-                                <p style={{ fontWeight: 600, color: '#D32F2F', marginBottom: 8 }}>⚠️ 모든 상황 카드가 삭제됩니다.</p>
-                                <div style={{ display: 'flex', gap: 8 }}>
-                                    <button className="btn btn-secondary" style={{ flex: 1 }} onClick={() => setShowResetConfirm(false)}>취소</button>
-                                    <button className="btn" style={{ flex: 1, background: '#D32F2F', color: '#fff' }}
-                                        onClick={async () => { await resetScenarioEvents(); setShowResetConfirm(false); setToast('초기화 완료'); }}>
-                                        확인
-                                    </button>
-                                </div>
-                            </div>
-                        )}
-                    </div>
-                )}
+
             </div>
 
             {/* FAB */}
