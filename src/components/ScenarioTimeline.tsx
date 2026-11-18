@@ -2,6 +2,8 @@
 
 import { useEffect, useRef, useState } from 'react';
 import { useApp } from '@/lib/store';
+import Link from 'next/link';
+import { useSearchParams } from 'next/navigation';
 import FlipCard from './FlipCard';
 
 const CATEGORIES: Record<string, { icon: string; color: string; label: string }> = {
@@ -20,7 +22,29 @@ const CATEGORIES: Record<string, { icon: string; color: string; label: string }>
 const getCat = (v: string) => CATEGORIES[v] || CATEGORIES.phase_10;
 
 export default function ScenarioTimeline() {
-    const { getDeliveredEvents, fetchTaskChecksForEvents, realtimeStatus } = useApp();
+    const { getDeliveredEvents, getPendingEvents, deliverScenarioEvent, fetchTaskChecksForEvents, realtimeStatus } = useApp();
+    const observer = useSearchParams().get('role') === 'observer';
+    const [admin, setAdmin] = useState(false);
+    const [sending, setSending] = useState(false);
+    const [sendError, setSendError] = useState('');
+    const sendLock = useRef(false);
+    const next = getPendingEvents()[0];
+    useEffect(() => { setAdmin(sessionStorage.getItem('adminAuth') === 'true'); }, []);
+
+    const sendNext = async () => {
+        if (!next || next.delivery_type !== 'instant' || observer || sessionStorage.getItem('adminAuth') !== 'true' || sendLock.current) return;
+        sendLock.current = true;
+        setSending(true);
+        setSendError('');
+        try {
+            if (!await deliverScenarioEvent(next.id)) setSendError('메시지를 부여하지 못했습니다. 다시 시도해 주세요.');
+        } catch {
+            setSendError('메시지를 부여하지 못했습니다. 연결을 확인해 주세요.');
+        } finally {
+            sendLock.current = false;
+            setSending(false);
+        }
+    };
     const delivered = getDeliveredEvents();
     const [newId, setNewId] = useState<string | null>(null);
     const prevCount = useRef(delivered.length);
@@ -72,18 +96,23 @@ export default function ScenarioTimeline() {
         };
     }, [deliveredIds.join(','), fetchTaskChecksForEvents, realtimeStatus]);
 
-    if (delivered.length === 0) {
-        return (
-            <div style={{ textAlign: 'center', padding: '40px 20px', color: '#757575' }}>
-                진행 중인 상황부여 내역이 없습니다.
-            </div>
-        );
-    }
-
     const reversed = [...delivered].reverse();
 
     return (
         <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+            {admin && !observer && (
+                <section className="card">
+                    <Link href="/admin/timeline">타임라인 관리 →</Link>
+                    {next && <p style={{ margin: '12px 0' }}>다음 메시지 · {next.time_label} {next.title}</p>}
+                    {next?.delivery_type === 'instant' &&
+                        <button type="button" className="btn btn-primary btn-block" disabled={sending} onClick={sendNext}>
+                            {sending ? '부여 중…' : '다음 메시지 부여'}
+                        </button>}
+                    {next && next.delivery_type !== 'instant' && <p>이 메시지는 타임라인 관리에서 부여하세요.</p>}
+                    {sendError && <p role="alert">{sendError}</p>}
+                </section>
+            )}
+            {!delivered.length && <p style={{ textAlign: 'center', padding: '40px 20px', color: '#757575' }}>진행 중인 상황부여 내역이 없습니다.</p>}
             {reversed.map(ev => {
                 const cat = getCat(ev.category);
                 return (

@@ -71,7 +71,7 @@ export default function TimelinePage() {
     const {
         scenarioEvents, addScenarioEvent, updateScenarioEvent,
         deleteScenarioEvent, deliverScenarioEvent, cancelDeliverScenarioEvent,
-        resetScenarioEvents,
+        resetScenarioEvents, loadScenarioTemplate,
     } = useApp();
 
     const [isLoggedIn, setIsLoggedIn] = useState(false);
@@ -85,6 +85,8 @@ export default function TimelinePage() {
     // 템플릿
     const [templates, setTemplates] = useState<ScenarioTemplate[]>([]);
     const [showTemplateSave, setShowTemplateSave] = useState(false);
+    const loadLock = useRef(false);
+    const [loadingTemplate, setLoadingTemplate] = useState(false);
     const [showTemplateList, setShowTemplateList] = useState(false);
     const [templateName, setTemplateName] = useState('');
 
@@ -359,12 +361,22 @@ export default function TimelinePage() {
     };
 
     const loadTemplate = async (tpl: ScenarioTemplate) => {
-        await resetScenarioEvents();
-        for (const ev of tpl.events) {
-            await addScenarioEvent({ ...ev, sub_types: ev.sub_types || [], status: 'pending', sort_order: ev.sort_order ?? 0, scheduled_delay_min: ev.scheduled_delay_min ?? 0 });
+        if (loadLock.current) return;
+        loadLock.current = true;
+        setLoadingTemplate(true);
+        try {
+            await loadScenarioTemplate(tpl.id, tpl.events);
+            timersRef.current.forEach(timer => clearTimeout(timer));
+            timersRef.current.clear();
+            setScheduledTimes({});
+            setShowTemplateList(false);
+            setToast(`"${tpl.name}" 불러옴`);
+        } catch {
+            setToast('템플릿 불러오기를 완료하지 못했습니다. 다시 시도해 주세요.');
+        } finally {
+            loadLock.current = false;
+            setLoadingTemplate(false);
         }
-        setShowTemplateList(false);
-        setToast(`"${tpl.name}" 불러옴`);
     };
 
     const deleteTemplate = async (id: string) => {
@@ -808,9 +820,9 @@ export default function TimelinePage() {
                                         </div>
                                     </div>
                                     <button className="btn btn-primary" style={{ fontSize: 13, minHeight: 36, padding: '4px 12px' }}
-                                        onClick={() => loadTemplate(tpl)}>불러오기</button>
+                                        disabled={loadingTemplate} onClick={() => loadTemplate(tpl)}>{loadingTemplate ? '불러오는 중…' : '불러오기'}</button>
                                     <button className="btn" style={{ fontSize: 13, minHeight: 36, padding: '4px 8px', background: '#FFEBEE', color: '#D32F2F' }}
-                                        onClick={() => deleteTemplate(tpl.id)}>삭제</button>
+                                        disabled={loadingTemplate} onClick={() => deleteTemplate(tpl.id)}>삭제</button>
                                 </div>
                             ))}
                         </div>

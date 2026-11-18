@@ -93,8 +93,9 @@ interface AppActions {
     addScenarioEvent: (event: Omit<ScenarioEvent, 'id' | 'created_at'>) => Promise<void>;
     updateScenarioEvent: (id: string, updates: Partial<ScenarioEvent>) => Promise<void>;
     deleteScenarioEvent: (id: string) => Promise<void>;
-    deliverScenarioEvent: (id: string) => Promise<void>;
+    deliverScenarioEvent: (id: string) => Promise<boolean>;
     cancelDeliverScenarioEvent: (id: string) => Promise<void>;
+    loadScenarioTemplate: (id: string, events: Omit<ScenarioEvent, 'id' | 'created_at' | 'status'>[]) => Promise<void>;
     resetScenarioEvents: () => Promise<void>;
     getDeliveredEvents: () => ScenarioEvent[];
     getPendingEvents: () => ScenarioEvent[];
@@ -473,11 +474,12 @@ export function AppProvider({ children }: { children: ReactNode }) {
     }, []);
 
     const deliverScenarioEvent = useCallback(async (id: string) => {
-        await supabase.from('scenario_events').update({
+        const { error } = await supabase.from('scenario_events').update({
             status: 'delivered',
             delivered_at: new Date().toISOString()
-        }).eq('id', id);
+        }).eq('id', id).eq('status', 'pending');
         await fetchScenarioEventsLocal();
+        return !error;
     }, []);
 
     const cancelDeliverScenarioEvent = useCallback(async (id: string) => {
@@ -485,6 +487,27 @@ export function AppProvider({ children }: { children: ReactNode }) {
             status: 'pending',
             delivered_at: null
         }).eq('id', id);
+        await fetchScenarioEventsLocal();
+    }, []);
+
+    const loadScenarioTemplate = useCallback(async (templateId: string, events: Omit<ScenarioEvent, 'id' | 'created_at' | 'status'>[]) => {
+        if (!events.length) throw new Error('빈 템플릿입니다.');
+        // The same template row has the same UUID on every device, including retries.
+        const cards = await Promise.all(events.map(async (event, index) => {
+            const digest = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(templateId + ':' + index));
+            const hex = Array.from(new Uint8Array(digest).slice(0, 16), byte => byte.toString(16).padStart(2, '0')).join('');
+            const id = [hex.slice(0, 8), hex.slice(8, 12), hex.slice(12, 16), hex.slice(16, 20), hex.slice(20)].join('-');
+            return { ...event, id, status: 'pending', scheduled_at: null, delivered_at: null,
+                sub_types: event.sub_types ?? [], sort_order: event.sort_order ?? index, scheduled_delay_min: event.scheduled_delay_min ?? 0 };
+        }));
+        // Keep the previous timeline until all replacement cards have been accepted.
+        await supabase.from('scenario_events').upsert(cards).throwOnError();
+        const ids = cards.map(card => card.id);
+        await supabase.from('scenario_events').delete().not('id', 'in', '(' + ids.join(',') + ')').throwOnError();
+        for (let start = 0; start < ids.length; start += 100) {
+            await supabase.from('task_checks').delete().in('event_id', ids.slice(start, start + 100)).throwOnError();
+        }
+        setTaskChecks({});
         await fetchScenarioEventsLocal();
     }, []);
 
@@ -676,6 +699,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
         deliverScenarioEvent,
         cancelDeliverScenarioEvent,
         resetScenarioEvents,
+        loadScenarioTemplate,
         getDeliveredEvents,
         getPendingEvents,
         realtimeStatus,
