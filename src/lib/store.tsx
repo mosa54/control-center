@@ -23,6 +23,7 @@ export interface RoleTask {
 }
 
 export interface RoleChecklist {
+    department?: string;
     roleName: string;  // "상황실", "현장지휘대" 등
     tasks: RoleTask[];
 }

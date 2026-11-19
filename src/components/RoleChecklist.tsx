@@ -1,136 +1,73 @@
 'use client';
 
-import { useState } from 'react';
-import { RoleChecklist as RoleChecklistType, TaskCheckInfo } from '@/lib/store';
-import { useApp } from '@/lib/store';
+import type { RoleChecklist as Role, TaskCheckInfo } from '@/lib/store';
+import styles from './RoleChecklist.module.css';
 
-interface RoleChecklistProps {
+interface Props {
     eventId: string;
-    roles: RoleChecklistType[];
+    roles: Role[];
     checkedTasks: Record<string, TaskCheckInfo>;
     onToggleTask: (taskId: string) => void;
 }
 
-export default function RoleChecklist({ eventId, roles, checkedTasks, onToggleTask }: RoleChecklistProps) {
-    const { currentEmployee } = useApp();
-    // const myDept = currentEmployee?.통제단편성부 || '';
+const timeFormat = new Intl.DateTimeFormat('ko-KR', {
+    hour: '2-digit', minute: '2-digit', hourCycle: 'h23', timeZone: 'Asia/Seoul',
+});
 
-    // 역할 정렬: 현재는 정렬 없이 원본 순서대로 유지 (추후 필요시 내 역할 우선순위 적용)
-    const sortedRoles = [...roles];
+export default function RoleChecklist({ eventId, roles, checkedTasks, onToggleTask }: Props) {
+    const departments = new Map<string, Role[]>();
+    for (const role of roles) {
+        const name = role.department ?? '';
+        const group = departments.get(name) ?? [];
+        group.push(role);
+        departments.set(name, group);
+    }
 
-    const [expandedRoles, setExpandedRoles] = useState<Record<string, boolean>>(() => {
-        const initial: Record<string, boolean> = {};
-        sortedRoles.forEach(role => {
-            initial[role.roleName] = true; // 모든 역할 펼침
-        });
-        return initial;
-    });
-
-    const toggleExpanded = (roleName: string, e: React.MouseEvent) => {
-        e.stopPropagation(); // 카드 뒤집기 방지
-        setExpandedRoles(prev => ({ ...prev, [roleName]: !prev[roleName] }));
-    };
-
-    const getTaskStateId = (roleName: string, taskIdx: number) => {
-        return `${eventId}_${roleName}_${taskIdx}`;
-    };
+    // Keep stored check keys for records created before department grouping.
+    const taskKey = (role: Role, index: number) => `${eventId}_${role.roleName}_${index}`;
 
     return (
-        <div className="role-checklist" onClick={e => e.stopPropagation()}>
-            <h4 style={{ margin: '0 0 12px 0', fontSize: '15px', color: '#1A237E', borderBottom: '1px solid #E8EAF6', paddingBottom: '8px' }}>
-                주체별 역할 체크리스트
-            </h4>
-            
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                {sortedRoles.map((role) => {
-                    const isExpanded = expandedRoles[role.roleName];
-                    const completedCount = role.tasks.filter((_, idx) => checkedTasks[getTaskStateId(role.roleName, idx)]?.checked).length;
-                    const totalCount = role.tasks.length;
-                    const isAllCompleted = completedCount === totalCount && totalCount > 0;
-
-                    return (
-                        <div key={role.roleName} style={{ 
-                            background: '#F5F5F5', 
-                            borderRadius: '8px', 
-                            border: '1px solid #E0E0E0',
-                            overflow: 'hidden'
-                        }}>
-                            <div 
-                                onClick={(e) => toggleExpanded(role.roleName, e)}
-                                style={{ 
-                                    padding: '10px 12px', 
-                                    display: 'flex', 
-                                    justifyContent: 'space-between',
-                                    alignItems: 'center',
-                                    cursor: 'pointer',
-                                    fontWeight: 600,
-                                    color: '#424242'
-                                }}
-                            >
-                                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                                    <span>{isExpanded ? '▼' : '▶'}</span>
-                                    <span>{role.roleName}</span>
-                                </div>
-                                <div style={{ fontSize: '12px', color: isAllCompleted ? '#2E7D32' : '#757575', fontWeight: 600 }}>
-                                    {completedCount}/{totalCount}
-                                </div>
-                            </div>
-                            
-                            {isExpanded && (
-                                <div style={{ padding: '0 12px 12px 12px', borderTop: '1px solid #EEEEEE', paddingTop: '8px', background: '#FFFFFF' }}>
-                                    {role.tasks.map((task, idx) => {
-                                        const taskId = getTaskStateId(role.roleName, idx);
-                                        const checkInfo = checkedTasks[taskId];
-                                        const isChecked = !!checkInfo?.checked;
-                                        
+        <div className={styles.checklist} onClick={event => event.stopPropagation()}>
+            {Array.from(departments, ([department, groups]) => (
+                <section key={department} className={styles.department}>
+                    {department && <h3 className={styles.departmentName}>{department}</h3>}
+                    {groups.map(role => {
+                        const complete = role.tasks.filter((_, i) => checkedTasks[taskKey(role, i)]?.checked).length;
+                        return (
+                            <details key={role.roleName} className={styles.group} open>
+                                <summary>
+                                    <span className={styles.groupName}>{role.roleName}</span>
+                                    <span className={styles.count} aria-label={`총 ${role.tasks.length}개 중 ${complete}개 완료`}>
+                                        {complete} / {role.tasks.length}
+                                    </span>
+                                </summary>
+                                <ul>
+                                    {role.tasks.map((task, i) => {
+                                        const id = taskKey(role, i);
+                                        const status = checkedTasks[id];
+                                        const date = status?.checked_at ? new Date(status.checked_at) : undefined;
                                         return (
-                                            <div 
-                                                key={idx} 
-                                                onClick={() => onToggleTask(taskId)}
-                                                style={{ 
-                                                    display: 'flex', 
-                                                    alignItems: 'flex-start', 
-                                                    gap: '8px', 
-                                                    padding: '6px 0',
-                                                    cursor: 'pointer',
-                                                    opacity: isChecked ? 0.7 : 1
-                                                }}
-                                            >
-                                                <input 
-                                                    type="checkbox" 
-                                                    checked={isChecked}
-                                                    readOnly
-                                                    style={{ marginTop: '3px', transform: 'scale(1.2)' }}
-                                                />
-                                                <div style={{ flex: 1 }}>
-                                                    <span style={{ 
-                                                        fontSize: '14px', 
-                                                        color: isChecked ? '#9E9E9E' : '#212121',
-                                                        textDecoration: isChecked ? 'line-through' : 'none',
-                                                        lineHeight: 1.4
-                                                    }}>
-                                                        {task.label}
+                                            <li key={id}>
+                                                <label className={styles.item}>
+                                                    <input type="checkbox" checked={!!status?.checked} onChange={() => onToggleTask(id)} />
+                                                    <span>
+                                                        <span className={status?.checked ? styles.done : undefined}>{task.label}</span>
+                                                        {status?.checked && status.checked_by && (
+                                                            <small>완료 · {status.checked_by}
+                                                                {date && Number.isFinite(date.getTime()) && <> · {timeFormat.format(date)}</>}
+                                                            </small>
+                                                        )}
                                                     </span>
-                                                    {isChecked && checkInfo?.checked_by && (
-                                                        <span style={{ 
-                                                            fontSize: '11px', 
-                                                            color: '#9E9E9E', 
-                                                            marginLeft: '6px',
-                                                            fontWeight: 500
-                                                        }}>
-                                                            ✓ {checkInfo.checked_by}
-                                                        </span>
-                                                    )}
-                                                </div>
-                                            </div>
+                                                </label>
+                                            </li>
                                         );
                                     })}
-                                </div>
-                            )}
-                        </div>
-                    );
-                })}
-            </div>
+                                </ul>
+                            </details>
+                        );
+                    })}
+                </section>
+            ))}
         </div>
     );
 }

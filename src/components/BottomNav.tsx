@@ -7,8 +7,10 @@ import { useApp } from '@/lib/store';
 
 const LAST_TRAINING_PATH_STORAGE_KEY = 'control-center:last-training-path';
 
-const isTrainingHref = (href: string | null): href is string =>
-    href === '/training' || Boolean(href?.startsWith('/training/'));
+const isTrainingHref = (href: string | null): href is string => {
+    const path = href?.split('?')[0];
+    return path === '/training' || path === '/training/scenario';
+};
 
 const applyObserverRole = (href: string, isObserver: boolean) => {
     const [pathname, query = ''] = href.split('?');
@@ -37,7 +39,7 @@ function BottomNavInner() {
     const currentQuery = searchParams.toString();
 
     useEffect(() => {
-        if (!pathname.startsWith('/training')) return;
+        if (!isTrainingHref(pathname)) return;
 
         const currentTrainingHref = applyObserverRole(
             `${pathname}${currentQuery ? `?${currentQuery}` : ''}`,
