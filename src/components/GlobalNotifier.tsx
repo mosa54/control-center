@@ -12,6 +12,10 @@ export default function GlobalNotifier() {
     const prevCount = useRef(delivered.length);
     const [show, setShow] = useState<string | null>(null);
 
+    const start = useRef<{ id: number; x: number; y: number } | null>(null);
+    const [offset, setOffset] = useState(0);
+    const swiped = useRef(false);
+
     useEffect(() => {
         // 데이터 변경 확인용 로그
         console.log('실시간 상황 모니터링 중... (전체 상황 수:', delivered.length, ')');
@@ -23,6 +27,9 @@ export default function GlobalNotifier() {
 
             // 훈련 모드 화면을 보고 있는 중이 아니거나 관리자 페이지가 아닌 경우에만 팝업 표시
             if (pathname !== '/training' && !pathname.startsWith('/admin')) {
+                start.current = null;
+                swiped.current = false;
+                setOffset(0);
                 setShow(latest.title || '새 상황 메시지');
                 
                 // 진동 알림 (모바일 기기 지원 시)
@@ -62,10 +69,42 @@ export default function GlobalNotifier() {
                 width: '90%',
                 maxWidth: '400px',
                 cursor: 'pointer',
+                touchAction: 'pan-y',
+                userSelect: 'none',
+                translate: offset + 'px 0',
                 backdropFilter: 'blur(4px)',
                 animation: 'slideDown 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275)'
             }}
+            onPointerDown={e => {
+                if (!e.isPrimary || e.button !== 0) return;
+                start.current = { id: e.pointerId, x: e.clientX, y: e.clientY };
+                swiped.current = false;
+                e.currentTarget.setPointerCapture(e.pointerId);
+            }}
+            onPointerMove={e => {
+                const origin = start.current;
+                if (origin?.id !== e.pointerId) return;
+                const dx = e.clientX - origin.x;
+                if (Math.abs(dx) > 8 && Math.abs(dx) > Math.abs(e.clientY - origin.y)) swiped.current = true;
+                if (swiped.current) setOffset(dx);
+            }}
+            onPointerUp={e => {
+                const origin = start.current;
+                if (origin?.id !== e.pointerId) return;
+                const dx = Math.abs(e.clientX - origin.x);
+                if (dx >= 48 && dx > Math.abs(e.clientY - origin.y)) {
+                    swiped.current = true;
+                    setShow(null);
+                }
+                start.current = null;
+                setOffset(0);
+            }}
+            onPointerCancel={() => {
+                start.current = null;
+                setOffset(0);
+            }}
             onClick={() => {
+                if (swiped.current) return;
                 setShow(null);
                 router.push('/training');
             }}
